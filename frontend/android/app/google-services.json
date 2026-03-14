@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "687542945407",
+    "project_id": "tourclick-42ab4",
+    "storage_bucket": "tourclick-42ab4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687542945407:android:120837d71e2ba2a899214a",
+        "android_client_info": {
+          "package_name": "com.chat.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJZWDeWv9RRR9DQiO0GgpVPqDQCuJwPb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
