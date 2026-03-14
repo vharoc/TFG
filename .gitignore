@@ -216,3 +216,6 @@ frontend/.packages
 
 # Backend
 backend/.venv/
+backend/serviceTourClickFirebaseKey.json
+
+# Firebase
