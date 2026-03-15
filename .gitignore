@@ -214,6 +214,9 @@ frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 frontend/.packages
 
+!frontend/lib/
+!frontend/lib/**
+
 # Backend
 backend/.venv/
 backend/serviceTourClickFirebaseKey.json
