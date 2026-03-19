@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
-
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
     const LoginScreen({super.key});
@@ -12,13 +12,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
 
-    final _email = TextEditingController();
+    final _email_or_user = TextEditingController();
     final _passwd = TextEditingController();
     bool _obscure = true;
 
     @override
     void dispose() {
-        _email.dispose();
+        _email_or_user.dispose();
         _passwd.dispose();
         super.dispose();
     }
@@ -47,11 +47,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             // EMAIL
                             TextField(
-                                controller: _email,
+                                controller: _email_or_user,
                                 style: AppTheme.cuerpo,
                                 decoration: const InputDecoration(
                                     hintText: 'Email o usuario',
-                                    border: 
                                 ),
                             ),
 
@@ -95,10 +94,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
 
                             const Spacer(),
+
+                            // boton a registrarse
+
                             OutlinedButton(
-                                onPressed: () {
-                                    // TODO: navegar a RegisterScreen
-                                },
+                                onPressed: () => context.go('/register'),
                                 style: OutlinedButton.styleFrom(
                                     foregroundColor: AppTheme.usal,
                                     backgroundColor: AppTheme.fondo,
