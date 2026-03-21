@@ -137,10 +137,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        '¿No tienes cuenta?',
-                        style: TextStyle(color: Colors.black54),
+                      const Flexible(
+                        child: Text(
+                          '¿No tienes cuenta?',
+                          style: TextStyle(color: Colors.black54),
+                        ),
                       ),
+                      
                       TextButton(
                         onPressed: () => context.go('/register'),
                         child: Text(

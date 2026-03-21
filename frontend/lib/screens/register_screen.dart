@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'package:go_router/go_router.dart';
+import '../services/auth_services.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,7 +14,13 @@ class _RegisterScreenScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
   final _user = TextEditingController();
-  bool _obscure = true;
+
+  bool _obscure = true; 
+  bool _loading = false;
+  String? _error;
+  final _auth = AuthService();
+
+
 
   @override
   void dispose() {
@@ -116,11 +123,23 @@ class _RegisterScreenScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 28),
 
+                  // ERROR 
+                  if(_error != null) ...[
+                    Text(
+                      _error!,
+                      style: TextStyle(color:AppTheme.usal, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                  ],
+
                   // BOTÓN PRINCIPAL
                   ElevatedButton(
-                    onPressed: () {
-                      // TODO: lógica registro
-                    },
+
+                    onPressed: _loading ? null : _register,
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.usal,
                       foregroundColor: Colors.white,
@@ -129,7 +148,7 @@ class _RegisterScreenScreenState extends State<RegisterScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: const Text('Crear cuenta'),
+                    child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text ('Crear cuenta'),
                   ),
 
                   const SizedBox(height: 24),
@@ -155,10 +174,13 @@ class _RegisterScreenScreenState extends State<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      const Flexible(
+                        child: Text(
                         '¿Ya tienes cuenta?',
                         style: TextStyle(color: Colors.black54),
+                        ),
                       ),
+                      
                       TextButton(
                         onPressed: () => context.go('/login'),
                         child: Text(
@@ -191,4 +213,38 @@ class _RegisterScreenScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
+  Future<void> _register() async{
+    if(_email.text.isEmpty || _passwd.text.isEmpty || _user.text.isEmpty){
+      setState(() => _error = 'Rellena todos los campos');
+      return;
+    }
+
+    if(_passwd.text.length < 8){
+      setState(() => _error = 'La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try{
+      await _auth.createAccount(email: _email.text.trim(), passwd: _passwd.text.trim());
+      await _auth.updateUsername(username: _user.text.trim());
+      
+      if(!mounted){
+        return;
+      }
+
+      context.go('/home');
+    } catch (e){
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _loading = false);
+    }
+
+  }
+
 }
