@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'package:go_router/go_router.dart';
-
+import '../services/auth_services.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -10,13 +10,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailOrUser = TextEditingController();
+  final _email = TextEditingController();
   final _passwd = TextEditingController();
+  
   bool _obscure = true;
+  bool _loading = false;
+  String? _error;
+  final _auth = AuthService();
 
   @override
   void dispose() {
-    _emailOrUser.dispose();
+    _email.dispose();
     _passwd.dispose();
     super.dispose();
   }
@@ -58,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildLabel('Email o usuario'),
                   const SizedBox(height: 6),
                   TextField(
-                    controller: _emailOrUser,
+                    controller: _email,
                     style: AppTheme.cuerpo,
                     decoration: const InputDecoration(
                       hintText: 'Introduce tu email o usuario',
@@ -97,11 +101,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 28),
 
+                  if(_error != null) ... [
+                    Text(
+                      _error!,
+                      style: TextStyle(color:AppTheme.usal, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                  ],
+
                   // BOTON PRINCIPAL
                   ElevatedButton(
-                    onPressed: () {
-                      // TODO : logica login
-                    },
+
+                    onPressed: _loading ? null : _login,
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.usal,
@@ -145,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       
                       TextButton(
-                        onPressed: () => context.go('/register'),
+                        onPressed: () => context.go('/home'),
                         child: Text(
                           'Crear cuenta',
                           style: TextStyle(
@@ -176,4 +190,31 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  Future<void> _login() async {
+    if(_email.text.isEmpty || _passwd.text.isEmpty){
+      setState(() => _error = 'Rellena todos los campos');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try{
+      await _auth.signIn(email:_email.text.trim(), passwd: _passwd.text.trim());
+      if(!mounted){
+        return;
+      }
+      context.go('/home');
+    } catch (e){
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _loading = false);
+    }
+
+  }
+
+
 }

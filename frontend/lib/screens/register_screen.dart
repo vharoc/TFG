@@ -7,10 +7,10 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
   final _user = TextEditingController();

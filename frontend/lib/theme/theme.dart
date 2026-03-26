@@ -16,8 +16,11 @@ class AppTheme {
 
   static ThemeData get theme => ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: ocre),
+    
     scaffoldBackgroundColor: fondo,
+    
     useMaterial3: true,
+
     inputDecorationTheme: const InputDecorationTheme(
       border: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.black, width: 1),
