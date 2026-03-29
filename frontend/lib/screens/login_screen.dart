@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../theme/theme.dart';
 import 'package:go_router/go_router.dart';
 import '../services/auth_services.dart';
+import '../widgets/header_logo.dart';
+import '../widgets/separator.dart';
+import '../widgets/form_lbl.dart';
+
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -32,24 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // HEADER CON LOGO
-          Container(
-            color: AppTheme.usal,
-            padding: const EdgeInsets.only(top: 64, bottom: 32),
-            child: Column(
-              children: [
-                Image.asset('assets/images/logo_only.png', height: 72),
-                const SizedBox(height: 12),
-                const Text(
-                  'Iniciar sesión',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const HeaderLogo(title: 'Iniciar sesión'),
 
           // FORMULARIO
           Expanded(
@@ -59,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // EMAIL
-                  _buildLabel('Email o usuario'),
+                  const FormLabel('Email o usuario'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _email,
@@ -76,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   // CONTRASEÑA
-                  _buildLabel('Contraseña'),
+                  const FormLabel('Contraseña'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: _passwd,
@@ -131,19 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // SEPARADOR
-                  Row(
-                    children: const [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'o',
-                          style: TextStyle(color: Colors.black45),
-                        ),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
+                  const Separator(),
 
                   const SizedBox(height: 16),
 
@@ -159,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       
                       TextButton(
-                        onPressed: () => context.go('/home'),
+                        onPressed: () => context.go('/register'),
                         child: Text(
                           'Crear cuenta',
                           style: TextStyle(
@@ -175,18 +151,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: AppTheme.cuerpo.copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: 12,
-        letterSpacing: 0.6,
-        color: Colors.black54,
       ),
     );
   }

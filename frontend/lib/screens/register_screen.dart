@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import '../theme/theme.dart';
 import 'package:go_router/go_router.dart';
+import '../theme/theme.dart';
 import '../services/auth_services.dart';
+import '../widgets/form_lbl.dart';
+import '../widgets/header_logo.dart';
+import '../widgets/separator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,8 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _error;
   final _auth = AuthService();
 
-
-
   @override
   void dispose() {
     _email.dispose();
@@ -37,24 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // HEADER CON LOGO
-          Container(
-            color: AppTheme.usal,
-            padding: const EdgeInsets.only(top: 64, bottom: 32),
-            child: Column(
-              children: [
-                Image.asset('assets/images/logo_only.png', height: 72),
-                const SizedBox(height: 12),
-                const Text(
-                  'Crear cuenta',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const HeaderLogo(title: 'Crear cuenta'),
 
           // FORMULARIO
           Expanded(
@@ -64,7 +48,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // USUARIO
-                  _buildLabel('Usuario'),
+                  const FormLabel('Usuario'),
+
                   const SizedBox(height: 6),
                   TextField(
                     controller: _user,
@@ -81,7 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
 
                   // EMAIL
-                  _buildLabel('Email'),
+                  const FormLabel('Email'),
+
                   const SizedBox(height: 6),
                   TextField(
                     controller: _email,
@@ -99,7 +85,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
 
                   // CONTRASEÑA
-                  _buildLabel('Contraseña'),
+                  const FormLabel('Contraseña'),
+
                   const SizedBox(height: 6),
                   TextField(
                     controller: _passwd,
@@ -153,20 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 24),
 
-                  // SEPARADOR
-                  Row(
-                    children: const [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'o',
-                          style: TextStyle(color: Colors.black45),
-                        ),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
+                  const Separator(),
 
                   const SizedBox(height: 16),
 
@@ -198,18 +172,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: AppTheme.cuerpo.copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: 12,
-        letterSpacing: 0.6,
-        color: Colors.black54,
       ),
     );
   }
