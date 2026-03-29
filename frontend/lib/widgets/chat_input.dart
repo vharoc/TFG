@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/theme.dart';
 
 class ChatInput extends StatefulWidget {
-  /// Callback que se ejecuta al pulsar enviar con el texto introducido.
+  // Callback que se ejecuta al pulsar enviar con el texto introducido.
   final void Function(String text)? onSend;
- 
-  const ChatInput({super.key, this.onSend});
+  
+  // Callback que se ejecuta cuando el usuario captura o selecciona una imagen.
+  final void Function(XFile image)? onImagePicked;
+
+  const ChatInput({super.key, this.onSend, this.onImagePicked});
  
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -13,6 +17,7 @@ class ChatInput extends StatefulWidget {
  
 class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
   bool _showSend = false;
  
   @override
@@ -20,7 +25,29 @@ class _ChatInputState extends State<ChatInput> {
     _controller.dispose();
     super.dispose();
   }
- 
+  
+  Future<void> _openCamera() async {
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+    );
+    if(photo != null){
+      widget.onImagePicked?.call(photo);
+    }
+  }
+
+  Future<void> _openGallery() async {
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+
+    if (photo != null) {
+      widget.onImagePicked?.call(photo);
+    }
+
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -151,9 +178,9 @@ class _ChatInputState extends State<ChatInput> {
       ],
     ).then((value) {
       if (value == 'camara') {
-        // TODO: abrir cámara
+        _openCamera();
       } else if (value == 'album') {
-        // TODO: abrir galería
+        _openGallery();
       }
     });
   }
