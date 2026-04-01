@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/theme.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/theme.dart';
 import '../services/auth_services.dart';
 import '../widgets/header_logo.dart';
 import '../widgets/separator.dart';
@@ -29,6 +30,21 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwd.dispose();
     super.dispose();
   }
+
+  String _parseError(dynamic e){
+    if (e is FirebaseAuthException){
+      return switch (e.code){
+        "user-not-found" => 'No existe usuario asociado al correo',
+        'wrong-password' => 'Contraseña incorrecta',
+        'invalid-email' => 'Formato de email no válido',
+        'invalid-credential' => 'Email o contraseña incorrectos',
+        'too-many-requests'     => 'Demasiados intentos, espera unos minutos',
+        _                       => 'Error inesperado, inténtalo de nuevo',
+      };
+    }
+    return 'Error, inténtalo de nuevo';
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       context.go('/home');
     } catch (e){
-      setState(() => _error = e.toString());
+      setState(() => _error = _parseError(e));
     } finally {
       setState(() => _loading = false);
     }

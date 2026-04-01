@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/theme.dart';
-import '../services/auth_services.dart';
 import '../widgets/form_lbl.dart';
-import '../widgets/header_logo.dart';
 import '../widgets/separator.dart';
-
+import '../widgets/header_logo.dart';
+import '../services/auth_services.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -29,6 +29,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwd.dispose();
     _user.dispose();
     super.dispose();
+  }
+
+  String _parseError(dynamic e) {
+    if (e is FirebaseAuthException) {
+      return switch (e.code) {
+        'email-already-in-use'  => 'email ya está registrado',
+        'invalid-email'         => 'formato del email no válido',
+        'weak-password'         => 'contraseña demasiado débil',
+        'too-many-requests'     => 'Demasiados intentos, espera unos minutos',
+        _                       => 'Error: inténtalo de nuevo',
+      };
+    }
+    return 'Error: inténtalo de nuevo';
   }
 
   @override
@@ -202,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       context.go('/home');
     } catch (e){
-      setState(() => _error = e.toString());
+      setState(() => _error = _parseError(e));
     } finally {
       setState(() => _loading = false);
     }
