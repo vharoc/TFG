@@ -54,30 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-                // ── Topbar ──────────────────────────────────
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 44), // espacio para hamburguesa
-                      const Spacer(),
-                      Text(
-                        'TourClick',
-                        style: AppTheme.titulo.copyWith(
-                          fontSize: 20,
-                          color: AppTheme.usal,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 44), // balance visual
-                    ],
-                  ),
-                ),
- 
-                const Divider(height: 1),
- 
+
                 // ── Área de mensajes ────────────────────────
                 Expanded(
                   child: _messages.isEmpty
@@ -111,7 +88,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.location_city_outlined, size: 48, color: Colors.black12),
+          Image.asset(
+            'assets/images/logo.png', // ajusta esta ruta a tu asset real
+            width: 48,
+            height: 48,
+          ),
           const SizedBox(height: 12),
           Text(
             'Pregunta sobre algún monumento',
