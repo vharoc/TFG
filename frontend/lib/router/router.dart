@@ -1,5 +1,6 @@
 import 'package:frontend/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:frontend/screens/lateral_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
@@ -13,9 +14,9 @@ final appRouter = GoRouter(
     final user = FirebaseAuth.instance.currentUser;
     final isPublic = _publicRoutes.contains(state.matchedLocation);
 
-    if(user == null && !isPublic) return 'login';
+    if(user == null && !isPublic) return '/login';
 
-    if(user != null && isPublic) return 'home';
+    if(user != null && isPublic) return '/home';
 
     return null;
 
@@ -26,5 +27,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+    GoRoute(path: '/lateral', builder:(context, state) => const LateralScreen()),
   ],
 );

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/theme.dart';
 import '../models/chat_msg.dart';
@@ -76,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
  
             // ── Botón hamburguesa ────────────────────────
-            HamburgerButton(onTap: () => print('Hamburger pressed')),
+            HamburgerButton(onTap: () => context.push('/lateral')),
           ],
         ),
       ),
