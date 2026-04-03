@@ -44,6 +44,10 @@ class _LateralScreenState extends State<LateralScreen> {
   Widget build(BuildContext context){
     
     final user = FirebaseAuth.instance.currentUser;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isCompact = screenHeight < 760;
+    final maxItemsPerSection = screenHeight < 700 ? 1 : (screenHeight < 820 ? 2 : 3);
+    final innerSpacing = isCompact ? 6.0 : 8.0;
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
@@ -104,7 +108,7 @@ class _LateralScreenState extends State<LateralScreen> {
                 },
 
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(vertical: isCompact ? 10 : 12, horizontal: 16),
                   decoration: BoxDecoration(
                     color: AppTheme.usal,
                     borderRadius: BorderRadius.circular(12),
@@ -128,61 +132,58 @@ class _LateralScreenState extends State<LateralScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Lista
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildSectionHeader('Historial de chats'),
-            ),
-            const SizedBox(height: 8),
- 
+            // Lista 
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    if (_chats.isEmpty)
-                      _buildEmptyCard('Aún no hay conversaciones')
-                    else ...[
-                      ..._chats.map((c) => _buildChatTile(context, c)),
-                      _buildVerTodo(context, onTap: () {
-                        // TODO: navegar a historial completo
-                      }),
-                    ],
+                    _buildSectionHeader('Historial de chats'),
+                    SizedBox(height: innerSpacing),
+                    // Chats ocupan la mitad del espacio disponible
+                    Flexible(
+                      flex: 1,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_chats.isEmpty)
+                            _buildEmptyCard('Aún no hay conversaciones')
+                          else ...[
+                            ..._chats.take(maxItemsPerSection).map((c) => _buildChatTile(context, c)),
+                            _buildVerTodo(context, onTap: () {}),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 8),
+
+                    _buildSectionHeader('Ciudades visitadas'),
+
+                    SizedBox(height: innerSpacing),
+                    // Ciudades ocupan la otra mitad
+                    Flexible(
+                      flex: 1,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_ciudades.isEmpty)
+                            _buildEmptyCard('Aún no has visitado ninguna ciudad')
+                          else ...[
+                            ..._ciudades.take(maxItemsPerSection).map((c) => _buildCiudadTile(context, c)),
+                            _buildVerTodo(context, onTap: () {}),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Spacer(), // empuja el footer hacia abajo
                   ],
                 ),
               ),
             ),
  
-            const SizedBox(height: 8),
- 
-            // ── CIUDADES VISITADAS ───────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildSectionHeader('Ciudades visitadas'),
-            ),
-            const SizedBox(height: 8),
- 
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    if (_ciudades.isEmpty)
-                      _buildEmptyCard('Aún no has visitado ninguna ciudad')
-                    else ...[
-                      ..._ciudades.map((c) => _buildCiudadTile(context, c)),
-                      _buildVerTodo(context, onTap: () {
-                        // TODO: navegar a ciudades completas
-                      }),
-                    ],
-                  ],
-                ),
-              ),
-            ),
- 
-            const SizedBox(height: 8),
 
             // FOOTER
             const Divider(height: 1, indent: 20, endIndent: 20),
@@ -348,7 +349,7 @@ class _LateralScreenState extends State<LateralScreen> {
 
   Widget _buildEmptyCard(String mensaje) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
