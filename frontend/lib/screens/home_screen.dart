@@ -6,6 +6,7 @@ import '../theme/theme.dart';
 import '../models/chat_msg.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/hamburger_btt.dart';
+import '../services/chat_services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
+
+  // -- chat activo --
+  String? _chatId = null;
+  bool _creandoChat = false;
+
  
   @override
   void dispose() {
@@ -34,6 +40,22 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _messages.add(ChatMessage.image(img)));
     _scrollToBottom();
   }
+
+  // -- Crear conversacion en Firestore (solo con el primer mensaje)
+  Future<void> _esPrimerMensaje(String primerTexto) async {
+    if (_chatId != null || _creandoChat) return;
+    _creandoChat = true;
+
+    try {
+      final id = await ChatService.instance.crearConversacion(
+        titulo: primerTexto.length > 40 ? '${primerTexto.substring(0, 40)}...' : primerTexto,
+      );
+      if(mounted) setState(() => _chatId = id);
+    }finally {
+      _creandoChat = false;
+    }
+  }
+
 
   void _scrollToBottom(){
     WidgetsBinding.instance.addPostFrameCallback((_){
