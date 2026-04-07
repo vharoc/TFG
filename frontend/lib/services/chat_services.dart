@@ -13,11 +13,14 @@ class ConversacionMeta {
   });
 
   factory ConversacionMeta.fromDoc(DocumentSnapshot doc){
-    final data = doc.data() as Map<String, dynamic>;
+    final data = (doc.data() as Map<String, dynamic>?) ?? {};
+    final fechaRaw = data['fecha'];
+    final fecha =
+        fechaRaw is Timestamp ? fechaRaw.toDate() : DateTime.now();
     return ConversacionMeta(
       id: doc.id, 
       titulo: data['titulo'] as String? ?? 'Sin titulo', 
-      fecha: (data['fecha'] as Timestamp).toDate(),
+      fecha: fecha,
     );
   }
 
