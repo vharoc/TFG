@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/theme.dart';
@@ -24,6 +25,17 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _chatId = null;
   bool _creandoChat = false;
 
+  void _abrirLateral() {
+    context.push<bool>('/lateral').then((crearNueva) {
+      if (crearNueva == true && mounted) {
+        setState(() {
+          _chatId = null;
+          _messages.clear();
+        });
+      }
+    });
+  }
+
  
   @override
   void dispose() {
@@ -31,14 +43,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _addText(String text){
+  void _addText(String text) async {
     setState(() => _messages.add(ChatMessage.text(text)));
     _scrollToBottom();
+    await _esPrimerMensaje(text);
   }
 
-  void _addImg(XFile img){
+  void _addImg(XFile img) async {
     setState(() => _messages.add(ChatMessage.image(img)));
     _scrollToBottom();
+    await _esPrimerMensaje('[Imagen]');
   }
 
   // -- Crear conversacion en Firestore (solo con el primer mensaje)
@@ -51,6 +65,14 @@ class _HomeScreenState extends State<HomeScreen> {
         titulo: primerTexto.length > 40 ? '${primerTexto.substring(0, 40)}...' : primerTexto,
       );
       if(mounted) setState(() => _chatId = id);
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'permission-denied'
+          ? 'No tienes permisos en Firestore para crear chats.'
+          : 'No se pudo crear la conversacion. Intentalo de nuevo.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      );
     }finally {
       _creandoChat = false;
     }
@@ -101,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
  
             // ── Botón hamburguesa ────────────────────────
-            HamburgerButton(onTap: () => context.push('/lateral')),
+            HamburgerButton(onTap: _abrirLateral),
           ],
         ),
       ),

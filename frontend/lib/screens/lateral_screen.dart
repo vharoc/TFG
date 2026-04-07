@@ -104,8 +104,8 @@ class _LateralScreenState extends State<LateralScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
                 onTap: (){
-                  // Crear nueva conversacion
-                  context.pop();
+                  // HomeScreen reinicia chat activo cuando recibe true.
+                  context.pop(true);
                 },
 
                 child: Container(
@@ -303,37 +303,12 @@ class _LateralScreenState extends State<LateralScreen> {
         trailing: IconButton(
           icon:
               const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
-          onPressed: () => _confirmarEliminarChat(context, chat),
+          onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
         ),
         onTap: () => context.pop(),
       ),
     );
   }
- 
-  // ── Diálogo de confirmación antes de eliminar ──────────────────────────────
-  Future<void> _confirmarEliminarChat(
-      BuildContext context, ConversacionMeta chat) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar conversación'),
-        content: Text('¿Eliminar "${chat.titulo}"?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child:
-                  const Text('Eliminar', style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await ChatService.instance.eliminarConversacion(chat.id);
-    }
-  }
-
 
  Widget _buildCiudadTile(BuildContext context, CiudadVisitada ciudad) {
     return Container(
