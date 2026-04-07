@@ -2,6 +2,7 @@ import '../theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/chat_services.dart';
 
 // MODELOS TEMPORALES 
 class ChatHistorial {
@@ -142,19 +143,32 @@ class _LateralScreenState extends State<LateralScreen> {
                   children: [
                     _buildSectionHeader('Historial de chats'),
                     SizedBox(height: innerSpacing),
-                    // Chats ocupan la mitad del espacio disponible
+                    // ── Historial de chats desde Firestore ─────────────────
                     Flexible(
                       flex: 1,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_chats.isEmpty)
-                            _buildEmptyCard('Aún no hay conversaciones')
-                          else ...[
-                            ..._chats.take(maxItemsPerSection).map((c) => _buildChatTile(context, c)),
-                            _buildVerTodo(context, onTap: () {}),
-                          ],
-                        ],
+                      child: StreamBuilder<List<ConversacionMeta>>(
+                        stream: ChatService.instance.chatsStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final chats = snapshot.data ?? [];
+                          if (chats.isEmpty) {
+                            return _buildEmptyCard(
+                                'Aún no hay conversaciones');
+                          }
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...chats
+                                  .take(maxItemsPerSection)
+                                  .map((c) => _buildChatTile(context, c)),
+                              _buildVerTodo(context, onTap: () {}),
+                            ],
+                          );
+                        },
                       ),
                     ),
 
@@ -194,7 +208,7 @@ class _LateralScreenState extends State<LateralScreen> {
                   // Avatar usuario
                   GestureDetector(
                     onTap: () {
-                      // TODO: navegar a perfil
+                      context.push('/ajustes');
                     },
                     child: Container(
                       width: 38,
@@ -233,7 +247,8 @@ class _LateralScreenState extends State<LateralScreen> {
                   // Botón configuración
                   IconButton(
                     onPressed: () {
-                      // TODO: navegar a configuración
+                      // nav a configuacion
+                      context.push('/ajustes');
                     },
                     icon: const Icon(Icons.settings_outlined,
                         color: Colors.black54, size: 22),
@@ -261,7 +276,8 @@ class _LateralScreenState extends State<LateralScreen> {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, ChatHistorial chat) {
+  // ── Tile de chat con opción de eliminar ────────────────────────────────────
+  Widget _buildChatTile(BuildContext context, ConversacionMeta chat) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -269,10 +285,10 @@ class _LateralScreenState extends State<LateralScreen> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.black),
       ),
-
       child: ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: const Icon(Icons.chat_bubble_outline,
             size: 18, color: AppTheme.usal),
         title: Text(
@@ -284,16 +300,42 @@ class _LateralScreenState extends State<LateralScreen> {
           _formatFecha(chat.fecha),
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
-        onTap: () {
-          // TODO: abrir chat específico
-          context.pop();
-        },
+        trailing: IconButton(
+          icon:
+              const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
+          onPressed: () => _confirmarEliminarChat(context, chat),
+        ),
+        onTap: () => context.pop(),
       ),
     );
   }
+ 
+  // ── Diálogo de confirmación antes de eliminar ──────────────────────────────
+  Future<void> _confirmarEliminarChat(
+      BuildContext context, ConversacionMeta chat) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar conversación'),
+        content: Text('¿Eliminar "${chat.titulo}"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child:
+                  const Text('Eliminar', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ChatService.instance.eliminarConversacion(chat.id);
+    }
+  }
 
 
-  Widget _buildCiudadTile(BuildContext context, CiudadVisitada ciudad) {
+ Widget _buildCiudadTile(BuildContext context, CiudadVisitada ciudad) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -303,7 +345,8 @@ class _LateralScreenState extends State<LateralScreen> {
       ),
       child: ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: const Icon(Icons.location_city_outlined,
             size: 18, color: AppTheme.usal),
         title: Text(
@@ -314,10 +357,7 @@ class _LateralScreenState extends State<LateralScreen> {
           ciudad.provincia,
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
-        onTap: () {
-          // TODO: abrir ciudad específica
-          context.pop();
-        },
+        onTap: () => context.pop(),
       ),
     );
   }
