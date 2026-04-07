@@ -56,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Column(
               children: [
 
+                _buildHeader(),
+
                 // ── Área de mensajes ────────────────────────
                 Expanded(
                   child: _messages.isEmpty
@@ -81,6 +83,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF7F4),
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFE0DAD4), width: 1),
+        ),
+      ),
+      child: const SizedBox.expand(),
     );
   }
 
