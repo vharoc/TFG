@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MensajeTipo { 
-  texto, imagen 
+  texto, 
+  imagen, 
 }
 
 /* Estructura Firestore:
@@ -16,7 +17,7 @@ class Mensaje {
   final String id;
   final MensajeTipo tipo;
   final String contenido;
-  final Timestamp fecha;
+  final DateTime fecha;
   final bool esUsuario;
 
   const Mensaje({
@@ -28,13 +29,14 @@ class Mensaje {
   });
 
   factory Mensaje.fromDoc(DocumentSnapshot doc){
-    final d = doc.data() as Map<String, dynamic>;
+    final d = (doc.data() as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final rawFecha = d['fecha'];
     return Mensaje(
       id: doc.id,
       tipo: d['tipo'] == 'imagen' ? MensajeTipo.imagen : MensajeTipo.texto,
-      contenido: d['contenido'] as String ?? '', 
-      fecha: (d['fecha'] as Timestamp).toDate(),
-      esUsuario: d['esUsuario'] as bool ?? true,
+      contenido: d['contenido'] as String? ?? '', 
+      fecha: rawFecha is Timestamp ? rawFecha.toDate() : DateTime.now(),
+      esUsuario: d['esUsuario'] as bool? ?? true,
     ); 
   }
 

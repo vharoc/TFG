@@ -298,7 +298,7 @@ class _LateralScreenState extends State<LateralScreen> {
               const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
           onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
         ),
-        onTap: () => context.pop(),
+        onTap: () => context.go('/home/${chat.id}'),
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import '../models/mensaje.dart';
 
 class ConversacionMeta {
   final String id;
@@ -13,14 +15,12 @@ class ConversacionMeta {
   });
 
   factory ConversacionMeta.fromDoc(DocumentSnapshot doc){
-    final data = (doc.data() as Map<String, dynamic>?) ?? {};
-    final fechaRaw = data['fecha'];
-    final fecha =
-        fechaRaw is Timestamp ? fechaRaw.toDate() : DateTime.now();
+    final data = (doc.data() as Map<String, dynamic>?) ?? <String, dynamic>{};
+    final rawFecha = data['fecha'];
     return ConversacionMeta(
       id: doc.id, 
       titulo: data['titulo'] as String? ?? 'Sin titulo', 
-      fecha: fecha,
+      fecha: rawFecha is Timestamp ? rawFecha.toDate() : DateTime.now(),
     );
   }
 
@@ -35,9 +35,16 @@ class ChatService {
 
   final _db = FirebaseFirestore.instance;
 
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('No hay usuario autenticado para operar con chats.');
+    }
+    return user.uid;
+  }
 
   CollectionReference<Map<String, dynamic>> get _chatsRef => _db.collection('users').doc(_uid).collection('chats');
+  CollectionReference<Map<String, dynamic>> _mensajesRef(String chatId) => _chatsRef.doc(chatId).collection('mensajes');
 
   Stream<List<ConversacionMeta>> get chatsStream => _chatsRef
       .orderBy('fecha', descending: true)
@@ -65,19 +72,37 @@ class ChatService {
  
   // -- Eliminar conversación --
   Future<void> eliminarConversacion(String chatId) async {
-    await _chatsRef.doc(chatId).delete();
+    final msgs = await _mensajesRef(chatId).get();
+    final batch = _db.batch();
+    for (final m in msgs.docs) {
+      batch.delete(m.reference);
+    }
+    batch.delete(_chatsRef.doc(chatId));
+    await batch.commit();
   }
  
   // -- Eliminar TODOS los chats del usuario (pa borrar la cuenta) --
   Future<void> eliminarTodosLosChats() async {
     final snap = await _chatsRef.get();
-    final batch = _db.batch();
     for (final doc in snap.docs) {
-      batch.delete(doc.reference);
+      await eliminarConversacion(doc.id);
     }
-    await batch.commit();
   }
   
+  Stream<List<Mensaje>> mensajesStream(String chatId) => _mensajesRef(chatId).orderBy('fecha', descending: false).snapshots().map((snap) => snap.docs.map(Mensaje.fromDoc).toList());
 
+  Future<void> guardarMensaje({
+    required String chatId,
+    required Mensaje mensaje,
+  }) async {
+    await _mensajesRef(chatId).add(mensaje.toMap());
+  }
+
+  Future<List<Mensaje>> cargarMensajes(String chatId) async {
+    final snap = await _mensajesRef(chatId)
+        .orderBy('fecha', descending: false)
+        .get();
+    return snap.docs.map(Mensaje.fromDoc).toList();
+  }
 
 }

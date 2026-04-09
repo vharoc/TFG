@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../theme/theme.dart';
+import '../models/mensaje.dart';
 import '../models/chat_msg.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/hamburger_btt.dart';
@@ -39,17 +40,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.chatId == widget.chatId) return;
+
+    if (widget.chatId != null) {
+      _chatId = widget.chatId;
+      _cargarMensajes();
+    } else {
+      setState(() {
+        _chatId = null;
+        _messages.clear();
+      });
+    }
+  }
+
   Future<void> _cargarMensajes() async {
-    setState() => _cargando = true;
+    setState(() => _cargando = true);
     try{
-      final mensajes = await ChatService.instance.cargarMensajes(_chatId);
+      final mensajes = await ChatService.instance.cargarMensajes(_chatId!);
       if(!mounted) return;
       setState((){
         _messages.clear();
-        for(final m in mensaje){
+        for(final m in mensajes){
           if(m.tipo == MensajeTipo.texto){
             _messages.add(ChatMessage.text(m.contenido));
+          } else if (m.tipo == MensajeTipo.imagen && m.contenido.isNotEmpty) {
+            _messages.add(ChatMessage.image(XFile(m.contenido)));
           }
+
+          // añadir si es imagen
         }
       });
       _scrollToBottom();
@@ -80,12 +101,32 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _messages.add(ChatMessage.text(text)));
     _scrollToBottom();
     await _esPrimerMensaje(text);
+    await ChatService.instance.guardarMensaje(
+      chatId: _chatId!, 
+      mensaje: Mensaje(
+        id: '',
+        tipo: MensajeTipo.texto,
+        contenido: text,
+        fecha: DateTime.now(),
+        esUsuario: true,
+      ),
+    );
   }
 
   void _addImg(XFile img) async {
     setState(() => _messages.add(ChatMessage.image(img)));
     _scrollToBottom();
     await _esPrimerMensaje('[Imagen]');
+    await ChatService.instance.guardarMensaje(
+      chatId: _chatId!,
+      mensaje: Mensaje(
+        id: '',
+        tipo: MensajeTipo.imagen,
+        contenido: img.path,
+        fecha: DateTime.now(),
+        esUsuario: true,
+      ),
+    );
   }
 
   // -- Crear conversacion en Firestore (solo con el primer mensaje)
@@ -97,15 +138,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final id = await ChatService.instance.crearConversacion(
         titulo: primerTexto.length > 40 ? '${primerTexto.substring(0, 40)}...' : primerTexto,
       );
-      if(mounted) setState(() => _chatId = id);
-    } on FirebaseException catch (e) {
-      if (!mounted) return;
-      final msg = e.code == 'permission-denied'
-          ? 'No tienes permisos en Firestore para crear chats.'
-          : 'No se pudo crear la conversacion. Intentalo de nuevo.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
-      );
+      if(mounted){
+        setState(() => _chatId = id);
+      } 
     }finally {
       _creandoChat = false;
     }
@@ -137,14 +172,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // ── Área de mensajes ────────────────────────
                 Expanded(
-                  child: _messages.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          itemCount: _messages.length,
-                          itemBuilder: (_, i) => _buildBubble(_messages[i]),
-                        ),
+                  child: _cargando
+                      ? const Center(child: CircularProgressIndicator())
+                      : _messages.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                              itemCount: _messages.length,
+                              itemBuilder: (_, i) => _buildBubble(_messages[i]),
+                            ),
                 ),
  
                 // ── Caja de texto ───────────────────────────
