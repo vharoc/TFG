@@ -28,12 +28,6 @@ class LateralScreen extends StatefulWidget{
 }
 
 class _LateralScreenState extends State<LateralScreen> {
-
-  static final List<ChatHistorial> _chats = [
-    ChatHistorial(id: '1', titulo: 'Catedral de Salamanca', fecha: DateTime(2025, 4, 1)),
-    ChatHistorial(id: '2', titulo: 'Plaza Mayor',            fecha: DateTime(2025, 3, 28)),
-    ChatHistorial(id: '3', titulo: 'Casa de las Conchas',    fecha: DateTime(2025, 3, 20)),
-  ];
  
   static final List<CiudadVisitada> _ciudades = [
     CiudadVisitada(id: '1', nombre: 'Salamanca', provincia: 'España'),
@@ -192,7 +186,6 @@ class _LateralScreenState extends State<LateralScreen> {
                         ],
                       ),
                     ),
-                    const Spacer(), // empuja el footer hacia abajo
                   ],
                 ),
               ),

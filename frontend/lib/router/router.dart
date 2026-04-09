@@ -31,5 +31,9 @@ final appRouter = GoRouter(
     GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
     GoRoute(path: '/lateral', builder:(context, state) => const LateralScreen()),
     GoRoute(path: '/ajustes', builder: (contex, state) => const AjustesScreen()),
+    GoRoute(path: '/home/:chatId', builder: (context, state){
+      final id = state.pathParameters['chatId'];
+      return HomeScreen(chatId: id);
+    })
   ],
 );

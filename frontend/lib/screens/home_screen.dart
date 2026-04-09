@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../theme/theme.dart';
 import '../models/chat_msg.dart';
 import '../widgets/chat_input.dart';
@@ -10,7 +11,10 @@ import '../widgets/hamburger_btt.dart';
 import '../services/chat_services.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  
+  final String? chatId;
+
+  const HomeScreen({super.key, this.chatId});
  
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,8 +26,37 @@ class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
 
   // -- chat activo --
-  String? _chatId = null;
+  String? _chatId;
   bool _creandoChat = false;
+  bool _cargando = false;
+
+  @override
+  void initState(){
+    super.initState();
+    if(widget.chatId != null){
+      _chatId = widget.chatId;
+      _cargarMensajes();
+    }
+  }
+
+  Future<void> _cargarMensajes() async {
+    setState() => _cargando = true;
+    try{
+      final mensajes = await ChatService.instance.cargarMensajes(_chatId);
+      if(!mounted) return;
+      setState((){
+        _messages.clear();
+        for(final m in mensaje){
+          if(m.tipo == MensajeTipo.texto){
+            _messages.add(ChatMessage.text(m.contenido));
+          }
+        }
+      });
+      _scrollToBottom();
+    }finally {
+      if(mounted) setState(() => _cargando = false);
+    }
+  }
 
   void _abrirLateral() {
     context.push<bool>('/lateral').then((crearNueva) {
