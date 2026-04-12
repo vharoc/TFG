@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../theme/theme.dart';
 import '../services/auth_services.dart';
@@ -159,6 +158,11 @@ class AjustesScreen extends StatelessWidget {
         ],
       ),
     );
+
+    if (!context.mounted) {
+      passwdCtrl.dispose();
+      return;
+    }
  
     if (confirm == true) {
       await _eliminarCuenta(context, passwdCtrl.text.trim());
