@@ -2,53 +2,29 @@ import '../theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/chat.dart';
+import '../models/ciudad.dart';
 import '../services/chat_services.dart';
-
+import '../services/ciudad_services.dart';
 // MODELOS TEMPORALES 
-class ChatHistorial {
-  final String id;
-  final String titulo;
-  final DateTime fecha;
-  const ChatHistorial({required this.id, required this.titulo, required this.fecha});
-}
+class LateralScreen extends StatelessWidget {
 
-class CiudadVisitada {
-  final String id;
-  final String nombre;
-  final String provincia;
-  const CiudadVisitada({required this.id, required this.nombre, required this.provincia});
-}
-
-// PANTALLA 
-class LateralScreen extends StatefulWidget{
-  const LateralScreen ({super.key});
+  const LateralScreen({super.key});
 
   @override
-  State<LateralScreen> createState() => _LateralScreenState();
-}
-
-class _LateralScreenState extends State<LateralScreen> {
- 
-  static final List<CiudadVisitada> _ciudades = [
-    CiudadVisitada(id: '1', nombre: 'Salamanca', provincia: 'España'),
-    CiudadVisitada(id: '2', nombre: 'Toledo',    provincia: 'España'),
-    CiudadVisitada(id: '3', nombre: 'Ávila',     provincia: 'España'),
-  ];
-
-  @override
-  Widget build(BuildContext context){
-    
+  Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final screenHeight = MediaQuery.of(context).size.height;
     final isCompact = screenHeight < 760;
-    final maxItemsPerSection = screenHeight < 700 ? 1 : (screenHeight < 820 ? 2 : 3);
+    final maxItems = screenHeight < 700 ? 1 : (screenHeight < 820 ? 2 : 3);
     final innerSpacing = isCompact ? 6.0 : 8.0;
+ 
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
             ? user!.email![0].toUpperCase()
             : '?';
-    
+ 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
       body: SafeArea(
@@ -90,25 +66,22 @@ class _LateralScreenState extends State<LateralScreen> {
                 ],
               ),
             ),
-
+ 
             const Divider(height: 1, indent: 20, endIndent: 20),
             const SizedBox(height: 12),
-
+ 
+            // NUEVA CONVERSACIÓN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
-                onTap: (){
-                  // HomeScreen reinicia chat activo cuando recibe true.
-                  context.pop(true);
-                },
-
+                onTap: () => context.pop(true),
                 child: Container(
-                  padding: EdgeInsets.symmetric(vertical: isCompact ? 10 : 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(
+                      vertical: isCompact ? 10 : 12, horizontal: 16),
                   decoration: BoxDecoration(
                     color: AppTheme.usal,
                     borderRadius: BorderRadius.circular(12),
                   ),
-
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -126,21 +99,20 @@ class _LateralScreenState extends State<LateralScreen> {
                 ),
               ),
             ),
-
+ 
             const SizedBox(height: 16),
-
-            // Lista 
+ 
+            // LISTAS
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
+                    // ── Historial de chats ──
                     _buildSectionHeader('Historial de chats'),
                     SizedBox(height: innerSpacing),
-                    // ── Historial de chats desde Firestore ─────────────────
                     Flexible(
-                      flex: 1,
-                      child: StreamBuilder<List<ConversacionMeta>>(
+                      child: StreamBuilder<List<Chat>>(
                         stream: ChatService.instance.chatsStream,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
@@ -150,40 +122,50 @@ class _LateralScreenState extends State<LateralScreen> {
                           }
                           final chats = snapshot.data ?? [];
                           if (chats.isEmpty) {
-                            return _buildEmptyCard(
-                                'Aún no hay conversaciones');
+                            return _buildEmptyCard('Aún no hay conversaciones');
                           }
                           return Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ...chats
-                                  .take(maxItemsPerSection)
-                                  .map((c) => _buildChatTile(context, c)),
-                              _buildVerTodo(context, onTap: () {}),
+                              ...chats.take(maxItems).map(
+                                    (c) => _buildChatTile(context, c),
+                                  ),
+                              _buildVerTodo(onTap: () {}),
                             ],
                           );
                         },
                       ),
                     ),
-
-                    SizedBox(height: 8),
-
-                    _buildSectionHeader('Ciudades visitadas'),
-
+ 
                     SizedBox(height: innerSpacing),
-                    // Ciudades ocupan la otra mitad
+ 
+                    // ── Ciudades visitadas ──
+                    _buildSectionHeader('Ciudades visitadas'),
+                    SizedBox(height: innerSpacing),
                     Flexible(
-                      flex: 1,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_ciudades.isEmpty)
-                            _buildEmptyCard('Aún no has visitado ninguna ciudad')
-                          else ...[
-                            ..._ciudades.take(maxItemsPerSection).map((c) => _buildCiudadTile(context, c)),
-                            _buildVerTodo(context, onTap: () {}),
-                          ],
-                        ],
+                      child: StreamBuilder<List<Ciudad>>(
+                        stream: CiudadServices.instance.ciudadesStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final ciudades = snapshot.data ?? [];
+                          if (ciudades.isEmpty) {
+                            return _buildEmptyCard(
+                                'Aún no has visitado ninguna ciudad');
+                          }
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...ciudades.take(maxItems).map(
+                                    (c) => _buildCiudadTile(context, c),
+                                  ),
+                              _buildVerTodo(onTap: () {}),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -191,22 +173,18 @@ class _LateralScreenState extends State<LateralScreen> {
               ),
             ),
  
-
             // FOOTER
             const Divider(height: 1, indent: 20, endIndent: 20),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               child: Row(
                 children: [
-                  // Avatar usuario
                   GestureDetector(
-                    onTap: () {
-                      context.push('/ajustes');
-                    },
+                    onTap: () => context.push('/ajustes'),
                     child: Container(
                       width: 38,
                       height: 38,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppTheme.usal,
                         shape: BoxShape.circle,
                       ),
@@ -222,55 +200,46 @@ class _LateralScreenState extends State<LateralScreen> {
                       ),
                     ),
                   ),
- 
                   const SizedBox(width: 12),
- 
-                  // Nombre / email
                   Expanded(
                     child: Text(
                       user?.displayName ?? user?.email ?? 'Usuario',
                       style: AppTheme.cuerpo.copyWith(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
+                          fontSize: 13, color: Colors.black54),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
- 
-                  // Botón configuración
                   IconButton(
-                    onPressed: () {
-                      // nav a configuacion
-                      context.push('/ajustes');
-                    },
+                    onPressed: () => context.push('/ajustes'),
                     icon: const Icon(Icons.settings_outlined,
                         color: Colors.black54, size: 22),
                   ),
                 ],
               ),
             ),
-
           ],
         ),
       ),
     );
   }
 
-
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-        color: Colors.black,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: Colors.black,
+        ),
       ),
     );
   }
 
   // ── Tile de chat con opción de eliminar ────────────────────────────────────
-  Widget _buildChatTile(BuildContext context, ConversacionMeta chat) {
+  Widget _buildChatTile(BuildContext context, Chat chat) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -290,12 +259,12 @@ class _LateralScreenState extends State<LateralScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          _formatFecha(chat.fecha),
+          _formatFecha(chat.fechaCreacion),
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
         trailing: IconButton(
-          icon:
-              const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
+          icon: const Icon(Icons.delete_outline,
+              size: 18, color: Colors.black38),
           onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
         ),
         onTap: () => context.go('/home/${chat.id}'),
@@ -303,7 +272,7 @@ class _LateralScreenState extends State<LateralScreen> {
     );
   }
 
- Widget _buildCiudadTile(BuildContext context, CiudadVisitada ciudad) {
+ Widget _buildCiudadTile(BuildContext context, Ciudad ciudad) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -321,16 +290,12 @@ class _LateralScreenState extends State<LateralScreen> {
           ciudad.nombre,
           style: AppTheme.cuerpo.copyWith(fontSize: 14),
         ),
-        subtitle: Text(
-          ciudad.provincia,
-          style: const TextStyle(fontSize: 11, color: Colors.black38),
-        ),
         onTap: () => context.pop(),
       ),
     );
   }
 
-  Widget _buildVerTodo(BuildContext context, {required VoidCallback onTap}) {
+  Widget _buildVerTodo({required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Padding(

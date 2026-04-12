@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../viewmodels/home_viewmodel.dart';
+import '../viewmodels/home_view_model.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/hamburger_btt.dart';
