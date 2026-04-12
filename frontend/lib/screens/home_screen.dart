@@ -1,155 +1,62 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../theme/theme.dart';
-import '../models/mensaje.dart';
-import '../models/chat.dart';
+import '../viewmodels/home_viewmodel.dart';
 import '../widgets/chat_input.dart';
+import '../widgets/chat_bubble.dart';
 import '../widgets/hamburger_btt.dart';
-import '../services/chat_services.dart';
+import '../widgets/home_empty_state.dart';
 
 class HomeScreen extends StatefulWidget {
-  
   final String? chatId;
 
   const HomeScreen({super.key, this.chatId});
- 
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
-  final List<ChatMessage> _messages = [];
+  late final HomeViewModel _vm;
   final ScrollController _scrollController = ScrollController();
 
-  // -- chat activo --
-  String? _chatId;
-  bool _creandoChat = false;
-  bool _cargando = false;
-
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    if(widget.chatId != null){
-      _chatId = widget.chatId;
-      _cargarMensajes();
-    }
+    _vm = HomeViewModel(initialChatId: widget.chatId);
+    _vm.addListener(() {
+      if (mounted) {
+        setState(() {});
+        _scrollToBottom();
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.chatId == widget.chatId) return;
-
-    if (widget.chatId != null) {
-      _chatId = widget.chatId;
-      _cargarMensajes();
-    } else {
-      setState(() {
-        _chatId = null;
-        _messages.clear();
-      });
-    }
+    _vm.cambiarChat(widget.chatId);
   }
 
-  Future<void> _cargarMensajes() async {
-    setState(() => _cargando = true);
-    try{
-      final mensajes = await ChatService.instance.cargarMensajes(_chatId!);
-      if(!mounted) return;
-      setState((){
-        _messages.clear();
-        for(final m in mensajes){
-          if(m.tipo == MensajeTipo.texto){
-            _messages.add(ChatMessage.text(m.contenido));
-          } else if (m.tipo == MensajeTipo.imagen && m.contenido.isNotEmpty) {
-            _messages.add(ChatMessage.image(XFile(m.contenido)));
-          }
-
-          // añadir si es imagen
-        }
-      });
-      _scrollToBottom();
-    }finally {
-      if(mounted) setState(() => _cargando = false);
-    }
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _vm.dispose();
+    super.dispose();
   }
 
   void _abrirLateral() {
     context.push<bool>('/lateral').then((crearNueva) {
       if (crearNueva == true && mounted) {
-        setState(() {
-          _chatId = null;
-          _messages.clear();
-        });
+        _vm.nuevaConversacion();
       }
     });
   }
 
- 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _addText(String text) async {
-    setState(() => _messages.add(ChatMessage.text(text)));
-    _scrollToBottom();
-    await _esPrimerMensaje(text);
-    await ChatService.instance.guardarMensaje(
-      chatId: _chatId!, 
-      mensaje: Mensaje(
-        id: '',
-        tipo: MensajeTipo.texto,
-        contenido: text,
-        fecha: DateTime.now(),
-        esUsuario: true,
-      ),
-    );
-  }
-
-  void _addImg(XFile img) async {
-    setState(() => _messages.add(ChatMessage.image(img)));
-    _scrollToBottom();
-    await _esPrimerMensaje('[Imagen]');
-    await ChatService.instance.guardarMensaje(
-      chatId: _chatId!,
-      mensaje: Mensaje(
-        id: '',
-        tipo: MensajeTipo.imagen,
-        contenido: img.path,
-        fecha: DateTime.now(),
-        esUsuario: true,
-      ),
-    );
-  }
-
-  // -- Crear conversacion en Firestore (solo con el primer mensaje)
-  Future<void> _esPrimerMensaje(String primerTexto) async {
-    if (_chatId != null || _creandoChat) return;
-    _creandoChat = true;
-
-    try {
-      final id = await ChatService.instance.crearConversacion(
-        titulo: primerTexto.length > 40 ? '${primerTexto.substring(0, 40)}...' : primerTexto,
-      );
-      if(mounted){
-        setState(() => _chatId = id);
-      } 
-    }finally {
-      _creandoChat = false;
-    }
-  }
-
-
-  void _scrollToBottom(){
-    WidgetsBinding.instance.addPostFrameCallback((_){
-      if(_scrollController.hasClients){
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -167,32 +74,31 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-
                 _buildHeader(),
 
-                // ── Área de mensajes ────────────────────────
+                // ── Área de mensajes ──
                 Expanded(
-                  child: _cargando
+                  child: _vm.cargando
                       ? const Center(child: CircularProgressIndicator())
-                      : _messages.isEmpty
-                          ? _buildEmptyState()
+                      : _vm.messages.isEmpty
+                          ? const HomeEmptyState()
                           : ListView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              itemCount: _messages.length,
-                              itemBuilder: (_, i) => _buildBubble(_messages[i]),
+                              itemCount: _vm.messages.length,
+                              itemBuilder: (_, i) => ChatBubble(mensaje: _vm.messages[i]),
                             ),
                 ),
- 
-                // ── Caja de texto ───────────────────────────
+
+                // ── Caja de texto ──
                 ChatInput(
-                  onSend: _addText,
-                  onImagePicked: _addImg,
+                  onSend: _vm.enviarTexto,
+                  onImagePicked: _vm.enviarImagen,
                 ),
               ],
             ),
- 
-            // ── Botón hamburguesa ────────────────────────
+
+            // ── Botón hamburguesa ──
             HamburgerButton(onTap: _abrirLateral),
           ],
         ),
@@ -213,55 +119,4 @@ class _HomeScreenState extends State<HomeScreen> {
       child: const SizedBox.expand(),
     );
   }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/logo.png', // ajusta esta ruta a tu asset real
-            width: 48,
-            height: 48,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Pregunta sobre algún monumento',
-            style: AppTheme.cuerpo.copyWith(color: Colors.black38),
-          ),
-        ],
-      ),
-    );
-  }
- 
-  Widget _buildBubble(ChatMessage msg) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: AppTheme.usal,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: switch (msg.type) {
-          MessageType.text => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text(
-                msg.text!,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-              ),
-            ),
-          MessageType.image => Image.file(
-              File(msg.image!.path),
-              fit: BoxFit.cover,
-            ),
-        },
-      ),
-    );
-  }
-
 }
