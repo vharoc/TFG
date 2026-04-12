@@ -6,6 +6,7 @@ import '../widgets/chat_input.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/hamburger_btt.dart';
 import '../widgets/home_empty_state.dart';
+import '../widgets/header_home.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? chatId;
@@ -46,29 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _abrirLateral() {
-    context.push<dynamic>('/lateral').then((resultado) {
-    if (!mounted) return;
-    if (resultado is String) {
-      _vm.cambiarChat(resultado);
-    } else if (resultado == true) {
-      _vm.nuevaConversacion();
-    }
-  });
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-                _buildHeader(),
+                const HeaderHome(),
 
                 // ── Área de mensajes ──
                 Expanded(
@@ -109,17 +87,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFAF7F4),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE0DAD4), width: 1),
-        ),
-      ),
-      child: const SizedBox.expand(),
-    );
+   void _abrirLateral() {
+    context.push<dynamic>('/lateral').then((resultado) {
+    if (!mounted) return;
+    if (resultado is String) {
+      _vm.cambiarChat(resultado);
+    } else if (resultado == true) {
+      _vm.nuevaConversacion();
+    }
+  });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 }
