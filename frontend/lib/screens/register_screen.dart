@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/theme.dart';
 import '../widgets/form_lbl.dart';
 import '../widgets/separator.dart';
 import '../widgets/header_logo.dart';
-import '../services/auth_services.dart';
+import '../viewmodels/register_view_model.dart';
+
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -17,31 +18,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
   final _user = TextEditingController();
-
+  
   bool _obscure = true; 
-  bool _loading = false;
-  String? _error;
-  final _auth = AuthService();
+  final _vm = RegisterViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _vm.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
     _email.dispose();
     _passwd.dispose();
     _user.dispose();
+    _vm.dispose();
     super.dispose();
   }
 
-  String _parseError(dynamic e) {
-    if (e is FirebaseAuthException) {
-      return switch (e.code) {
-        'email-already-in-use'  => 'email ya está registrado',
-        'invalid-email'         => 'formato del email no válido',
-        'weak-password'         => 'contraseña demasiado débil',
-        'too-many-requests'     => 'Demasiados intentos, espera unos minutos',
-        _                       => 'Error: inténtalo de nuevo',
-      };
-    }
-    return 'Error: inténtalo de nuevo';
+  Future<void> _register() async {
+    final ok = await _vm.register(
+      email: _email.text.trim(),
+      passwd: _passwd.text.trim(),
+      nombre: _user.text.trim(),
+    );
+ 
+    if (ok && mounted) context.go('/home');
   }
 
   @override
@@ -88,10 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: AppTheme.cuerpo,
                     decoration: const InputDecoration(
                       hintText: 'correo@ejemplo.com',
-                      prefixIcon: Icon(
-                        Icons.mail_outline,
-                        color: Colors.black45,
-                      ),
+                      prefixIcon: Icon(Icons.mail_outline,color: Colors.black45),
                     ),
                   ),
 
@@ -124,21 +126,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 28),
 
                   // ERROR 
-                  if(_error != null) ...[
+                  if (_vm.error != null) ...[
                     Text(
-                      _error!,
-                      style: TextStyle(color:AppTheme.usal, fontSize: 13),
+                      _vm.error!,
+                      style: TextStyle(color: AppTheme.usal, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 12),
-
                   ],
 
                   // BOTÓN PRINCIPAL
                   ElevatedButton(
 
-                    onPressed: _loading ? null : _register,
+                    onPressed: _vm.loading ? null : _register,
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.usal,
@@ -148,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text ('Crear cuenta'),
+                    child: _vm.loading ? const CircularProgressIndicator(color: Colors.white) : const Text ('Crear cuenta'),
                   ),
 
                   const SizedBox(height: 24),
@@ -188,38 +188,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
-  Future<void> _register() async{
-    if(_email.text.isEmpty || _passwd.text.isEmpty || _user.text.isEmpty){
-      setState(() => _error = 'Rellena todos los campos');
-      return;
-    }
-
-    if(_passwd.text.length < 8){
-      setState(() => _error = 'La contraseña debe tener al menos 8 caracteres');
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try{
-      await _auth.createAccount(email: _email.text.trim(), passwd: _passwd.text.trim());
-      await _auth.updateUsername(username: _user.text.trim());
-      
-      if(!mounted){
-        return;
-      }
-
-      context.go('/home');
-    } catch (e){
-      setState(() => _error = _parseError(e));
-    } finally {
-      setState(() => _loading = false);
-    }
-
-  }
-
 }

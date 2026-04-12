@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../theme/theme.dart';
 import '../models/mensaje.dart';
-import '../models/chat_msg.dart';
+import '../models/chat.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/hamburger_btt.dart';
 import '../services/chat_services.dart';
