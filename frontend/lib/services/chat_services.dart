@@ -3,30 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/mensaje.dart';
 
-class ConversacionMeta {
-  final String id;
-  final String titulo;
-  final DateTime fecha;
-
-  const ConversacionMeta({
-    required this.id,
-    required this.titulo,
-    required this.fecha,
-  });
-
-  factory ConversacionMeta.fromDoc(DocumentSnapshot doc){
-    final data = (doc.data() as Map<String, dynamic>?) ?? <String, dynamic>{};
-    final rawFecha = data['fecha'];
-    return ConversacionMeta(
-      id: doc.id, 
-      titulo: data['titulo'] as String? ?? 'Sin titulo', 
-      fecha: rawFecha is Timestamp ? rawFecha.toDate() : DateTime.now(),
-    );
-  }
-
-}
-
-
 class ChatService {
 
   ChatService._();

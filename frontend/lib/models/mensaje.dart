@@ -5,7 +5,7 @@ enum MensajeTipo {
   imagen, 
 }
 enum MensajeRole{
-  usario,
+  usuario,
   bot,
 }
 
@@ -43,7 +43,7 @@ class Mensaje {
       ),
       role: MensajeRole.values.firstWhere(
         (e) => e.name == (map['role'] ?? 'usuario'),
-        orElse: () => MensajeRole.usario,
+        orElse: () => MensajeRole.usuario,
       ),
       fecha: (map['fecha'] as Timestamp).toDate(),
     );
