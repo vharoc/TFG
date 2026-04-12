@@ -47,11 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _abrirLateral() {
-    context.push<bool>('/lateral').then((crearNueva) {
-      if (crearNueva == true && mounted) {
-        _vm.nuevaConversacion();
-      }
-    });
+    context.push<dynamic>('/lateral').then((resultado) {
+    if (!mounted) return;
+    if (resultado is String) {
+      _vm.cambiarChat(resultado);
+    } else if (resultado == true) {
+      _vm.nuevaConversacion();
+    }
+  });
   }
 
   void _scrollToBottom() {

@@ -11,29 +11,20 @@ const _publicRoutes = ["/login", "/register", "/"];
 
 final appRouter = GoRouter(
   initialLocation: '/',
-
   redirect: (context, state) {
     final user = FirebaseAuth.instance.currentUser;
     final isPublic = _publicRoutes.contains(state.matchedLocation);
-
-    if(user == null && !isPublic) return '/login';
-
-    if(user != null && isPublic) return '/home';
-
+    if (user == null && !isPublic) return '/login';
+    if (user != null && isPublic) return '/home';
     return null;
-
   },
-
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
-    GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-    GoRoute(path: '/lateral', builder:(context, state) => const LateralScreen()),
-    GoRoute(path: '/ajustes', builder: (contex, state) => const AjustesScreen()),
-    GoRoute(path: '/home/:chatId', builder: (context, state){
-      final id = state.pathParameters['chatId'];
-      return HomeScreen(chatId: id);
-    })
+    GoRoute(path: '/', builder: (_, __) => const LoginScreen()),
+    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+    GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+    GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/lateral', builder: (_, __) => const LateralScreen()),
+    GoRoute(path: '/ajustes', builder: (_, __) => const AjustesScreen()),
+    // ← /home/:chatId eliminada
   ],
 );

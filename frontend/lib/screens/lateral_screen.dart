@@ -74,7 +74,7 @@ class LateralScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
-                onTap: () => context.pop(true),
+                onTap: () => context.pop(null), // null = nueva conversación
                 child: Container(
                   padding: EdgeInsets.symmetric(
                       vertical: isCompact ? 10 : 12, horizontal: 16),
@@ -267,7 +267,7 @@ class LateralScreen extends StatelessWidget {
               size: 18, color: Colors.black38),
           onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
         ),
-        onTap: () => context.go('/home/${chat.id}'),
+        onTap: () => context.pop(chat.id),
       ),
     );
   }
