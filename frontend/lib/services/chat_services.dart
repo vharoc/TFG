@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../models/chat.dart';
 import '../models/mensaje.dart';
 
 class ChatService {
@@ -22,23 +23,37 @@ class ChatService {
   CollectionReference<Map<String, dynamic>> get _chatsRef => _db.collection('users').doc(_uid).collection('chats');
   CollectionReference<Map<String, dynamic>> _mensajesRef(String chatId) => _chatsRef.doc(chatId).collection('mensajes');
 
-  Stream<List<ConversacionMeta>> get chatsStream => _chatsRef
-      .orderBy('fecha', descending: true)
+  Stream<List<Chat>> get chatsStream => _chatsRef
+      .orderBy('fechaCreacion', descending: true)
       .limit(20)
       .snapshots()
-      .map((snap) => snap.docs.map(ConversacionMeta.fromDoc).toList());
+      .map((snap) => snap.docs.map(Chat.fromFirestore).toList());
+
+  // -- Stream de mensajes en tiempo real --
+  Stream<List<Mensaje>> mensajesStream(String chatId) => _mensajesRef(chatId)
+      .orderBy('fecha', descending: false)
+      .snapshots()
+      .map((snap) => snap.docs.map(Mensaje.fromFirestore).toList());
 
   // -- Crear conversación --
   Future<String> crearConversacion({required String titulo}) async {
     final doc = await _chatsRef.add({
       'titulo': titulo,
-      'fecha': FieldValue.serverTimestamp(),
+      'fechaCreacion': FieldValue.serverTimestamp(),
       'uid': _uid,
     });
     return doc.id;
   }
+
+  // -- Guardar mensaje --
+  Future<void> guardarMensaje({
+    required String chatId,
+    required Mensaje mensaje,
+  }) async {
+    await _mensajesRef(chatId).add(mensaje.toMap());
+  }
  
-  // -- Actualizar título si luego se quiere cambiar --
+  // -- Actualizar título --
   Future<void> actualizarTitulo({
     required String chatId,
     required String nuevoTitulo,
@@ -46,7 +61,7 @@ class ChatService {
     await _chatsRef.doc(chatId).update({'titulo': nuevoTitulo});
   }
  
-  // -- Eliminar conversación --
+  // -- Eliminar conversación y sus mensajes --
   Future<void> eliminarConversacion(String chatId) async {
     final msgs = await _mensajesRef(chatId).get();
     final batch = _db.batch();
@@ -56,29 +71,12 @@ class ChatService {
     batch.delete(_chatsRef.doc(chatId));
     await batch.commit();
   }
- 
-  // -- Eliminar TODOS los chats del usuario (pa borrar la cuenta) --
+
+  // -- Eliminar todos los chats (borrar cuenta) --
   Future<void> eliminarTodosLosChats() async {
     final snap = await _chatsRef.get();
     for (final doc in snap.docs) {
       await eliminarConversacion(doc.id);
     }
   }
-  
-  Stream<List<Mensaje>> mensajesStream(String chatId) => _mensajesRef(chatId).orderBy('fecha', descending: false).snapshots().map((snap) => snap.docs.map(Mensaje.fromDoc).toList());
-
-  Future<void> guardarMensaje({
-    required String chatId,
-    required Mensaje mensaje,
-  }) async {
-    await _mensajesRef(chatId).add(mensaje.toMap());
-  }
-
-  Future<List<Mensaje>> cargarMensajes(String chatId) async {
-    final snap = await _mensajesRef(chatId)
-        .orderBy('fecha', descending: false)
-        .get();
-    return snap.docs.map(Mensaje.fromDoc).toList();
-  }
-
 }
