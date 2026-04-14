@@ -1,16 +1,36 @@
-import '../theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import '../theme/theme.dart';
 import '../models/chat.dart';
 import '../models/ciudad.dart';
-import '../services/chat_services.dart';
-import '../services/ciudad_services.dart';
+import '../viewmodels/lateral_view_model.dart';
 import '../widgets/lateral/header_lateral.dart';
 import '../widgets/lateral/section_header.dart';
 
-class LateralScreen extends StatelessWidget {
+class LateralScreen extends StatefulWidget {
   const LateralScreen({super.key});
+
+  @override
+  State<LateralScreen> createState() => _LateralScreenState();
+}
+
+class _LateralScreenState extends State<LateralScreen> {
+  late final LateralViewModel _vm;
+
+  @override
+  void initState() {
+    super.initState();
+    _vm = LateralViewModel();
+    _vm.addListener(() { if (mounted) setState(() {}); });
+  }
+
+  @override
+  void dispose() {
+    _vm.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +43,8 @@ class LateralScreen extends StatelessWidget {
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
-        ? user!.email![0].toUpperCase()
-        : '?';
+            ? user!.email![0].toUpperCase()
+            : '?';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -33,7 +53,6 @@ class LateralScreen extends StatelessWidget {
           children: [
             // HEADER
             const HeaderLateral(),
-
             const Divider(height: 1, indent: 20, endIndent: 20),
             const SizedBox(height: 12),
 
@@ -41,7 +60,7 @@ class LateralScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
-                onTap: () => context.pop(null), // null = nueva conversación
+                onTap: () => context.pop(null),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     vertical: isCompact ? 10 : 12,
@@ -81,30 +100,19 @@ class LateralScreen extends StatelessWidget {
                     const SectionHeader(header: 'Historial de chats'),
                     SizedBox(height: innerSpacing),
                     Flexible(
-                      child: StreamBuilder<List<Chat>>(
-                        stream: ChatService.instance.chatsStream,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          final chats = snapshot.data ?? [];
-                          if (chats.isEmpty) {
-                            return _buildEmptyCard('Aún no hay conversaciones');
-                          }
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ...chats
-                                  .take(maxItems)
-                                  .map((c) => _buildChatTile(context, c)),
-                              _buildVerTodo(onTap: () {}),
-                            ],
-                          );
-                        },
-                      ),
+                      child: _vm.cargandoChats
+                          ? const Center(child: CircularProgressIndicator())
+                          : _vm.chats.isEmpty
+                              ? _buildEmptyCard('Aún no hay conversaciones')
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ..._vm.chats
+                                        .take(maxItems)
+                                        .map((c) => _buildChatTile(c)),
+                                    _buildVerTodo(onTap: () {}),
+                                  ],
+                                ),
                     ),
 
                     SizedBox(height: innerSpacing),
@@ -113,32 +121,19 @@ class LateralScreen extends StatelessWidget {
                     const SectionHeader(header: 'Ciudades visitadas'),
                     SizedBox(height: innerSpacing),
                     Flexible(
-                      child: StreamBuilder<List<Ciudad>>(
-                        stream: CiudadServices.instance.ciudadesStream,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          final ciudades = snapshot.data ?? [];
-                          if (ciudades.isEmpty) {
-                            return _buildEmptyCard(
-                              'Aún no has visitado ninguna ciudad',
-                            );
-                          }
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ...ciudades
-                                  .take(maxItems)
-                                  .map((c) => _buildCiudadTile(context, c)),
-                              _buildVerTodo(onTap: () {}),
-                            ],
-                          );
-                        },
-                      ),
+                      child: _vm.cargandoCiudades
+                          ? const Center(child: CircularProgressIndicator())
+                          : _vm.ciudades.isEmpty
+                              ? _buildEmptyCard('Aún no has visitado ninguna ciudad')
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ..._vm.ciudades
+                                        .take(maxItems)
+                                        .map((c) => _buildCiudadTile(c)),
+                                    _buildVerTodo(onTap: () {}),
+                                  ],
+                                ),
                     ),
                   ],
                 ),
@@ -200,8 +195,7 @@ class LateralScreen extends StatelessWidget {
     );
   }
 
-  // ── Tile de chat con opción de eliminar ────────────────────────────────────
-  Widget _buildChatTile(BuildContext context, Chat chat) {
+  Widget _buildChatTile(Chat chat) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -212,11 +206,7 @@ class LateralScreen extends StatelessWidget {
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(
-          Icons.chat_bubble_outline,
-          size: 18,
-          color: AppTheme.usal,
-        ),
+        leading: const Icon(Icons.chat_bubble_outline, size: 18, color: AppTheme.usal),
         title: Text(
           chat.titulo,
           style: AppTheme.cuerpo.copyWith(fontSize: 14),
@@ -227,19 +217,15 @@ class LateralScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
         trailing: IconButton(
-          icon: const Icon(
-            Icons.delete_outline,
-            size: 18,
-            color: Colors.black38,
-          ),
-          onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
+          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
+          onPressed: () => _vm.eliminarChat(chat.id),
         ),
         onTap: () => context.pop(chat.id),
       ),
     );
   }
 
-  Widget _buildCiudadTile(BuildContext context, Ciudad ciudad) {
+  Widget _buildCiudadTile(Ciudad ciudad) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -250,15 +236,8 @@ class LateralScreen extends StatelessWidget {
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(
-          Icons.location_city_outlined,
-          size: 18,
-          color: AppTheme.usal,
-        ),
-        title: Text(
-          ciudad.nombre,
-          style: AppTheme.cuerpo.copyWith(fontSize: 14),
-        ),
+        leading: const Icon(Icons.location_city_outlined, size: 18, color: AppTheme.usal),
+        title: Text(ciudad.nombre, style: AppTheme.cuerpo.copyWith(fontSize: 14)),
         onTap: () => context.pop(),
       ),
     );
@@ -281,11 +260,7 @@ class LateralScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 11,
-              color: AppTheme.usal,
-            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 11, color: AppTheme.usal),
           ],
         ),
       ),
