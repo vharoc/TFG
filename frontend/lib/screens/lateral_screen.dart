@@ -1,3 +1,5 @@
+import 'package:frontend/widgets/section_header.dart';
+
 import '../theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +9,8 @@ import '../models/ciudad.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_services.dart';
 import '../widgets/header_lateral.dart';
+import '../widgets/section_header.dart';
 
-// MODELOS TEMPORALES 
 class LateralScreen extends StatelessWidget {
 
   const LateralScreen({super.key});
@@ -77,7 +79,7 @@ class LateralScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // ── Historial de chats ──
-                    _buildSectionHeader('Historial de chats'),
+                    const SectionHeader(header: 'Historial de chats'),
                     SizedBox(height: innerSpacing),
                     Flexible(
                       child: StreamBuilder<List<Chat>>(
@@ -108,7 +110,7 @@ class LateralScreen extends StatelessWidget {
                     SizedBox(height: innerSpacing),
  
                     // ── Ciudades visitadas ──
-                    _buildSectionHeader('Ciudades visitadas'),
+                    const SectionHeader(header: 'Ciudades visitadas'),
                     SizedBox(height: innerSpacing),
                     Flexible(
                       child: StreamBuilder<List<Ciudad>>(
@@ -186,21 +188,6 @@ class LateralScreen extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: Colors.black,
         ),
       ),
     );
