@@ -3,10 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/theme.dart';
 import '../services/auth_services.dart';
-import '../widgets/header_logo.dart';
-import '../widgets/separator.dart';
-import '../widgets/form_lbl.dart';
-
+import '../widgets/common/header_logo.dart';
+import '../widgets/common/separator.dart';
+import '../widgets/common/form_lbl.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +17,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
-  
+
   bool _obscure = true;
   bool _loading = false;
   String? _error;
@@ -31,20 +30,19 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  String _parseError(dynamic e){
-    if (e is FirebaseAuthException){
-      return switch (e.code){
+  String _parseError(dynamic e) {
+    if (e is FirebaseAuthException) {
+      return switch (e.code) {
         "user-not-found" => 'No existe usuario asociado al correo',
         'wrong-password' => 'Contraseña incorrecta',
         'invalid-email' => 'Formato de email no válido',
         'invalid-credential' => 'Email o contraseña incorrectos',
-        'too-many-requests'     => 'Demasiados intentos, espera unos minutos',
-        _                       => 'Error inesperado, inténtalo de nuevo',
+        'too-many-requests' => 'Demasiados intentos, espera unos minutos',
+        _ => 'Error inesperado, inténtalo de nuevo',
       };
     }
     return 'Error, inténtalo de nuevo';
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -105,20 +103,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 28),
 
-                  if(_error != null) ... [
+                  if (_error != null) ...[
                     Text(
                       _error!,
-                      style: TextStyle(color:AppTheme.usal, fontSize: 13),
+                      style: TextStyle(color: AppTheme.usal, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
 
                     const SizedBox(height: 12),
-
                   ],
 
                   // BOTON PRINCIPAL
                   ElevatedButton(
-
                     onPressed: _loading ? null : _login,
 
                     style: ElevatedButton.styleFrom(
@@ -149,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(color: Colors.black54),
                         ),
                       ),
-                      
+
                       TextButton(
                         onPressed: () => context.go('/register'),
                         child: Text(
@@ -172,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if(_email.text.isEmpty || _passwd.text.isEmpty){
+    if (_email.text.isEmpty || _passwd.text.isEmpty) {
       setState(() => _error = 'Rellena todos los campos');
       return;
     }
@@ -182,19 +178,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
 
-    try{
-      await _auth.signIn(email:_email.text.trim(), passwd: _passwd.text.trim());
-      if(!mounted){
+    try {
+      await _auth.signIn(
+        email: _email.text.trim(),
+        passwd: _passwd.text.trim(),
+      );
+      if (!mounted) {
         return;
       }
       context.go('/home');
-    } catch (e){
+    } catch (e) {
       setState(() => _error = _parseError(e));
     } finally {
       setState(() => _loading = false);
     }
-
   }
-
-
 }

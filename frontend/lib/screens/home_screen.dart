@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../viewmodels/home_view_model.dart';
-import '../widgets/chat_input.dart';
-import '../widgets/chat_bubble.dart';
-import '../widgets/hamburger_btt.dart';
-import '../widgets/home_empty_state.dart';
-import '../widgets/header_home.dart';
+import '../widgets/home/chat_input.dart';
+import '../widgets/home/chat_bubble.dart';
+import '../widgets/home/hamburger_btt.dart';
+import '../widgets/home/home_empty_state.dart';
+import '../widgets/home/header_home.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? chatId;
@@ -62,13 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _vm.cargando
                       ? const Center(child: CircularProgressIndicator())
                       : _vm.messages.isEmpty
-                          ? const HomeEmptyState()
-                          : ListView.builder(
-                              controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              itemCount: _vm.messages.length,
-                              itemBuilder: (_, i) => ChatBubble(mensaje: _vm.messages[i]),
-                            ),
+                      ? const HomeEmptyState()
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          itemCount: _vm.messages.length,
+                          itemBuilder: (_, i) =>
+                              ChatBubble(mensaje: _vm.messages[i]),
+                        ),
                 ),
 
                 // ── Caja de texto ──
@@ -87,15 +88,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-   void _abrirLateral() {
+  void _abrirLateral() {
     context.push<dynamic>('/lateral').then((resultado) {
-    if (!mounted) return;
-    if (resultado is String) {
-      _vm.cambiarChat(resultado);
-    } else if (resultado == true) {
-      _vm.nuevaConversacion();
-    }
-  });
+      if (!mounted) return;
+      if (resultado is String) {
+        _vm.cambiarChat(resultado);
+      } else if (resultado == true) {
+        _vm.nuevaConversacion();
+      }
+    });
   }
 
   void _scrollToBottom() {

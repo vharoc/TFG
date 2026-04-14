@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../models/mensaje.dart';
-import '../theme/theme.dart';
+import '../../models/mensaje.dart';
+import '../../theme/theme.dart';
 
 class ChatBubble extends StatelessWidget {
   final Mensaje mensaje;
@@ -26,19 +26,19 @@ class ChatBubble extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         child: switch (mensaje.tipo) {
           MensajeTipo.texto => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text(
-                mensaje.contenido!,
-                style: TextStyle(
-                  color: esUsuario ? Colors.white : Colors.black,
-                  fontSize: 15,
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Text(
+              mensaje.contenido!,
+              style: TextStyle(
+                color: esUsuario ? Colors.white : Colors.black,
+                fontSize: 15,
               ),
             ),
+          ),
           MensajeTipo.imagen => Image.file(
-              File(mensaje.imgUrl!),
-              fit: BoxFit.cover,
-            ),
+            File(mensaje.imgUrl!),
+            fit: BoxFit.cover,
+          ),
         },
       ),
     );

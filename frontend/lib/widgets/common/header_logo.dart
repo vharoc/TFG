@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 
-class HeaderLogo extends StatelessWidget{
-
+class HeaderLogo extends StatelessWidget {
   final String title;
 
   const HeaderLogo({super.key, required this.title});
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Container(
       color: AppTheme.usal,
       padding: const EdgeInsets.only(top: 64, bottom: 32),
@@ -28,7 +27,4 @@ class HeaderLogo extends StatelessWidget{
       ),
     );
   }
-
-
-
 }

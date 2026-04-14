@@ -1,5 +1,3 @@
-import 'package:frontend/widgets/section_header.dart';
-
 import '../theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,11 +6,10 @@ import '../models/chat.dart';
 import '../models/ciudad.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_services.dart';
-import '../widgets/header_lateral.dart';
-import '../widgets/section_header.dart';
+import '../widgets/lateral/header_lateral.dart';
+import '../widgets/lateral/section_header.dart';
 
 class LateralScreen extends StatelessWidget {
-
   const LateralScreen({super.key});
 
   @override
@@ -22,13 +19,13 @@ class LateralScreen extends StatelessWidget {
     final isCompact = screenHeight < 760;
     final maxItems = screenHeight < 700 ? 1 : (screenHeight < 820 ? 2 : 3);
     final innerSpacing = isCompact ? 6.0 : 8.0;
- 
+
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
-            ? user!.email![0].toUpperCase()
-            : '?';
- 
+        ? user!.email![0].toUpperCase()
+        : '?';
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
       body: SafeArea(
@@ -36,10 +33,10 @@ class LateralScreen extends StatelessWidget {
           children: [
             // HEADER
             const HeaderLateral(),
- 
+
             const Divider(height: 1, indent: 20, endIndent: 20),
             const SizedBox(height: 12),
- 
+
             // NUEVA CONVERSACIÓN
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -47,7 +44,9 @@ class LateralScreen extends StatelessWidget {
                 onTap: () => context.pop(null), // null = nueva conversación
                 child: Container(
                   padding: EdgeInsets.symmetric(
-                      vertical: isCompact ? 10 : 12, horizontal: 16),
+                    vertical: isCompact ? 10 : 12,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.usal,
                     borderRadius: BorderRadius.circular(12),
@@ -69,9 +68,9 @@ class LateralScreen extends StatelessWidget {
                 ),
               ),
             ),
- 
+
             const SizedBox(height: 16),
- 
+
             // LISTAS
             Expanded(
               child: Padding(
@@ -88,7 +87,8 @@ class LateralScreen extends StatelessWidget {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                              child: CircularProgressIndicator(),
+                            );
                           }
                           final chats = snapshot.data ?? [];
                           if (chats.isEmpty) {
@@ -97,18 +97,18 @@ class LateralScreen extends StatelessWidget {
                           return Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ...chats.take(maxItems).map(
-                                    (c) => _buildChatTile(context, c),
-                                  ),
+                              ...chats
+                                  .take(maxItems)
+                                  .map((c) => _buildChatTile(context, c)),
                               _buildVerTodo(onTap: () {}),
                             ],
                           );
                         },
                       ),
                     ),
- 
+
                     SizedBox(height: innerSpacing),
- 
+
                     // ── Ciudades visitadas ──
                     const SectionHeader(header: 'Ciudades visitadas'),
                     SizedBox(height: innerSpacing),
@@ -119,19 +119,21 @@ class LateralScreen extends StatelessWidget {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                              child: CircularProgressIndicator(),
+                            );
                           }
                           final ciudades = snapshot.data ?? [];
                           if (ciudades.isEmpty) {
                             return _buildEmptyCard(
-                                'Aún no has visitado ninguna ciudad');
+                              'Aún no has visitado ninguna ciudad',
+                            );
                           }
                           return Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ...ciudades.take(maxItems).map(
-                                    (c) => _buildCiudadTile(context, c),
-                                  ),
+                              ...ciudades
+                                  .take(maxItems)
+                                  .map((c) => _buildCiudadTile(context, c)),
                               _buildVerTodo(onTap: () {}),
                             ],
                           );
@@ -142,7 +144,7 @@ class LateralScreen extends StatelessWidget {
                 ),
               ),
             ),
- 
+
             // FOOTER
             const Divider(height: 1, indent: 20, endIndent: 20),
             Padding(
@@ -175,14 +177,19 @@ class LateralScreen extends StatelessWidget {
                     child: Text(
                       user?.displayName ?? user?.email ?? 'Usuario',
                       style: AppTheme.cuerpo.copyWith(
-                          fontSize: 13, color: Colors.black54),
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
                     onPressed: () => context.push('/ajustes'),
-                    icon: const Icon(Icons.settings_outlined,
-                        color: Colors.black54, size: 22),
+                    icon: const Icon(
+                      Icons.settings_outlined,
+                      color: Colors.black54,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -204,10 +211,12 @@ class LateralScreen extends StatelessWidget {
       ),
       child: ListTile(
         dense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(Icons.chat_bubble_outline,
-            size: 18, color: AppTheme.usal),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: const Icon(
+          Icons.chat_bubble_outline,
+          size: 18,
+          color: AppTheme.usal,
+        ),
         title: Text(
           chat.titulo,
           style: AppTheme.cuerpo.copyWith(fontSize: 14),
@@ -218,8 +227,11 @@ class LateralScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.delete_outline,
-              size: 18, color: Colors.black38),
+          icon: const Icon(
+            Icons.delete_outline,
+            size: 18,
+            color: Colors.black38,
+          ),
           onPressed: () => ChatService.instance.eliminarConversacion(chat.id),
         ),
         onTap: () => context.pop(chat.id),
@@ -227,7 +239,7 @@ class LateralScreen extends StatelessWidget {
     );
   }
 
- Widget _buildCiudadTile(BuildContext context, Ciudad ciudad) {
+  Widget _buildCiudadTile(BuildContext context, Ciudad ciudad) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -237,10 +249,12 @@ class LateralScreen extends StatelessWidget {
       ),
       child: ListTile(
         dense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(Icons.location_city_outlined,
-            size: 18, color: AppTheme.usal),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: const Icon(
+          Icons.location_city_outlined,
+          size: 18,
+          color: AppTheme.usal,
+        ),
         title: Text(
           ciudad.nombre,
           style: AppTheme.cuerpo.copyWith(fontSize: 14),
@@ -267,8 +281,11 @@ class LateralScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: 11, color: AppTheme.usal),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 11,
+              color: AppTheme.usal,
+            ),
           ],
         ),
       ),
@@ -299,6 +316,4 @@ class LateralScreen extends StatelessWidget {
     if (diff < 7) return 'Hace $diff días';
     return '${fecha.day}/${fecha.month}/${fecha.year}';
   }
-
-
 }

@@ -6,7 +6,6 @@ import '../screens/login_screen.dart';
 import '../screens/ajustes_screen.dart';
 import '../screens/register_screen.dart';
 
-
 const _publicRoutes = ["/login", "/register", "/"];
 
 final appRouter = GoRouter(
@@ -19,12 +18,12 @@ final appRouter = GoRouter(
     return null;
   },
   routes: [
-    GoRoute(path: '/', builder: (_, __) => const LoginScreen()),
-    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-    GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-    GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/lateral', builder: (_, __) => const LateralScreen()),
-    GoRoute(path: '/ajustes', builder: (_, __) => const AjustesScreen()),
+    GoRoute(path: '/', builder: (_, state) => const LoginScreen()),
+    GoRoute(path: '/login', builder: (_, state) => const LoginScreen()),
+    GoRoute(path: '/register', builder: (_, state) => const RegisterScreen()),
+    GoRoute(path: '/home', builder: (_, state) => const HomeScreen()),
+    GoRoute(path: '/lateral', builder: (_, state) => const LateralScreen()),
+    GoRoute(path: '/ajustes', builder: (_, state) => const AjustesScreen()),
     // ← /home/:chatId eliminada
   ],
 );

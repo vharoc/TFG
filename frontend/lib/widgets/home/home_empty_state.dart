@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 
 class HomeEmptyState extends StatelessWidget {
   const HomeEmptyState({super.key});
@@ -10,11 +10,7 @@ class HomeEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            'assets/images/logo.png',
-            width: 48,
-            height: 48,
-          ),
+          Image.asset('assets/images/logo.png', width: 48, height: 48),
           const SizedBox(height: 12),
           Text(
             'Pregunta sobre algún monumento',

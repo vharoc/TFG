@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 import 'package:go_router/go_router.dart';
 
-class HeaderLateral extends StatelessWidget{
-
+class HeaderLateral extends StatelessWidget {
   const HeaderLateral({super.key});
 
   @override
@@ -37,8 +36,11 @@ class HeaderLateral extends StatelessWidget{
           const Spacer(),
           IconButton(
             onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_forward_ios_rounded,
-                color: AppTheme.usal, size: 20),
+            icon: const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: AppTheme.usal,
+              size: 20,
+            ),
           ),
         ],
       ),

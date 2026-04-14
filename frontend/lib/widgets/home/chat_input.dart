@@ -1,37 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../theme/theme.dart';
+import '../../theme/theme.dart';
 
 class ChatInput extends StatefulWidget {
   // Callback que se ejecuta al pulsar enviar con el texto introducido.
   final void Function(String text)? onSend;
-  
+
   // Callback que se ejecuta cuando el usuario captura o selecciona una imagen.
   final void Function(XFile image)? onImagePicked;
 
   const ChatInput({super.key, this.onSend, this.onImagePicked});
- 
+
   @override
   State<ChatInput> createState() => _ChatInputState();
 }
- 
+
 class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   bool _showSend = false;
- 
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  
+
   Future<void> _openCamera() async {
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 85,
     );
-    if(photo != null){
+    if (photo != null) {
       widget.onImagePicked?.call(photo);
     }
   }
@@ -45,7 +45,6 @@ class _ChatInputState extends State<ChatInput> {
     if (photo != null) {
       widget.onImagePicked?.call(photo);
     }
-
   }
 
   @override
@@ -87,9 +86,9 @@ class _ChatInputState extends State<ChatInput> {
               ),
             ),
           ),
- 
+
           const SizedBox(height: 6),
- 
+
           Row(
             children: [
               // ── Botón "+" ────────────────────────────────
@@ -108,9 +107,9 @@ class _ChatInputState extends State<ChatInput> {
                   ),
                 ),
               ),
- 
+
               const Spacer(),
- 
+
               // ── Botón enviar ─────────────────────────────
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -146,19 +145,17 @@ class _ChatInputState extends State<ChatInput> {
       ),
     );
   }
- 
+
   void _showAttachMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final RenderBox overlay =
         Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final Offset pos =
-        button.localToGlobal(Offset.zero, ancestor: overlay);
- 
+    final Offset pos = button.localToGlobal(Offset.zero, ancestor: overlay);
+
     showMenu(
       context: context,
       color: Colors.white,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       elevation: 8,
       position: RelativeRect.fromLTRB(
         pos.dx,
@@ -184,7 +181,7 @@ class _ChatInputState extends State<ChatInput> {
       }
     });
   }
- 
+
   Widget _menuRow(IconData icon, String label, {bool hasArrow = false}) {
     return Row(
       children: [

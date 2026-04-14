@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/theme.dart';
-import '../widgets/form_lbl.dart';
-import '../widgets/separator.dart';
-import '../widgets/header_logo.dart';
+import '../widgets/common/form_lbl.dart';
+import '../widgets/common/separator.dart';
+import '../widgets/common/header_logo.dart';
 import '../viewmodels/register_view_model.dart';
-
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,8 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
   final _user = TextEditingController();
-  
-  bool _obscure = true; 
+
+  bool _obscure = true;
   final _vm = RegisterViewModel();
 
   @override
@@ -45,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       passwd: _passwd.text.trim(),
       nombre: _user.text.trim(),
     );
- 
+
     if (ok && mounted) context.go('/home');
   }
 
@@ -93,7 +92,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: AppTheme.cuerpo,
                     decoration: const InputDecoration(
                       hintText: 'correo@ejemplo.com',
-                      prefixIcon: Icon(Icons.mail_outline,color: Colors.black45),
+                      prefixIcon: Icon(
+                        Icons.mail_outline,
+                        color: Colors.black45,
+                      ),
                     ),
                   ),
 
@@ -125,7 +127,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 28),
 
-                  // ERROR 
+                  // ERROR
                   if (_vm.error != null) ...[
                     Text(
                       _vm.error!,
@@ -137,7 +139,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   // BOTÓN PRINCIPAL
                   ElevatedButton(
-
                     onPressed: _vm.loading ? null : _register,
 
                     style: ElevatedButton.styleFrom(
@@ -148,7 +149,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    child: _vm.loading ? const CircularProgressIndicator(color: Colors.white) : const Text ('Crear cuenta'),
+                    child: _vm.loading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Crear cuenta'),
                   ),
 
                   const SizedBox(height: 24),
@@ -163,11 +166,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const Flexible(
                         child: Text(
-                        '¿Ya tienes cuenta?',
-                        style: TextStyle(color: Colors.black54),
+                          '¿Ya tienes cuenta?',
+                          style: TextStyle(color: Colors.black54),
                         ),
                       ),
-                      
+
                       TextButton(
                         onPressed: () => context.go('/login'),
                         child: Text(
