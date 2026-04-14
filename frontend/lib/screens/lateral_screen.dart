@@ -23,7 +23,9 @@ class _LateralScreenState extends State<LateralScreen> {
   void initState() {
     super.initState();
     _vm = LateralViewModel();
-    _vm.addListener(() { if (mounted) setState(() {}); });
+    _vm.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -43,8 +45,8 @@ class _LateralScreenState extends State<LateralScreen> {
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
-            ? user!.email![0].toUpperCase()
-            : '?';
+        ? user!.email![0].toUpperCase()
+        : '?';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -60,7 +62,7 @@ class _LateralScreenState extends State<LateralScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
-                onTap: () => context.pop(null),
+                onTap: () => context.pop(true),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     vertical: isCompact ? 10 : 12,
@@ -103,16 +105,16 @@ class _LateralScreenState extends State<LateralScreen> {
                       child: _vm.cargandoChats
                           ? const Center(child: CircularProgressIndicator())
                           : _vm.chats.isEmpty
-                              ? _buildEmptyCard('Aún no hay conversaciones')
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ..._vm.chats
-                                        .take(maxItems)
-                                        .map((c) => _buildChatTile(c)),
-                                    _buildVerTodo(onTap: () {}),
-                                  ],
-                                ),
+                          ? _buildEmptyCard('Aún no hay conversaciones')
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ..._vm.chats
+                                    .take(maxItems)
+                                    .map((c) => _buildChatTile(c)),
+                                _buildVerTodo(onTap: () {}),
+                              ],
+                            ),
                     ),
 
                     SizedBox(height: innerSpacing),
@@ -124,16 +126,18 @@ class _LateralScreenState extends State<LateralScreen> {
                       child: _vm.cargandoCiudades
                           ? const Center(child: CircularProgressIndicator())
                           : _vm.ciudades.isEmpty
-                              ? _buildEmptyCard('Aún no has visitado ninguna ciudad')
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ..._vm.ciudades
-                                        .take(maxItems)
-                                        .map((c) => _buildCiudadTile(c)),
-                                    _buildVerTodo(onTap: () {}),
-                                  ],
-                                ),
+                          ? _buildEmptyCard(
+                              'Aún no has visitado ninguna ciudad',
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ..._vm.ciudades
+                                    .take(maxItems)
+                                    .map((c) => _buildCiudadTile(c)),
+                                _buildVerTodo(onTap: () {}),
+                              ],
+                            ),
                     ),
                   ],
                 ),
@@ -206,7 +210,11 @@ class _LateralScreenState extends State<LateralScreen> {
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(Icons.chat_bubble_outline, size: 18, color: AppTheme.usal),
+        leading: const Icon(
+          Icons.chat_bubble_outline,
+          size: 18,
+          color: AppTheme.usal,
+        ),
         title: Text(
           chat.titulo,
           style: AppTheme.cuerpo.copyWith(fontSize: 14),
@@ -217,7 +225,11 @@ class _LateralScreenState extends State<LateralScreen> {
           style: const TextStyle(fontSize: 11, color: Colors.black38),
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.black38),
+          icon: const Icon(
+            Icons.delete_outline,
+            size: 18,
+            color: Colors.black38,
+          ),
           onPressed: () => _vm.eliminarChat(chat.id),
         ),
         onTap: () => context.pop(chat.id),
@@ -236,8 +248,15 @@ class _LateralScreenState extends State<LateralScreen> {
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        leading: const Icon(Icons.location_city_outlined, size: 18, color: AppTheme.usal),
-        title: Text(ciudad.nombre, style: AppTheme.cuerpo.copyWith(fontSize: 14)),
+        leading: const Icon(
+          Icons.location_city_outlined,
+          size: 18,
+          color: AppTheme.usal,
+        ),
+        title: Text(
+          ciudad.nombre,
+          style: AppTheme.cuerpo.copyWith(fontSize: 14),
+        ),
         onTap: () => context.pop(),
       ),
     );
@@ -260,7 +279,11 @@ class _LateralScreenState extends State<LateralScreen> {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_forward_ios_rounded, size: 11, color: AppTheme.usal),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 11,
+              color: AppTheme.usal,
+            ),
           ],
         ),
       ),
