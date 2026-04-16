@@ -55,7 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Column(
               children: [
-                const HeaderHome(),
+                const HeaderHome(titulo: "ines la mas guapa"),
+                // const Divider(height: 100, indent: 20, endIndent: 20, color: Colors.black,),
 
                 // ── Área de mensajes ──
                 Expanded(

@@ -79,6 +79,7 @@ class _AjustesScreenState extends StatelessWidget {
                 icon: Icons.logout_rounded,
                 label: 'Cerrar sesión',
                 onTap: () => _confirmarCerrarSesion(context),
+                color: AppTheme.usal,
               ),
             ],
           ),

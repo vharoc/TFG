@@ -6,7 +6,7 @@ import '../services/chat_services.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
-  List<Mensaje> get messages => List.unmodifiable(_messages); // ← inmutable desde fuera
+  List<Mensaje> get messages => List.unmodifiable(_messages);
 
   String? chatId;
   bool cargando = false;
@@ -33,7 +33,7 @@ class HomeViewModel extends ChangeNotifier {
     _sub?.cancel();
     _sub = ChatService.instance.mensajesStream(chatId!).listen(
       (mensajes) {
-        _messages = List.of(mensajes); // ← nueva lista en cada emisión
+        _messages = List.of(mensajes);
         cargando = false;
         notifyListeners();
       },
@@ -45,7 +45,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> cambiarChat(String? nuevoChatId) async {
-    if (chatId == nuevoChatId) return; // ← evita re-suscripciones innecesarias
+    if (chatId == nuevoChatId) return;
     _sub?.cancel();
     chatId = nuevoChatId;
     _messages = [];
@@ -59,10 +59,10 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> enviarTexto(String texto) async {
     final textoTrimmed = texto.trim();
-    if (textoTrimmed.isEmpty) return; // ← guard
+    if (textoTrimmed.isEmpty) return;
 
     await _crearChatSiNecesario(textoTrimmed);
-    if (chatId == null) return; // ← por si falla la creación
+    if (chatId == null) return;
 
     await ChatService.instance.guardarMensaje(
       chatId: chatId!,
