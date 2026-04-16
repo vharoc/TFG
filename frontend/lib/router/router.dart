@@ -4,6 +4,7 @@ import 'package:frontend/screens/lateral_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/login_screen.dart';
 import '../screens/ajustes_screen.dart';
+import '../screens/perfil_screen.dart';
 import '../screens/register_screen.dart';
 
 const _publicRoutes = ["/login", "/register", "/"];
@@ -24,6 +25,6 @@ final appRouter = GoRouter(
     GoRoute(path: '/home', builder: (_, state) => const HomeScreen()),
     GoRoute(path: '/lateral', builder: (_, state) => const LateralScreen()),
     GoRoute(path: '/ajustes', builder: (_, state) => const AjustesScreen()),
-    // ← /home/:chatId eliminada
+    GoRoute(path: '/perfil', builder: (_, state) => const PerfilScreen()),
   ],
 );

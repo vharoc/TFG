@@ -45,8 +45,8 @@ class _LateralScreenState extends State<LateralScreen> {
     final inicial = (user?.displayName?.isNotEmpty == true)
         ? user!.displayName![0].toUpperCase()
         : (user?.email?.isNotEmpty == true)
-        ? user!.email![0].toUpperCase()
-        : '?';
+            ? user!.email![0].toUpperCase()
+            : '?';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -105,16 +105,16 @@ class _LateralScreenState extends State<LateralScreen> {
                       child: _vm.cargandoChats
                           ? const Center(child: CircularProgressIndicator())
                           : _vm.chats.isEmpty
-                          ? _buildEmptyCard('Aún no hay conversaciones')
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ..._vm.chats
-                                    .take(maxItems)
-                                    .map((c) => _buildChatTile(c)),
-                                _buildVerTodo(onTap: () {}),
-                              ],
-                            ),
+                              ? _buildEmptyCard('Aún no hay conversaciones')
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ..._vm.chats
+                                        .take(maxItems)
+                                        .map((c) => _buildChatTile(c)),
+                                    _buildVerTodo(onTap: () {}),
+                                  ],
+                                ),
                     ),
 
                     SizedBox(height: innerSpacing),
@@ -126,18 +126,18 @@ class _LateralScreenState extends State<LateralScreen> {
                       child: _vm.cargandoCiudades
                           ? const Center(child: CircularProgressIndicator())
                           : _vm.ciudades.isEmpty
-                          ? _buildEmptyCard(
-                              'Aún no has visitado ninguna ciudad',
-                            )
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ..._vm.ciudades
-                                    .take(maxItems)
-                                    .map((c) => _buildCiudadTile(c)),
-                                _buildVerTodo(onTap: () {}),
-                              ],
-                            ),
+                              ? _buildEmptyCard(
+                                  'Aún no has visitado ninguna ciudad',
+                                )
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ..._vm.ciudades
+                                        .take(maxItems)
+                                        .map((c) => _buildCiudadTile(c)),
+                                    _buildVerTodo(onTap: () {}),
+                                  ],
+                                ),
                     ),
                   ],
                 ),
@@ -150,8 +150,9 @@ class _LateralScreenState extends State<LateralScreen> {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               child: Row(
                 children: [
+                  // Avatar → navega a Perfil
                   GestureDetector(
-                    onTap: () => context.push('/ajustes'),
+                    onTap: () => context.push('/perfil'),
                     child: Container(
                       width: 38,
                       height: 38,
@@ -182,6 +183,7 @@ class _LateralScreenState extends State<LateralScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // Icono tuerca → navega a Ajustes
                   IconButton(
                     onPressed: () => context.push('/ajustes'),
                     icon: const Icon(
@@ -209,7 +211,8 @@ class _LateralScreenState extends State<LateralScreen> {
       ),
       child: ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: const Icon(
           Icons.chat_bubble_outline,
           size: 18,
@@ -247,7 +250,8 @@ class _LateralScreenState extends State<LateralScreen> {
       ),
       child: ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: const Icon(
           Icons.location_city_outlined,
           size: 18,
