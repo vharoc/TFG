@@ -23,6 +23,11 @@ class ChatService {
   CollectionReference<Map<String, dynamic>> get _chatsRef => _db.collection('users').doc(_uid).collection('chats');
   CollectionReference<Map<String, dynamic>> _mensajesRef(String chatId) => _chatsRef.doc(chatId).collection('mensajes');
 
+    Stream<Chat?> chatStream(String chatId) => _chatsRef
+      .doc(chatId)
+      .snapshots()
+      .map((doc) => doc.exists ? Chat.fromFirestore(doc) : null);
+
   Stream<List<Chat>> get chatsStream => _chatsRef
       .orderBy('fechaCreacion', descending: true)
       .limit(20)

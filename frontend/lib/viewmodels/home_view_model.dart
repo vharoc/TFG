@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../models/chat.dart';
 import '../models/mensaje.dart';
 import '../services/chat_services.dart';
 
@@ -8,10 +9,14 @@ class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
   List<Mensaje> get messages => List.unmodifiable(_messages);
 
+  String _tituloChat = '';
+  String get tituloChat => _tituloChat;
+
   String? chatId;
   bool cargando = false;
 
   StreamSubscription<List<Mensaje>>? _sub;
+  StreamSubscription<Chat?>? _chatSub;
   bool _creandoChat = false;
 
   HomeViewModel({String? initialChatId}) {
@@ -31,6 +36,16 @@ class HomeViewModel extends ChangeNotifier {
     }
 
     _sub?.cancel();
+    _chatSub?.cancel();
+
+    _chatSub = ChatService.instance.chatStream(chatId!).listen((chat) {
+      final nuevoTitulo = (chat?.titulo ?? '').trim();
+      if (_tituloChat != nuevoTitulo) {
+        _tituloChat = nuevoTitulo;
+        notifyListeners();
+      }
+    });
+
     _sub = ChatService.instance.mensajesStream(chatId!).listen(
       (mensajes) {
         _messages = List.of(mensajes);
@@ -47,8 +62,10 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> cambiarChat(String? nuevoChatId) async {
     if (chatId == nuevoChatId) return;
     _sub?.cancel();
+    _chatSub?.cancel();
     chatId = nuevoChatId;
     _messages = [];
+    _tituloChat = '';
     cargando = false;
     notifyListeners();
 
@@ -61,7 +78,7 @@ class HomeViewModel extends ChangeNotifier {
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
 
-    await _crearChatSiNecesario(textoTrimmed);
+    await _crearChatSiNecesario();
     if (chatId == null) return;
 
     await ChatService.instance.guardarMensaje(
@@ -74,10 +91,12 @@ class HomeViewModel extends ChangeNotifier {
         fecha: DateTime.now(),
       ),
     );
+
+    await _actualizarTituloSiVacio(textoTrimmed);
   }
 
   Future<void> enviarImagen(XFile img) async {
-    await _crearChatSiNecesario('[Imagen]');
+    await _crearChatSiNecesario();
     if (chatId == null) return;
 
     await ChatService.instance.guardarMensaje(
@@ -90,16 +109,15 @@ class HomeViewModel extends ChangeNotifier {
         fecha: DateTime.now(),
       ),
     );
+
+    await _actualizarTituloSiVacio('[Imagen]');
   }
 
-  Future<void> _crearChatSiNecesario(String primerTexto) async {
+  Future<void> _crearChatSiNecesario() async {
     if (chatId != null || _creandoChat) return;
     _creandoChat = true;
     try {
-      final titulo = primerTexto.length > 40
-          ? '${primerTexto.substring(0, 40)}...'
-          : primerTexto;
-      final id = await ChatService.instance.crearConversacion(titulo: titulo);
+      final id = await ChatService.instance.crearConversacion(titulo: '');
       chatId = id;
       _suscribir();
     } catch (_) {
@@ -109,10 +127,34 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> _actualizarTituloSiVacio(String textoBase) async {
+    if (chatId == null || _tituloChat.trim().isNotEmpty) return;
+    final titulo = _construirTitulo(textoBase);
+    _tituloChat = titulo;
+    notifyListeners();
+
+    try {
+      await ChatService.instance.actualizarTitulo(
+        chatId: chatId!,
+        nuevoTitulo: titulo,
+      );
+    } catch (_) {
+      // Si falla Firestore, mantenemos el título local para evitar parpadeos.
+    }
+  }
+
+  String _construirTitulo(String texto) {
+    final base = texto.trim();
+    if (base.length <= 40) return base;
+    return '${base.substring(0, 40)}...';
+  }
+
   void nuevaConversacion() {
     _sub?.cancel();
+    _chatSub?.cancel();
     chatId = null;
     _messages = [];
+    _tituloChat = '';
     cargando = false;
     notifyListeners();
   }
@@ -120,6 +162,7 @@ class HomeViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _sub?.cancel();
+    _chatSub?.cancel();
     super.dispose();
   }
 }
