@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../theme/theme.dart';
 class HeaderHome extends StatelessWidget {
   final String? titulo;
 
@@ -12,7 +12,7 @@ class HeaderHome extends StatelessWidget {
     return Container(
       height: 60,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color.fromARGB(255, 245, 230, 186),
         border: Border(
           bottom: BorderSide(color: Color(0xFFEEEAE4), width: 1),
         ),
