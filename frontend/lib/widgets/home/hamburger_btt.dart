@@ -8,38 +8,24 @@ class HamburgerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: 50,
-      left: 12,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
+      top: 8,
+      left: 8,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 20,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: 20,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+                _linea(20),
+                const SizedBox(height: 5),
+                _linea(13), // línea corta — detalle estético
               ],
             ),
           ),
@@ -47,4 +33,13 @@ class HamburgerButton extends StatelessWidget {
       ),
     );
   }
+
+  Widget _linea(double width) => Container(
+        width: width,
+        height: 2,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      );
 }
