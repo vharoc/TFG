@@ -56,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Column(
               children: [
                 HeaderHome(titulo: _vm.tituloChat),
-                // const Divider(height: 100, indent: 20, endIndent: 20, color: Colors.black,),
 
                 // ── Área de mensajes ──
                 Expanded(

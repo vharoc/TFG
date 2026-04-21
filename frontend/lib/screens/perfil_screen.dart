@@ -17,8 +17,39 @@ class PerfilScreen extends StatelessWidget {
   }
 }
 
-class _PerfilScreenState extends StatelessWidget {
-  const _PerfilScreenState();
+class _PerfilScreenState extends StatefulWidget {
+  const _PerfilScreenState({super.key});
+
+  @override
+  State<_PerfilScreenState> createState() => _PerfilScreenStateState();
+}
+
+class _PerfilScreenStateState extends State<_PerfilScreenState> {
+  final _nombreCtrl = TextEditingController();
+  final _passwdActualCtrl = TextEditingController();
+  final _passwdNuevaCtrl = TextEditingController();
+
+  bool _nombreInicializado = false;
+  bool _mostrarCambioPasswd = false;
+  bool _obscureActual = true;
+  bool _obscureNueva = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_nombreInicializado) return;
+    final vm = context.read<PerfilViewModel>();
+    _nombreCtrl.text = vm.displayName;
+    _nombreInicializado = true;
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _passwdActualCtrl.dispose();
+    _passwdNuevaCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +108,154 @@ class _PerfilScreenState extends StatelessWidget {
 
           const SizedBox(height: 36),
 
-          // ── Zona de peligro ────────────────────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE0DAD4)),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Nombre de usuario',
+                  style: AppTheme.cuerpo.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _nombreCtrl,
+                  decoration: const InputDecoration(
+                    hintText: 'Introduce tu nombre de usuario',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: vm.cargando ? null : () => _actualizarNombre(vm),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.usal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: vm.cargando
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Guardar nombre'),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE0DAD4)),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Contraseña',
+                        style: AppTheme.cuerpo.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _mostrarCambioPasswd = !_mostrarCambioPasswd),
+                      child: Text(
+                        _mostrarCambioPasswd
+                            ? 'Cancelar'
+                            : 'Cambiar contraseña',
+                        style: const TextStyle(color: AppTheme.usal),
+                      ),
+                    ),
+                  ],
+                ),
+                if (_mostrarCambioPasswd) ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _passwdActualCtrl,
+                    obscureText: _obscureActual,
+                    decoration: InputDecoration(
+                      hintText: 'Contraseña actual',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscureActual = !_obscureActual),
+                        icon: Icon(
+                          _obscureActual
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _passwdNuevaCtrl,
+                    obscureText: _obscureNueva,
+                    decoration: InputDecoration(
+                      hintText: 'Nueva contraseña',
+                      prefixIcon: const Icon(Icons.lock_reset_rounded),
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscureNueva = !_obscureNueva),
+                        icon: Icon(
+                          _obscureNueva
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: vm.cargando
+                        ? null
+                        : () => _cambiarContrasena(vm),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.usal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: vm.cargando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Guardar nueva contraseña'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -179,5 +357,54 @@ class _PerfilScreenState extends StatelessWidget {
     }
 
     passwdCtrl.dispose();
+  }
+
+  Future<void> _actualizarNombre(PerfilViewModel vm) async {
+    final ok = await vm.actualizarNombreUsuario(_nombreCtrl.text);
+    if (!mounted) return;
+
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nombre de usuario actualizado.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (vm.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(vm.error!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _cambiarContrasena(PerfilViewModel vm) async {
+    final ok = await vm.cambiarContrasena(
+      contrasenaActual: _passwdActualCtrl.text,
+      nuevaContrasena: _passwdNuevaCtrl.text,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      _passwdActualCtrl.clear();
+      _passwdNuevaCtrl.clear();
+      setState(() => _mostrarCambioPasswd = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Contraseña actualizada correctamente.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (vm.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(vm.error!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

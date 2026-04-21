@@ -13,5 +13,14 @@ class UserServices {
     if(!doc.exists) return null;
     return Usuario.fromFirestore(doc);
   }
+
+  Future<void> actualizarNombre({
+    required String id,
+    required String nombre,
+  }) async {
+    await _firestore.collection('users').doc(id).set({
+      'nombre': nombre,
+    }, SetOptions(merge: true));
+  }
   
 }
