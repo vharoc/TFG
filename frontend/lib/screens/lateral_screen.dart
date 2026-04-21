@@ -18,6 +18,8 @@ class LateralScreen extends StatefulWidget {
 
 class _LateralScreenState extends State<LateralScreen> {
   late final LateralViewModel _vm;
+  final ScrollController _chatsScrollController = ScrollController();
+  bool _mostrarTodosChats = false;
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _LateralScreenState extends State<LateralScreen> {
 
   @override
   void dispose() {
+    _chatsScrollController.dispose();
     _vm.dispose();
     super.dispose();
   }
@@ -96,51 +99,102 @@ class _LateralScreenState extends State<LateralScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    // ── Historial de chats ──
-                    const SectionHeader(header: 'Historial de chats'),
-                    SizedBox(height: innerSpacing),
-                    Flexible(
-                      child: _vm.cargandoChats
-                          ? const Center(child: CircularProgressIndicator())
-                          : _vm.chats.isEmpty
-                              ? _buildEmptyCard('Aún no hay conversaciones')
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ..._vm.chats
-                                        .take(maxItems)
-                                        .map((c) => _buildChatTile(c)),
-                                    _buildVerTodo(onTap: () {}),
-                                  ],
+                child: _mostrarTodosChats
+                    ? Column(
+                        children: [
+                          const SectionHeader(header: 'Historial de chats'),
+                          SizedBox(height: innerSpacing),
+                          Expanded(
+                            child: _vm.cargandoChats
+                                ? const Center(child: CircularProgressIndicator())
+                                : _vm.chats.isEmpty
+                                    ? _buildEmptyCard(
+                                        'Aún no hay conversaciones',
+                                      )
+                                    : Scrollbar(
+                                        controller: _chatsScrollController,
+                                        thumbVisibility: true,
+                                        child: ListView.builder(
+                                          controller: _chatsScrollController,
+                                          padding: EdgeInsets.zero,
+                                          itemCount: _vm.chats.length,
+                                          itemBuilder: (_, i) =>
+                                              _buildChatTile(_vm.chats[i]),
+                                        ),
+                                      ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: () =>
+                                  setState(() => _mostrarTodosChats = false),
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'Ocultar chats',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.usal,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                    ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          // ── Historial de chats ──
+                          const SectionHeader(header: 'Historial de chats'),
+                          SizedBox(height: innerSpacing),
+                          Flexible(
+                            child: _vm.cargandoChats
+                                ? const Center(child: CircularProgressIndicator())
+                                : _vm.chats.isEmpty
+                                    ? _buildEmptyCard(
+                                        'Aún no hay conversaciones',
+                                      )
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ..._vm.chats
+                                              .take(maxItems)
+                                              .map((c) => _buildChatTile(c)),
+                                          _buildVerTodo(
+                                            onTap: () => setState(
+                                              () => _mostrarTodosChats = true,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                          ),
 
-                    SizedBox(height: innerSpacing),
+                          SizedBox(height: innerSpacing),
 
-                    // ── Ciudades visitadas ──
-                    const SectionHeader(header: 'Ciudades visitadas'),
-                    SizedBox(height: innerSpacing),
-                    Flexible(
-                      child: _vm.cargandoCiudades
-                          ? const Center(child: CircularProgressIndicator())
-                          : _vm.ciudades.isEmpty
-                              ? _buildEmptyCard(
-                                  'Aún no has visitado ninguna ciudad',
-                                )
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ..._vm.ciudades
-                                        .take(maxItems)
-                                        .map((c) => _buildCiudadTile(c)),
-                                    _buildVerTodo(onTap: () {}),
-                                  ],
-                                ),
-                    ),
-                  ],
-                ),
+                          // ── Ciudades visitadas ──
+                          const SectionHeader(header: 'Ciudades visitadas'),
+                          SizedBox(height: innerSpacing),
+                          Flexible(
+                            child: _vm.cargandoCiudades
+                                ? const Center(child: CircularProgressIndicator())
+                                : _vm.ciudades.isEmpty
+                                    ? _buildEmptyCard(
+                                        'Aún no has visitado ninguna ciudad',
+                                      )
+                                    : Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ..._vm.ciudades
+                                              .take(maxItems)
+                                              .map((c) => _buildCiudadTile(c)),
+                                          _buildVerTodo(onTap: () {}),
+                                        ],
+                                      ),
+                          ),
+                        ],
+                      ),
               ),
             ),
 
