@@ -1,7 +1,6 @@
 from fastapi import FastAPI
+from routers.chat import router
 
-app = FastAPI(title="api", version="1.0.0")
+app = FastAPI(title="TourClick API", version="1.0.0")
 
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "Hello World"}
+app.include_router(router, prefix="/api")
