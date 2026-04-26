@@ -5,7 +5,6 @@ import '../models/chat.dart';
 import '../models/mensaje.dart';
 
 class ChatService {
-
   ChatService._();
 
   static final ChatService instance = ChatService._();
@@ -20,10 +19,12 @@ class ChatService {
     return user.uid;
   }
 
-  CollectionReference<Map<String, dynamic>> get _chatsRef => _db.collection('users').doc(_uid).collection('chats');
-  CollectionReference<Map<String, dynamic>> _mensajesRef(String chatId) => _chatsRef.doc(chatId).collection('mensajes');
+  CollectionReference<Map<String, dynamic>> get _chatsRef =>
+      _db.collection('users').doc(_uid).collection('chats');
+  CollectionReference<Map<String, dynamic>> _mensajesRef(String chatId) =>
+      _chatsRef.doc(chatId).collection('mensajes');
 
-    Stream<Chat?> chatStream(String chatId) => _chatsRef
+  Stream<Chat?> chatStream(String chatId) => _chatsRef
       .doc(chatId)
       .snapshots()
       .map((doc) => doc.exists ? Chat.fromFirestore(doc) : null);
@@ -45,7 +46,7 @@ class ChatService {
     final doc = await _chatsRef.add({
       'titulo': titulo,
       'fechaCreacion': FieldValue.serverTimestamp(),
-      'uid': _uid,
+      'userId': _uid,
     });
     return doc.id;
   }
@@ -57,7 +58,7 @@ class ChatService {
   }) async {
     await _mensajesRef(chatId).add(mensaje.toMap());
   }
- 
+
   // -- Actualizar título --
   Future<void> actualizarTitulo({
     required String chatId,
@@ -65,7 +66,7 @@ class ChatService {
   }) async {
     await _chatsRef.doc(chatId).update({'titulo': nuevoTitulo});
   }
- 
+
   // -- Eliminar conversación y sus mensajes --
   Future<void> eliminarConversacion(String chatId) async {
     final msgs = await _mensajesRef(chatId).get();

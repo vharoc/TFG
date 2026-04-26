@@ -15,10 +15,7 @@ class OllamaService {
     final normalizedBase = _baseUrl.trim().replaceFirst(RegExp(r'/$'), '');
     if (normalizedBase.endsWith('/api')) {
       final rootBase = normalizedBase.substring(0, normalizedBase.length - 4);
-      return [
-        Uri.parse('$normalizedBase/query'),
-        Uri.parse('$rootBase/query'),
-      ];
+      return [Uri.parse('$normalizedBase/query'), Uri.parse('$rootBase/query')];
     }
 
     return [
@@ -38,7 +35,7 @@ class OllamaService {
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'prompt': prompt, 'system': system}),
             )
-            .timeout(const Duration(seconds: 45));
+            .timeout(const Duration(seconds: 270));
 
         if (response.statusCode == 404) {
           lastError = Exception('Endpoint no encontrado: $uri');

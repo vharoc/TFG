@@ -47,7 +47,9 @@ class HomeViewModel extends ChangeNotifier {
       }
     });
 
-    _sub = ChatService.instance.mensajesStream(chatId!).listen(
+    _sub = ChatService.instance
+        .mensajesStream(chatId!)
+        .listen(
           (mensajes) {
             _messages = List.of(mensajes);
             cargando = false;
@@ -84,42 +86,27 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = chatId!;
 
-    await ChatService.instance.guardarMensaje(
+    await _guardarMensajeTexto(
       chatId: chatIdActual,
-      mensaje: Mensaje.texto(
-        id: '',
-        chatId: chatIdActual,
-        contenido: textoTrimmed,
-        role: MensajeRole.usuario,
-        fecha: DateTime.now(),
-      ),
+      contenido: textoTrimmed,
+      role: MensajeRole.usuario,
     );
 
     await _actualizarTituloSiVacio(textoTrimmed);
 
     try {
       final respuesta = await OllamaService.query(textoTrimmed);
-      await ChatService.instance.guardarMensaje(
+      await _guardarMensajeTexto(
         chatId: chatIdActual,
-        mensaje: Mensaje.texto(
-          id: '',
-          chatId: chatIdActual,
-          contenido: respuesta,
-          role: MensajeRole.bot,
-          fecha: DateTime.now(),
-        ),
+        contenido: respuesta,
+        role: MensajeRole.bot,
       );
     } catch (_) {
-      await ChatService.instance.guardarMensaje(
+      await _guardarMensajeTexto(
         chatId: chatIdActual,
-        mensaje: Mensaje.texto(
-          id: '',
-          chatId: chatIdActual,
-          contenido:
-              'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
-          role: MensajeRole.bot,
-          fecha: DateTime.now(),
-        ),
+        contenido:
+            'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
+        role: MensajeRole.bot,
       );
     }
   }
@@ -128,15 +115,10 @@ class HomeViewModel extends ChangeNotifier {
     await _crearChatSiNecesario();
     if (chatId == null) return;
 
-    await ChatService.instance.guardarMensaje(
+    await _guardarMensajeImagen(
       chatId: chatId!,
-      mensaje: Mensaje.imagen(
-        id: '',
-        chatId: chatId!,
-        imgUrl: img.path,
-        role: MensajeRole.usuario,
-        fecha: DateTime.now(),
-      ),
+      imgUrl: img.path,
+      role: MensajeRole.usuario,
     );
 
     await _actualizarTituloSiVacio('[Imagen]');
@@ -176,6 +158,40 @@ class HomeViewModel extends ChangeNotifier {
     final base = texto.trim();
     if (base.length <= 40) return base;
     return '${base.substring(0, 40)}...';
+  }
+
+  Future<void> _guardarMensajeTexto({
+    required String chatId,
+    required String contenido,
+    required MensajeRole role,
+  }) {
+    return ChatService.instance.guardarMensaje(
+      chatId: chatId,
+      mensaje: Mensaje.texto(
+        id: '',
+        chatId: chatId,
+        contenido: contenido,
+        role: role,
+        fecha: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> _guardarMensajeImagen({
+    required String chatId,
+    required String imgUrl,
+    required MensajeRole role,
+  }) {
+    return ChatService.instance.guardarMensaje(
+      chatId: chatId,
+      mensaje: Mensaje.imagen(
+        id: '',
+        chatId: chatId,
+        imgUrl: imgUrl,
+        role: role,
+        fecha: DateTime.now(),
+      ),
+    );
   }
 
   void nuevaConversacion() {

@@ -1,18 +1,25 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  final FirebaseAuth firebaseAuth =
-      FirebaseAuth.instance; // crear instancia de firebase
+  final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
   User? get currentUser => firebaseAuth.currentUser;
 
   Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
 
+  User get _requiredUser {
+    final user = currentUser;
+    if (user == null) {
+      throw StateError('No hay usuario autenticado.');
+    }
+    return user;
+  }
+
   Future<UserCredential> signIn({
     required String email,
     required String passwd,
   }) async {
-    return await firebaseAuth.signInWithEmailAndPassword(
+    return firebaseAuth.signInWithEmailAndPassword(
       email: email,
       password: passwd,
     );
@@ -22,7 +29,7 @@ class AuthService {
     required String email,
     required String passwd,
   }) async {
-    return await firebaseAuth.createUserWithEmailAndPassword(
+    return firebaseAuth.createUserWithEmailAndPassword(
       email: email,
       password: passwd,
     );
@@ -33,7 +40,7 @@ class AuthService {
   }
 
   Future<void> updateUsername({required String username}) async {
-    await currentUser!.updateDisplayName(username);
+    await _requiredUser.updateDisplayName(username);
   }
 
   Future<void> deleteAccount({
@@ -48,16 +55,16 @@ class AuthService {
     required String email,
     required String passwd,
   }) async {
-    AuthCredential credential = EmailAuthProvider.credential(
+    final credential = EmailAuthProvider.credential(
       email: email,
       password: passwd,
     );
 
-    await currentUser!.reauthenticateWithCredential(credential);
+    await _requiredUser.reauthenticateWithCredential(credential);
   }
 
   Future<void> deleteCurrentUser() async {
-    await currentUser!.delete();
+    await _requiredUser.delete();
     await firebaseAuth.signOut();
   }
 
@@ -67,6 +74,6 @@ class AuthService {
     required String email,
   }) async {
     await reauthenticate(email: email, passwd: currentPasswd);
-    await currentUser!.updatePassword(newPasswd);
+    await _requiredUser.updatePassword(newPasswd);
   }
 }

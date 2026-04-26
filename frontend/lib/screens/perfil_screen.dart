@@ -18,7 +18,7 @@ class PerfilScreen extends StatelessWidget {
 }
 
 class _PerfilScreenState extends StatefulWidget {
-  const _PerfilScreenState({super.key});
+  const _PerfilScreenState();
 
   @override
   State<_PerfilScreenState> createState() => _PerfilScreenStateState();
@@ -180,8 +180,9 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () =>
-                          setState(() => _mostrarCambioPasswd = !_mostrarCambioPasswd),
+                      onPressed: () => setState(
+                        () => _mostrarCambioPasswd = !_mostrarCambioPasswd,
+                      ),
                       child: Text(
                         _mostrarCambioPasswd
                             ? 'Cancelar'
@@ -269,7 +270,10 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
               ),
               title: const Text(
                 'Eliminar cuenta',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               onTap: () => _mostrarDialogoEliminarCuenta(context, vm),
             ),
@@ -328,8 +332,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
                 Navigator.pop(context, true);
               }
             },
-            child:
-                const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -347,10 +350,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
           context.go('/login');
         } else if (vm.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(vm.error!),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
           );
         }
       }
@@ -372,10 +372,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
       );
     } else if (vm.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.error!),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
       );
     }
   }
@@ -400,10 +397,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
       );
     } else if (vm.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.error!),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
       );
     }
   }
