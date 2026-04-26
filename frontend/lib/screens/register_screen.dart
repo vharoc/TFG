@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../theme/theme.dart';
-import '../widgets/common/form_lbl.dart';
+import '../widgets/auth/auth_error_text.dart';
+import '../widgets/auth/auth_labeled_password_field.dart';
+import '../widgets/auth/auth_labeled_text_field.dart';
+import '../widgets/auth/auth_page_layout.dart';
+import '../widgets/auth/auth_primary_button.dart';
+import '../widgets/auth/auth_switch_link.dart';
 import '../widgets/common/separator.dart';
-import '../widgets/common/header_logo.dart';
 import '../viewmodels/register_view_model.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -50,142 +53,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
+    return AuthPageLayout(
+      title: 'Crear cuenta',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // HEADER CON LOGO
-          const HeaderLogo(title: 'Crear cuenta'),
-
-          // FORMULARIO
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // USUARIO
-                  const FormLabel('Usuario'),
-
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _user,
-                    style: AppTheme.cuerpo,
-                    decoration: const InputDecoration(
-                      hintText: 'Elige un nombre de usuario',
-                      prefixIcon: Icon(
-                        Icons.person_outline,
-                        color: Colors.black45,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // EMAIL
-                  const FormLabel('Email'),
-
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    style: AppTheme.cuerpo,
-                    decoration: const InputDecoration(
-                      hintText: 'correo@ejemplo.com',
-                      prefixIcon: Icon(
-                        Icons.mail_outline,
-                        color: Colors.black45,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // CONTRASEÑA
-                  const FormLabel('Contraseña'),
-
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _passwd,
-                    obscureText: _obscure,
-                    style: AppTheme.cuerpo,
-                    decoration: InputDecoration(
-                      hintText: 'Mínimo 8 caracteres',
-                      prefixIcon: const Icon(
-                        Icons.lock_outline,
-                        color: Colors.black45,
-                      ),
-                      suffixIcon: GestureDetector(
-                        onTap: () => setState(() => _obscure = !_obscure),
-                        child: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ERROR
-                  if (_vm.error != null) ...[
-                    Text(
-                      _vm.error!,
-                      style: TextStyle(color: AppTheme.usal, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // BOTÓN PRINCIPAL
-                  ElevatedButton(
-                    onPressed: _vm.loading ? null : _register,
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.usal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      textStyle: AppTheme.cuerpo.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    child: _vm.loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Crear cuenta'),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  const Separator(),
-
-                  const SizedBox(height: 16),
-
-                  // ENLACE A LOGIN
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Flexible(
-                        child: Text(
-                          '¿Ya tienes cuenta?',
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                      ),
-
-                      TextButton(
-                        onPressed: () => context.go('/login'),
-                        child: Text(
-                          'Iniciar sesión',
-                          style: TextStyle(
-                            color: AppTheme.usal,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          AuthLabeledTextField(
+            label: 'Usuario',
+            hintText: 'Elige un nombre de usuario',
+            icon: Icons.person_outline,
+            controller: _user,
+          ),
+          const SizedBox(height: 16),
+          AuthLabeledTextField(
+            label: 'Email',
+            hintText: 'correo@ejemplo.com',
+            icon: Icons.mail_outline,
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 16),
+          AuthLabeledPasswordField(
+            label: 'Contraseña',
+            controller: _passwd,
+            obscure: _obscure,
+            hintText: 'Mínimo 8 caracteres',
+            onToggleVisibility: () => setState(() => _obscure = !_obscure),
+          ),
+          const SizedBox(height: 28),
+          if (_vm.error != null) ...[
+            AuthErrorText(message: _vm.error!),
+            const SizedBox(height: 12),
+          ],
+          AuthPrimaryButton(
+            label: 'Crear cuenta',
+            loading: _vm.loading,
+            onPressed: _register,
+          ),
+          const SizedBox(height: 24),
+          const Separator(),
+          const SizedBox(height: 16),
+          AuthSwitchLink(
+            prefix: '¿Ya tienes cuenta?',
+            action: 'Iniciar sesión',
+            onTap: () => context.go('/login'),
           ),
         ],
       ),

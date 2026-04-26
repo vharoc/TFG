@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/theme.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../widgets/perfil/delete_account_card.dart';
+import '../widgets/perfil/delete_account_dialog.dart';
+import '../widgets/perfil/perfil_app_bar.dart';
 import '../widgets/perfil/password_card.dart';
 import '../widgets/perfil/profile_header.dart';
 import '../widgets/perfil/username_card.dart';
@@ -61,22 +62,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF7F4),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_rounded,
-            color: AppTheme.usal,
-            size: 20,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Perfil',
-          style: AppTheme.titulo.copyWith(fontSize: 20, color: Colors.black),
-        ),
-      ),
+      appBar: const PerfilAppBar(title: 'Perfil'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -119,7 +105,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
           const SizedBox(height: 16),
 
           PerfilDeleteAccountCard(
-            onTap: () => _mostrarDialogoEliminarCuenta(context, vm),
+            onTap: () => _mostrarDialogoEliminarCuenta(vm),
           ),
         ],
       ),
@@ -127,79 +113,21 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
   }
 
   // ── Diálogo eliminar cuenta ──────────────────────────────────────────────
-  Future<void> _mostrarDialogoEliminarCuenta(
-    BuildContext context,
-    PerfilViewModel vm,
-  ) async {
-    final passwdCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+  Future<void> _mostrarDialogoEliminarCuenta(PerfilViewModel vm) async {
+    final passwd = await showDeleteAccountDialog(context);
+    if (!mounted || passwd == null) return;
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar cuenta'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Esta acción es irreversible. Se eliminarán tu cuenta y '
-                'todo tu historial de conversaciones.',
-                style: TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: passwdCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña actual',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Introduce tu contraseña' : null,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(context, true);
-              }
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+    final ok = await vm.eliminarCuenta(passwd);
+    if (!mounted) return;
 
-    if (!context.mounted) {
-      passwdCtrl.dispose();
+    if (ok) {
+      context.go('/login');
       return;
     }
 
-    if (confirm == true) {
-      final ok = await vm.eliminarCuenta(passwdCtrl.text.trim());
-      if (context.mounted) {
-        if (ok) {
-          context.go('/login');
-        } else if (vm.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
-          );
-        }
-      }
+    if (vm.error != null) {
+      _showErrorSnackBar(vm.error!);
     }
-
-    passwdCtrl.dispose();
   }
 
   Future<void> _actualizarNombre(PerfilViewModel vm) async {
@@ -207,16 +135,9 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
     if (!mounted) return;
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nombre de usuario actualizado.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSuccessSnackBar('Nombre de usuario actualizado.');
     } else if (vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
-      );
+      _showErrorSnackBar(vm.error!);
     }
   }
 
@@ -232,16 +153,21 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
       _passwdActualCtrl.clear();
       _passwdNuevaCtrl.clear();
       setState(() => _mostrarCambioPasswd = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Contraseña actualizada correctamente.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSuccessSnackBar('Contraseña actualizada correctamente.');
     } else if (vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error!), backgroundColor: Colors.red),
-      );
+      _showErrorSnackBar(vm.error!);
     }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
