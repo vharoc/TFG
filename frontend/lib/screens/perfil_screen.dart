@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../theme/theme.dart';
 import '../viewmodels/perfil_view_model.dart';
+import '../widgets/perfil/delete_account_card.dart';
+import '../widgets/perfil/password_card.dart';
+import '../widgets/perfil/profile_header.dart';
+import '../widgets/perfil/username_card.dart';
 
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
@@ -77,206 +81,45 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
         padding: const EdgeInsets.all(20),
         children: [
           // ── Avatar + datos ─────────────────────────────────────────────────
-          Center(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppTheme.usal,
-                  child: Text(
-                    vm.inicial,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  vm.displayName,
-                  style: AppTheme.titulo.copyWith(fontSize: 20),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  vm.email,
-                  style: const TextStyle(fontSize: 14, color: Colors.black45),
-                ),
-              ],
-            ),
+          PerfilProfileHeader(
+            inicial: vm.inicial,
+            displayName: vm.displayName,
+            email: vm.email,
           ),
 
           const SizedBox(height: 36),
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE0DAD4)),
-            ),
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Nombre de usuario',
-                  style: AppTheme.cuerpo.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _nombreCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Introduce tu nombre de usuario',
-                    prefixIcon: Icon(Icons.person_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: vm.cargando ? null : () => _actualizarNombre(vm),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.usal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: vm.cargando
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Guardar nombre'),
-                ),
-              ],
-            ),
+          PerfilUsernameCard(
+            controller: _nombreCtrl,
+            loading: vm.cargando,
+            onSave: () => _actualizarNombre(vm),
           ),
 
           const SizedBox(height: 16),
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE0DAD4)),
-            ),
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Contraseña',
-                        style: AppTheme.cuerpo.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(
-                        () => _mostrarCambioPasswd = !_mostrarCambioPasswd,
-                      ),
-                      child: Text(
-                        _mostrarCambioPasswd
-                            ? 'Cancelar'
-                            : 'Cambiar contraseña',
-                        style: const TextStyle(color: AppTheme.usal),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_mostrarCambioPasswd) ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _passwdActualCtrl,
-                    obscureText: _obscureActual,
-                    decoration: InputDecoration(
-                      hintText: 'Contraseña actual',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        onPressed: () =>
-                            setState(() => _obscureActual = !_obscureActual),
-                        icon: Icon(
-                          _obscureActual
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _passwdNuevaCtrl,
-                    obscureText: _obscureNueva,
-                    decoration: InputDecoration(
-                      hintText: 'Nueva contraseña',
-                      prefixIcon: const Icon(Icons.lock_reset_rounded),
-                      suffixIcon: IconButton(
-                        onPressed: () =>
-                            setState(() => _obscureNueva = !_obscureNueva),
-                        icon: Icon(
-                          _obscureNueva
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: vm.cargando
-                        ? null
-                        : () => _cambiarContrasena(vm),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.usal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: vm.cargando
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Guardar nueva contraseña'),
-                  ),
-                ],
-              ],
-            ),
+          PerfilPasswordCard(
+            loading: vm.cargando,
+            expanded: _mostrarCambioPasswd,
+            obscureActual: _obscureActual,
+            obscureNueva: _obscureNueva,
+            actualController: _passwdActualCtrl,
+            nuevaController: _passwdNuevaCtrl,
+            onToggleExpanded: () {
+              setState(() => _mostrarCambioPasswd = !_mostrarCambioPasswd);
+            },
+            onToggleObscureActual: () {
+              setState(() => _obscureActual = !_obscureActual);
+            },
+            onToggleObscureNueva: () {
+              setState(() => _obscureNueva = !_obscureNueva);
+            },
+            onSave: () => _cambiarContrasena(vm),
           ),
 
           const SizedBox(height: 16),
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.shade100),
-            ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.delete_forever_outlined,
-                color: Colors.red,
-              ),
-              title: const Text(
-                'Eliminar cuenta',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onTap: () => _mostrarDialogoEliminarCuenta(context, vm),
-            ),
+          PerfilDeleteAccountCard(
+            onTap: () => _mostrarDialogoEliminarCuenta(context, vm),
           ),
         ],
       ),
