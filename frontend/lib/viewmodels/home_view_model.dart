@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../models/mensaje.dart';
 import '../services/chat_services.dart';
+import '../services/ollama_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
@@ -47,16 +48,16 @@ class HomeViewModel extends ChangeNotifier {
     });
 
     _sub = ChatService.instance.mensajesStream(chatId!).listen(
-      (mensajes) {
-        _messages = List.of(mensajes);
-        cargando = false;
-        notifyListeners();
-      },
-      onError: (_) {
-        cargando = false;
-        notifyListeners();
-      },
-    );
+          (mensajes) {
+            _messages = List.of(mensajes);
+            cargando = false;
+            notifyListeners();
+          },
+          onError: (_) {
+            cargando = false;
+            notifyListeners();
+          },
+        );
   }
 
   Future<void> cambiarChat(String? nuevoChatId) async {
@@ -81,11 +82,13 @@ class HomeViewModel extends ChangeNotifier {
     await _crearChatSiNecesario();
     if (chatId == null) return;
 
+    final chatIdActual = chatId!;
+
     await ChatService.instance.guardarMensaje(
-      chatId: chatId!,
+      chatId: chatIdActual,
       mensaje: Mensaje.texto(
         id: '',
-        chatId: chatId!,
+        chatId: chatIdActual,
         contenido: textoTrimmed,
         role: MensajeRole.usuario,
         fecha: DateTime.now(),
@@ -93,6 +96,32 @@ class HomeViewModel extends ChangeNotifier {
     );
 
     await _actualizarTituloSiVacio(textoTrimmed);
+
+    try {
+      final respuesta = await OllamaService.query(textoTrimmed);
+      await ChatService.instance.guardarMensaje(
+        chatId: chatIdActual,
+        mensaje: Mensaje.texto(
+          id: '',
+          chatId: chatIdActual,
+          contenido: respuesta,
+          role: MensajeRole.bot,
+          fecha: DateTime.now(),
+        ),
+      );
+    } catch (_) {
+      await ChatService.instance.guardarMensaje(
+        chatId: chatIdActual,
+        mensaje: Mensaje.texto(
+          id: '',
+          chatId: chatIdActual,
+          contenido:
+              'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
+          role: MensajeRole.bot,
+          fecha: DateTime.now(),
+        ),
+      );
+    }
   }
 
   Future<void> enviarImagen(XFile img) async {
