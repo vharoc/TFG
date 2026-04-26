@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../theme/theme.dart';
-import '../services/auth_services.dart';
-import '../widgets/common/header_logo.dart';
+import '../widgets/auth/auth_error_text.dart';
+import '../widgets/auth/auth_labeled_text_field.dart';
+import '../widgets/auth/auth_labeled_password_field.dart';
+import '../widgets/auth/auth_page_layout.dart';
+import '../widgets/auth/auth_primary_button.dart';
+import '../widgets/auth/auth_switch_link.dart';
 import '../widgets/common/separator.dart';
-import '../widgets/common/form_lbl.dart';
+import '../viewmodels/login_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,148 +21,63 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwd = TextEditingController();
 
   bool _obscure = true;
-  bool _loading = false;
-  String? _error;
-  final _auth = AuthService();
+  final _vm = LoginViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _vm.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
     _email.dispose();
     _passwd.dispose();
+    _vm.dispose();
     super.dispose();
-  }
-
-  String _parseError(dynamic e) {
-    if (e is FirebaseAuthException) {
-      return switch (e.code) {
-        "user-not-found" => 'No existe usuario asociado al correo',
-        'wrong-password' => 'Contraseña incorrecta',
-        'invalid-email' => 'Formato de email no válido',
-        'invalid-credential' => 'Email o contraseña incorrectos',
-        'too-many-requests' => 'Demasiados intentos, espera unos minutos',
-        _ => 'Error inesperado, inténtalo de nuevo',
-      };
-    }
-    return 'Error, inténtalo de nuevo';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
+    return AuthPageLayout(
+      title: 'Iniciar sesión',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // HEADER CON LOGO
-          const HeaderLogo(title: 'Iniciar sesión'),
-
-          // FORMULARIO
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // EMAIL
-                  const FormLabel('Email o usuario'),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _email,
-                    style: AppTheme.cuerpo,
-                    decoration: const InputDecoration(
-                      hintText: 'Introduce tu email o usuario',
-                      prefixIcon: Icon(
-                        Icons.person_outline,
-                        color: Colors.black45,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // CONTRASEÑA
-                  const FormLabel('Contraseña'),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _passwd,
-                    obscureText: _obscure,
-                    style: AppTheme.cuerpo,
-                    decoration: InputDecoration(
-                      hintText: 'Introduce tu contraseña',
-                      prefixIcon: Icon(
-                        Icons.lock_outline,
-                        color: Colors.black45,
-                      ),
-
-                      suffixIcon: GestureDetector(
-                        onTap: () => setState(() => _obscure = !_obscure),
-                        child: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  if (_error != null) ...[
-                    Text(
-                      _error!,
-                      style: TextStyle(color: AppTheme.usal, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 12),
-                  ],
-
-                  // BOTON PRINCIPAL
-                  ElevatedButton(
-                    onPressed: _loading ? null : _login,
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.usal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      textStyle: AppTheme.cuerpo.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    child: const Text('Iniciar sesión'),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SEPARADOR
-                  const Separator(),
-
-                  const SizedBox(height: 16),
-
-                  // ENLACE A REGISTRO
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Flexible(
-                        child: Text(
-                          '¿No tienes cuenta?',
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                      ),
-
-                      TextButton(
-                        onPressed: () => context.go('/register'),
-                        child: Text(
-                          'Crear cuenta',
-                          style: TextStyle(
-                            color: AppTheme.usal,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          AuthLabeledTextField(
+            label: 'Email o usuario',
+            hintText: 'Introduce tu email o usuario',
+            icon: Icons.person_outline,
+            controller: _email,
+          ),
+          const SizedBox(height: 16),
+          AuthLabeledPasswordField(
+            label: 'Contraseña',
+            controller: _passwd,
+            obscure: _obscure,
+            hintText: 'Introduce tu contraseña',
+            iconColor: Colors.black,
+            onToggleVisibility: () => setState(() => _obscure = !_obscure),
+          ),
+          const SizedBox(height: 28),
+          if (_vm.error != null) ...[
+            AuthErrorText(message: _vm.error!),
+            const SizedBox(height: 12),
+          ],
+          AuthPrimaryButton(
+            label: 'Iniciar sesión',
+            loading: _vm.loading,
+            onPressed: _login,
+          ),
+          const SizedBox(height: 24),
+          const Separator(),
+          const SizedBox(height: 16),
+          AuthSwitchLink(
+            prefix: '¿No tienes cuenta?',
+            action: 'Crear cuenta',
+            onTap: () => context.go('/register'),
           ),
         ],
       ),
@@ -168,29 +85,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (_email.text.isEmpty || _passwd.text.isEmpty) {
-      setState(() => _error = 'Rellena todos los campos');
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      await _auth.signIn(
-        email: _email.text.trim(),
-        passwd: _passwd.text.trim(),
-      );
-      if (!mounted) {
-        return;
-      }
+    final ok = await _vm.login(email: _email.text, passwd: _passwd.text);
+    if (!mounted) return;
+    if (ok) {
       context.go('/home');
-    } catch (e) {
-      setState(() => _error = _parseError(e));
-    } finally {
-      setState(() => _loading = false);
     }
   }
 }
