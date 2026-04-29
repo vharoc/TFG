@@ -105,7 +105,7 @@ class HomeViewModel extends ChangeNotifier {
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido:
-            'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
+          'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
         role: MensajeRole.bot,
       );
     }

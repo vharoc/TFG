@@ -37,10 +37,13 @@ class LateralChatsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (expanded) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader(header: 'Historial de chats'),
           SizedBox(height: spacing),
-          Expanded(child: _buildExpandedContent()),
+          Flexible(
+            child: _buildExpandedContent(),
+          ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -64,10 +67,11 @@ class LateralChatsPanel extends StatelessWidget {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const SectionHeader(header: 'Historial de chats'),
         SizedBox(height: spacing),
-        Flexible(child: _buildCollapsedContent()),
+        _buildCollapsedContent(),
       ],
     );
   }

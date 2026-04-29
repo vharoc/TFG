@@ -35,10 +35,13 @@ class LateralCitiesPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (expanded) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader(header: 'Ciudades visitadas'),
           SizedBox(height: spacing),
-          Expanded(child: _buildExpandedContent()),
+          Flexible(  // ✅ Flexible en vez de Expanded
+            child: _buildExpandedContent(),
+          ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -62,10 +65,11 @@ class LateralCitiesPanel extends StatelessWidget {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const SectionHeader(header: 'Ciudades visitadas'),
         SizedBox(height: spacing),
-        Flexible(child: _buildCollapsedContent()),
+        _buildCollapsedContent(), 
       ],
     );
   }
