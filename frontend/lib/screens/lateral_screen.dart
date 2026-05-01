@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/chat.dart';
+import '../models/ciudad.dart';
 import '../viewmodels/lateral_view_model.dart';
-import '../widgets/lateral/cities_panel.dart';
-import '../widgets/lateral/chats_panel.dart';
+import '../widgets/lateral/chat_tile.dart';
+import '../widgets/lateral/city_tile.dart';
 import '../widgets/lateral/header_lateral.dart';
+import '../widgets/lateral/lateral_panel.dart';
 import '../widgets/lateral/new_chat_button.dart';
 import '../widgets/lateral/profile_footer.dart';
 
@@ -74,29 +76,41 @@ class _LateralBodyState extends State<_LateralBody> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _panelExpandido == _PanelExpandido.chats
-                    ? LateralChatsPanel(
+                    ? LateralPanel<Chat>(
+                        header: 'Historial de chats',
+                        emptyMessage: 'Aún no hay conversaciones',
+                        collapseLabel: 'Ocultar chats',
                         expanded: true,
                         loading: vm.cargandoChats,
-                        chats: vm.chats,
+                        items: vm.chats,
                         spacing: innerSpacing,
                         maxItems: maxItems,
                         scrollController: _chatsScrollController,
-                        onChatTap: (chat) => context.pop(chat.id),
-                        onDeleteChat: _confirmarEliminarChat,
+                        itemBuilder: (chat) => LateralChatTile(
+                          chat: chat,
+                          onTap: () => context.pop(chat.id),
+                          onDelete: () => _confirmarEliminarChat(chat),
+                        ),
                         onExpand: () {},
                         onCollapse: () => setState(
                           () => _panelExpandido = _PanelExpandido.ninguno,
                         ),
                       )
                     : _panelExpandido == _PanelExpandido.ciudades
-                    ? LateralCitiesPanel(
+                    ? LateralPanel<Ciudad>(
+                        header: 'Ciudades visitadas',
+                        emptyMessage: 'Aún no has visitado ninguna ciudad',
+                        collapseLabel: 'Ocultar ciudades',
                         expanded: true,
                         loading: vm.cargandoCiudades,
-                        ciudades: vm.ciudades,
+                        items: vm.ciudades,
                         spacing: innerSpacing,
                         maxItems: maxItems,
                         scrollController: _ciudadesScrollController,
-                        onCiudadTap: (_) => context.pop(),
+                        itemBuilder: (ciudad) => LateralCityTile(
+                          ciudad: ciudad,
+                          onTap: () => context.pop(),
+                        ),
                         onExpand: () {},
                         onCollapse: () => setState(
                           () => _panelExpandido = _PanelExpandido.ninguno,
@@ -104,29 +118,41 @@ class _LateralBodyState extends State<_LateralBody> {
                       )
                     : Column(
                         children: [
-                          LateralChatsPanel(
+                          LateralPanel<Chat>(
+                            header: 'Historial de chats',
+                            emptyMessage: 'Aún no hay conversaciones',
+                            collapseLabel: 'Ocultar chats',
                             expanded: false,
                             loading: vm.cargandoChats,
-                            chats: vm.chats,
+                            items: vm.chats,
                             spacing: innerSpacing,
                             maxItems: maxItems,
                             scrollController: _chatsScrollController,
-                            onChatTap: (chat) => context.pop(chat.id),
-                            onDeleteChat: _confirmarEliminarChat,
+                            itemBuilder: (chat) => LateralChatTile(
+                              chat: chat,
+                              onTap: () => context.pop(chat.id),
+                              onDelete: () => _confirmarEliminarChat(chat),
+                            ),
                             onExpand: () => setState(
                               () => _panelExpandido = _PanelExpandido.chats,
                             ),
                             onCollapse: () {},
                           ),
                           SizedBox(height: innerSpacing),
-                          LateralCitiesPanel(
+                          LateralPanel<Ciudad>(
+                            header: 'Ciudades visitadas',
+                            emptyMessage: 'Aún no has visitado ninguna ciudad',
+                            collapseLabel: 'Ocultar ciudades',
                             expanded: false,
                             loading: vm.cargandoCiudades,
-                            ciudades: vm.ciudades,
+                            items: vm.ciudades,
                             spacing: innerSpacing,
                             maxItems: maxItems,
                             scrollController: _ciudadesScrollController,
-                            onCiudadTap: (_) => context.pop(),
+                            itemBuilder: (ciudad) => LateralCityTile(
+                              ciudad: ciudad,
+                              onTap: () => context.pop(),
+                            ),
                             onExpand: () => setState(
                               () => _panelExpandido = _PanelExpandido.ciudades,
                             ),

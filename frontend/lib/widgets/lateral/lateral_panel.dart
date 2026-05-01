@@ -1,49 +1,54 @@
 import 'package:flutter/material.dart';
 
-import '../../models/chat.dart';
 import '../../theme/theme.dart';
-import 'chat_tile.dart';
 import 'empty_card.dart';
 import 'section_header.dart';
 import 'see_all_button.dart';
 
-class LateralChatsPanel extends StatelessWidget {
+// <T> = clase generica que funciona con cualquier tipo de modelo
+class LateralPanel<T> extends StatelessWidget {
+  final String header;
+  final String emptyMessage;
+  final String collapseLabel;
   final bool expanded;
   final bool loading;
-  final List<Chat> chats;
+  final List<T> items;
   final double spacing;
   final int maxItems;
   final ScrollController scrollController;
-  final ValueChanged<Chat> onChatTap;
-  final ValueChanged<Chat> onDeleteChat;
+
+  // recibo item y devuelvo widget
+  final Widget Function(T item) itemBuilder;
+
   final VoidCallback onExpand;
   final VoidCallback onCollapse;
 
-  const LateralChatsPanel({
+
+  const LateralPanel({
     super.key,
+    required this.header,
+    required this.emptyMessage,
+    required this.collapseLabel,
     required this.expanded,
     required this.loading,
-    required this.chats,
+    required this.items,
     required this.spacing,
     required this.maxItems,
     required this.scrollController,
-    required this.onChatTap,
-    required this.onDeleteChat,
+    required this.itemBuilder,
     required this.onExpand,
     required this.onCollapse,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (expanded) {
+  Widget build(BuildContext context){
+    if(expanded) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SectionHeader(header: 'Historial de chats'),
+          SectionHeader(header: header),
           SizedBox(height: spacing),
-          Flexible(
-            child: _buildExpandedContent(),
-          ),
+          Flexible(child: _buildExpandedContent(),),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -52,7 +57,7 @@ class LateralChatsPanel extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Ocultar chats',
+                  collapseLabel,
                   style: TextStyle(
                     fontSize: 12,
                     color: AppTheme.usal,
@@ -69,21 +74,17 @@ class LateralChatsPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SectionHeader(header: 'Historial de chats'),
+        SectionHeader(header: header),
         SizedBox(height: spacing),
         _buildCollapsedContent(),
       ],
     );
   }
 
-  Widget _buildExpandedContent() {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _buildExpandedContent(){
+    if(loading) return const Center(child: CircularProgressIndicator());
 
-    if (chats.isEmpty) {
-      return const LateralEmptyCard(mensaje: 'Aún no hay conversaciones');
-    }
+    if(items.isEmpty) return LateralEmptyCard(mensaje: emptyMessage);
 
     return Scrollbar(
       controller: scrollController,
@@ -91,42 +92,27 @@ class LateralChatsPanel extends StatelessWidget {
       child: ListView.builder(
         controller: scrollController,
         padding: EdgeInsets.zero,
-        itemCount: chats.length,
+        itemCount: items.length,
         itemBuilder: (_, i) {
-          final chat = chats[i];
-          return LateralChatTile(
-            chat: chat,
-            onTap: () => onChatTap(chat),
-            onDelete: () => onDeleteChat(chat),
-          );
-        },
+          final item = items[i];
+          return itemBuilder(item);
+        }
       ),
     );
   }
 
-  Widget _buildCollapsedContent() {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
 
-    if (chats.isEmpty) {
-      return const LateralEmptyCard(mensaje: 'Aún no hay conversaciones');
-    }
+  Widget _buildCollapsedContent() {
+    if(loading) return const Center(child: CircularProgressIndicator());
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ...chats
-            .take(maxItems)
-            .map(
-              (chat) => LateralChatTile(
-                chat: chat,
-                onTap: () => onChatTap(chat),
-                onDelete: () => onDeleteChat(chat),
-              ),
-            ),
+        if (items.isEmpty) LateralEmptyCard(mensaje: emptyMessage)
+        else ...items.take(maxItems).map((item) => itemBuilder(item)),
         LateralSeeAllButton(onTap: onExpand),
       ],
     );
   }
+
 }
