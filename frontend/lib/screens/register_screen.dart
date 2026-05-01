@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/auth/auth_error_text.dart';
-import '../widgets/auth/auth_labeled_password_field.dart';
 import '../widgets/auth/auth_labeled_text_field.dart';
 import '../widgets/auth/auth_page_layout.dart';
 import '../widgets/auth/auth_primary_button.dart';
@@ -68,11 +67,13 @@ class _RegisterBodyState extends State<_RegisterBody> {
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 16),
-          AuthLabeledPasswordField(
+          AuthLabeledTextField(
             label: 'Contraseña',
-            controller: _passwd,
-            obscure: _obscure,
             hintText: 'Mínimo 8 caracteres',
+            icon: Icons.lock_outline,
+            controller: _passwd,
+            isPassword: true,
+            obscure: _obscure,
             onToggleVisibility: () => setState(() => _obscure = !_obscure),
           ),
           const SizedBox(height: 28),

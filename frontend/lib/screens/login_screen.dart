@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../widgets/auth/auth_error_text.dart';
 import '../widgets/auth/auth_labeled_text_field.dart';
-import '../widgets/auth/auth_labeled_password_field.dart';
 import '../widgets/auth/auth_page_layout.dart';
 import '../widgets/auth/auth_primary_button.dart';
 import '../widgets/auth/auth_switch_link.dart';
@@ -58,11 +57,13 @@ class _LoginBodyState extends State<_LoginBody> {
             controller: _email,
           ),
           const SizedBox(height: 16),
-          AuthLabeledPasswordField(
+          AuthLabeledTextField(
             label: 'Contraseña',
-            controller: _passwd,
-            obscure: _obscure,
             hintText: 'Introduce tu contraseña',
+            icon: Icons.lock_outline,
+            controller: _passwd,
+            isPassword: true,
+            obscure: _obscure,
             iconColor: Colors.black,
             onToggleVisibility: () => setState(() => _obscure = !_obscure),
           ),
