@@ -1,6 +1,6 @@
 import 'package:frontend/screens/home_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:frontend/screens/lateral_screen.dart';
+import '../services/auth_services.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/login_screen.dart';
 import '../screens/ajustes_screen.dart';
@@ -12,7 +12,7 @@ const _publicRoutes = ["/login", "/register", "/"];
 final appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService.instance.currentUser;
     final isPublic = _publicRoutes.contains(state.matchedLocation);
     if (user == null && !isPublic) return '/login';
     if (user != null && isPublic) return '/home';

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_services.dart';
 
 class LoginViewModel extends ChangeNotifier {
-  final AuthService _auth = AuthService();
+  final AuthService _auth = AuthService.instance;
 
   bool _loading = false;
   String? _error;

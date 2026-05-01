@@ -5,7 +5,7 @@ import '../services/chat_services.dart';
 import '../services/user_services.dart';
 
 class PerfilViewModel extends ChangeNotifier {
-  final AuthService _auth = AuthService();
+  final AuthService _auth = AuthService.instance;
   final UserServices _users = UserServices();
 
   User? get user => _auth.currentUser;

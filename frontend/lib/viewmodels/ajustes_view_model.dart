@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_services.dart';
 
 class AjustesViewModel extends ChangeNotifier {
-  final AuthService _auth = AuthService();
+  final AuthService _auth = AuthService.instance;
 
   bool _cargando = false;
   bool get cargando => _cargando;

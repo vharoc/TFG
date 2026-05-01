@@ -7,7 +7,7 @@ import '../services/chat_services.dart';
 import '../services/ciudad_services.dart';
 
 class LateralViewModel extends ChangeNotifier {
-  final _auth = AuthService();
+  final _auth = AuthService.instance;
 
   List<Chat> chats = [];
   List<Ciudad> ciudades = [];
