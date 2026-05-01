@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
@@ -23,12 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _vm = HomeViewModel(initialChatId: widget.chatId);
-    _vm.addListener(() {
-      if (mounted) {
-        setState(() {});
-        _scrollToBottom();
-      }
-    });
+    _vm.addListener(_scrollToBottom);
   }
 
   @override
@@ -47,29 +43,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
+    return ChangeNotifierProvider.value(
+      value: _vm,
+      child: Consumer<HomeViewModel>(
+        builder: (context, vm, _) => Scaffold(
+          body: SafeArea(
+            child: Stack(
               children: [
-                HeaderHome(titulo: _vm.tituloChat),
-
-                Expanded(
-                  child: HomeChatBody(
-                    cargando: _vm.cargando,
-                    messages: _vm.messages,
-                    scrollController: _scrollController,
-                    onSend: _vm.enviarTexto,
-                    onImagePicked: _vm.enviarImagen,
-                  ),
+                Column(
+                  children: [
+                    HeaderHome(titulo: vm.tituloChat),
+                    Expanded(
+                      child: HomeChatBody(
+                        cargando: vm.cargando,
+                        messages: vm.messages,
+                        scrollController: _scrollController,
+                        onSend: vm.enviarTexto,
+                        onImagePicked: vm.enviarImagen,
+                      ),
+                    ),
+                  ],
                 ),
+
+                HamburgerButton(onTap: _abrirLateral),
               ],
             ),
-
-            // ── Botón hamburguesa ──
-            HamburgerButton(onTap: _abrirLateral),
-          ],
+          ),
         ),
       ),
     );
