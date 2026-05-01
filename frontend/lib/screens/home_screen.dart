@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
+import '../widgets/home/ciudad_selector_sheet.dart';
 import '../widgets/home/hamburger_btt.dart';
 import '../widgets/home/header_home.dart';
 
@@ -19,12 +20,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final HomeViewModel _vm;
   final ScrollController _scrollController = ScrollController();
+  bool _mostrandoSelectorCiudad = false;
 
   @override
   void initState() {
     super.initState();
     _vm = HomeViewModel(initialChatId: widget.chatId);
     _vm.addListener(_scrollToBottom);
+    _vm.addListener(_onVmChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
   }
 
   @override
@@ -39,6 +43,34 @@ class _HomeScreenState extends State<HomeScreen> {
     _scrollController.dispose();
     _vm.dispose();
     super.dispose();
+  }
+
+  void _onVmChanged() {
+    if (_vm.necesitaCiudad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
+    }
+  }
+
+  Future<void> _mostrarSelectorSiNecesario() async {
+    if (!_vm.necesitaCiudad || _mostrandoSelectorCiudad || !mounted) return;
+    _mostrandoSelectorCiudad = true;
+
+    final ciudad = await showModalBottomSheet<String>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const CiudadSelectorSheet(),
+    );
+
+    _mostrandoSelectorCiudad = false;
+
+    if (ciudad != null && mounted) {
+      _vm.seleccionarCiudad(ciudad);
+    }
   }
 
   @override

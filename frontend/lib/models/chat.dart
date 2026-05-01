@@ -4,20 +4,23 @@ class Chat {
   final String id;
   final String userId;
   final String titulo;
+  final String ciudad;
   final DateTime fechaCreacion;
 
   Chat({
     required this.id,
     required this.userId,
     required this.titulo,
+    required this.ciudad,
     required this.fechaCreacion,
   });
 
   factory Chat.fromMap(Map<String, dynamic> map, String id) {
     return Chat(
       id: id,
-      userId: map['userId'] ?? map['uid'] ?? '',
+      userId: map['userId'] ?? '',
       titulo: map['titulo'] ?? '',
+      ciudad: map['ciudad'] ?? '',
       fechaCreacion: (map['fechaCreacion'] as Timestamp).toDate(),
     );
   }
@@ -30,15 +33,22 @@ class Chat {
     return {
       'userId': userId,
       'titulo': titulo,
+      'ciudad': ciudad,
       'fechaCreacion': Timestamp.fromDate(fechaCreacion),
     };
   }
 
-  Chat copyWith({String? userId, String? titulo, DateTime? fechaCreacion}) {
+  Chat copyWith({
+    String? userId,
+    String? titulo,
+    String? ciudad,
+    DateTime? fechaCreacion,
+  }) {
     return Chat(
       id: id,
       userId: userId ?? this.userId,
       titulo: titulo ?? this.titulo,
+      ciudad: ciudad ?? this.ciudad,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
     );
   }
