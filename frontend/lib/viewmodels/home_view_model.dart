@@ -13,8 +13,16 @@ class HomeViewModel extends ChangeNotifier {
   String _tituloChat = '';
   String get tituloChat => _tituloChat;
 
-  String? chatId;
-  bool cargando = false;
+  String? _chatId;
+  String? get chatId => _chatId;
+
+  bool _cargando = false;
+  bool get cargando => _cargando;
+
+  String? _ciudadActual;
+  String? get ciudadActual => _ciudadActual;
+
+  bool get necesitaCiudad => _chatId == null && _ciudadActual == null;
 
   StreamSubscription<List<Mensaje>>? _sub;
   StreamSubscription<Chat?>? _chatSub;
@@ -22,24 +30,28 @@ class HomeViewModel extends ChangeNotifier {
 
   HomeViewModel({String? initialChatId}) {
     if (initialChatId != null) {
-      chatId = initialChatId;
+      _chatId = initialChatId;
       _suscribir();
     }
   }
 
-  void _suscribir() {
-    if (chatId == null) return;
+  void seleccionarCiudad(String ciudad) {
+    _ciudadActual = ciudad;
+    notifyListeners();
+  }
 
-    // Solo mostrar loading si no tenemos mensajes aún
+  void _suscribir() {
+    if (_chatId == null) return;
+
     if (_messages.isEmpty) {
-      cargando = true;
+      _cargando = true;
       notifyListeners();
     }
 
     _sub?.cancel();
     _chatSub?.cancel();
 
-    _chatSub = ChatService.instance.chatStream(chatId!).listen((chat) {
+    _chatSub = ChatService.instance.chatStream(_chatId!).listen((chat) {
       final nuevoTitulo = (chat?.titulo ?? '').trim();
       if (_tituloChat != nuevoTitulo) {
         _tituloChat = nuevoTitulo;
@@ -48,28 +60,28 @@ class HomeViewModel extends ChangeNotifier {
     });
 
     _sub = ChatService.instance
-        .mensajesStream(chatId!)
+        .mensajesStream(_chatId!)
         .listen(
           (mensajes) {
             _messages = List.of(mensajes);
-            cargando = false;
+            _cargando = false;
             notifyListeners();
           },
           onError: (_) {
-            cargando = false;
+            _cargando = false;
             notifyListeners();
           },
         );
   }
 
   Future<void> cambiarChat(String? nuevoChatId) async {
-    if (chatId == nuevoChatId) return;
+    if (_chatId == nuevoChatId) return;
     _sub?.cancel();
     _chatSub?.cancel();
-    chatId = nuevoChatId;
+    _chatId = nuevoChatId;
     _messages = [];
     _tituloChat = '';
-    cargando = false;
+    _cargando = false;
     notifyListeners();
 
     if (nuevoChatId != null) {
@@ -79,12 +91,12 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> enviarTexto(String texto) async {
     final textoTrimmed = texto.trim();
-    if (textoTrimmed.isEmpty) return;
+    if (textoTrimmed.isEmpty || _ciudadActual == null) return;
 
     await _crearChatSiNecesario();
-    if (chatId == null) return;
+    if (_chatId == null) return;
 
-    final chatIdActual = chatId!;
+    final chatIdActual = _chatId!;
 
     await _guardarMensajeTexto(
       chatId: chatIdActual,
@@ -95,7 +107,10 @@ class HomeViewModel extends ChangeNotifier {
     await _actualizarTituloSiVacio(textoTrimmed);
 
     try {
-      final respuesta = await OllamaService.query(textoTrimmed);
+      final respuesta = await OllamaService.query(
+        textoTrimmed,
+        ciudad: _ciudadActual!,
+      );
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: respuesta,
@@ -112,11 +127,13 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> enviarImagen(XFile img) async {
+    if (_ciudadActual == null) return;
+
     await _crearChatSiNecesario();
-    if (chatId == null) return;
+    if (_chatId == null) return;
 
     await _guardarMensajeImagen(
-      chatId: chatId!,
+      chatId: _chatId!,
       imgUrl: img.path,
       role: MensajeRole.usuario,
     );
@@ -125,28 +142,31 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> _crearChatSiNecesario() async {
-    if (chatId != null || _creandoChat) return;
+    if (_chatId != null || _creandoChat) return;
     _creandoChat = true;
     try {
-      final id = await ChatService.instance.crearConversacion(titulo: '');
-      chatId = id;
+      final id = await ChatService.instance.crearConversacion(
+        titulo: '',
+        ciudad: _ciudadActual ?? '',
+      );
+      _chatId = id;
       _suscribir();
     } catch (_) {
-      // Si falla la creación, chatId sigue null
+      // Si falla la creación, _chatId sigue null
     } finally {
       _creandoChat = false;
     }
   }
 
   Future<void> _actualizarTituloSiVacio(String textoBase) async {
-    if (chatId == null || _tituloChat.trim().isNotEmpty) return;
+    if (_chatId == null || _tituloChat.trim().isNotEmpty) return;
     final titulo = _construirTitulo(textoBase);
     _tituloChat = titulo;
     notifyListeners();
 
     try {
       await ChatService.instance.actualizarTitulo(
-        chatId: chatId!,
+        chatId: _chatId!,
         nuevoTitulo: titulo,
       );
     } catch (_) {
@@ -197,10 +217,11 @@ class HomeViewModel extends ChangeNotifier {
   void nuevaConversacion() {
     _sub?.cancel();
     _chatSub?.cancel();
-    chatId = null;
+    _chatId = null;
+    _ciudadActual = null;
     _messages = [];
     _tituloChat = '';
-    cargando = false;
+    _cargando = false;
     notifyListeners();
   }
 

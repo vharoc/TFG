@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/usuario.dart';
 
 class UserServices {
+  UserServices._();
+  static final UserServices instance = UserServices._();
+
   final _firestore = FirebaseFirestore.instance;
 
   Future<void> crearUsuario(Usuario usuario) async {

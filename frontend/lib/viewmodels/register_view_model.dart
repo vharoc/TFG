@@ -7,7 +7,7 @@ import '../services/user_services.dart';
 class RegisterViewModel extends ChangeNotifier {
 
   final _authService = AuthService.instance;
-  final _userService = UserServices();
+  final _userService = UserServices.instance;
 
   bool _loading = false;
   String? _error;

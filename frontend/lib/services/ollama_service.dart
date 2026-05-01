@@ -24,7 +24,11 @@ class OllamaService {
     ];
   }
 
-  static Future<String> query(String prompt, {String system = ''}) async {
+  static Future<String> query(
+    String prompt, {
+    String system = '',
+    String ciudad = '',
+  }) async {
     Exception? lastError;
 
     for (final uri in _queryUris()) {
@@ -33,7 +37,11 @@ class OllamaService {
             .post(
               uri,
               headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({'prompt': prompt, 'system': system}),
+              body: jsonEncode({
+                'prompt': prompt,
+                'system': system,
+                'ciudad': ciudad,
+              }),
             )
             .timeout(const Duration(seconds: 270));
 

@@ -1,8 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/chat.dart';
 import '../models/mensaje.dart';
+import 'auth_services.dart';
 
 class ChatService {
   ChatService._();
@@ -12,7 +12,7 @@ class ChatService {
   final _db = FirebaseFirestore.instance;
 
   String get _uid {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService.instance.currentUser;
     if (user == null) {
       throw StateError('No hay usuario autenticado para operar con chats.');
     }
@@ -42,9 +42,13 @@ class ChatService {
       .map((snap) => snap.docs.map(Mensaje.fromFirestore).toList());
 
   // -- Crear conversación --
-  Future<String> crearConversacion({required String titulo}) async {
+  Future<String> crearConversacion({
+    required String titulo,
+    required String ciudad,
+  }) async {
     final doc = await _chatsRef.add({
       'titulo': titulo,
+      'ciudad': ciudad,
       'fechaCreacion': FieldValue.serverTimestamp(),
       'userId': _uid,
     });

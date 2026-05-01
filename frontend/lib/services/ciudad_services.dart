@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/ciudad.dart';
+import 'auth_services.dart';
 
 class CiudadServices {
   CiudadServices._();
@@ -10,7 +11,7 @@ class CiudadServices {
   final _db = FirebaseFirestore.instance;
 
   String get _uid {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService.instance.currentUser;
     if (user == null) throw StateError('No hay usuario autenticado.');
     return user.uid;
   }
