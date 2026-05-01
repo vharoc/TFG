@@ -39,7 +39,7 @@ class LateralCitiesPanel extends StatelessWidget {
         children: [
           const SectionHeader(header: 'Ciudades visitadas'),
           SizedBox(height: spacing),
-          Flexible(  // ✅ Flexible en vez de Expanded
+          Flexible(
             child: _buildExpandedContent(),
           ),
           const SizedBox(height: 8),

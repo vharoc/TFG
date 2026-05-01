@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
 import '../widgets/auth/auth_error_text.dart';
 import '../widgets/auth/auth_labeled_text_field.dart';
 import '../widgets/auth/auth_labeled_password_field.dart';
@@ -9,38 +11,41 @@ import '../widgets/auth/auth_switch_link.dart';
 import '../widgets/common/separator.dart';
 import '../viewmodels/login_view_model.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LoginViewModel(),
+      child: const _LoginBody(),
+    );
+  }
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _email = TextEditingController();
-  final _passwd = TextEditingController();
-
-  bool _obscure = true;
-  final _vm = LoginViewModel();
+class _LoginBody extends StatefulWidget {
+  const _LoginBody();
 
   @override
-  void initState() {
-    super.initState();
-    _vm.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
+  State<_LoginBody> createState() => _LoginBodyState();
+}
+
+class _LoginBodyState extends State<_LoginBody> {
+  final _email = TextEditingController();
+  final _passwd = TextEditingController();
+  bool _obscure = true;
 
   @override
   void dispose() {
     _email.dispose();
     _passwd.dispose();
-    _vm.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<LoginViewModel>();
+
     return AuthPageLayout(
       title: 'Iniciar sesión',
       child: Column(
@@ -62,13 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
             onToggleVisibility: () => setState(() => _obscure = !_obscure),
           ),
           const SizedBox(height: 28),
-          if (_vm.error != null) ...[
-            AuthErrorText(message: _vm.error!),
+          if (vm.error != null) ...[
+            AuthErrorText(message: vm.error!),
             const SizedBox(height: 12),
           ],
           AuthPrimaryButton(
             label: 'Iniciar sesión',
-            loading: _vm.loading,
+            loading: vm.loading,
             onPressed: _login,
           ),
           const SizedBox(height: 24),
@@ -85,10 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    final ok = await _vm.login(email: _email.text, passwd: _passwd.text);
+    final vm = context.read<LoginViewModel>();
+    final ok = await vm.login(email: _email.text, passwd: _passwd.text);
     if (!mounted) return;
-    if (ok) {
-      context.go('/home');
-    }
+    if (ok) context.go('/home');
   }
 }

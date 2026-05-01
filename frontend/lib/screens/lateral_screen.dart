@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
+import '../models/chat.dart';
 import '../viewmodels/lateral_view_model.dart';
 import '../widgets/lateral/cities_panel.dart';
 import '../widgets/lateral/chats_panel.dart';
@@ -9,51 +10,46 @@ import '../widgets/lateral/header_lateral.dart';
 import '../widgets/lateral/new_chat_button.dart';
 import '../widgets/lateral/profile_footer.dart';
 
-class LateralScreen extends StatefulWidget {
+enum _PanelExpandido { ninguno, chats, ciudades }
+
+class LateralScreen extends StatelessWidget {
   const LateralScreen({super.key});
 
   @override
-  State<LateralScreen> createState() => _LateralScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LateralViewModel(),
+      child: const _LateralBody(),
+    );
+  }
 }
 
-enum _PanelExpandido { ninguno, chats, ciudades }
+class _LateralBody extends StatefulWidget {
+  const _LateralBody();
 
-class _LateralScreenState extends State<LateralScreen> {
-  late final LateralViewModel _vm;
+  @override
+  State<_LateralBody> createState() => _LateralBodyState();
+}
+
+class _LateralBodyState extends State<_LateralBody> {
   final ScrollController _chatsScrollController = ScrollController();
   final ScrollController _ciudadesScrollController = ScrollController();
   _PanelExpandido _panelExpandido = _PanelExpandido.ninguno;
 
   @override
-  void initState() {
-    super.initState();
-    _vm = LateralViewModel();
-    _vm.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
   void dispose() {
     _chatsScrollController.dispose();
     _ciudadesScrollController.dispose();
-    _vm.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final vm = context.watch<LateralViewModel>();
     final screenHeight = MediaQuery.of(context).size.height;
     final isCompact = screenHeight < 760;
     final maxItems = screenHeight < 700 ? 1 : (screenHeight < 820 ? 2 : 3);
     final innerSpacing = isCompact ? 6.0 : 8.0;
-
-    final inicial = (user?.displayName?.isNotEmpty == true)
-        ? user!.displayName![0].toUpperCase()
-        : (user?.email?.isNotEmpty == true)
-        ? user!.email![0].toUpperCase()
-        : '?';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -80,13 +76,13 @@ class _LateralScreenState extends State<LateralScreen> {
                 child: _panelExpandido == _PanelExpandido.chats
                     ? LateralChatsPanel(
                         expanded: true,
-                        loading: _vm.cargandoChats,
-                        chats: _vm.chats,
+                        loading: vm.cargandoChats,
+                        chats: vm.chats,
                         spacing: innerSpacing,
                         maxItems: maxItems,
                         scrollController: _chatsScrollController,
                         onChatTap: (chat) => context.pop(chat.id),
-                        onDeleteChat: (chat) => _vm.eliminarChat(chat.id),
+                        onDeleteChat: _confirmarEliminarChat,
                         onExpand: () {},
                         onCollapse: () => setState(
                           () => _panelExpandido = _PanelExpandido.ninguno,
@@ -95,8 +91,8 @@ class _LateralScreenState extends State<LateralScreen> {
                     : _panelExpandido == _PanelExpandido.ciudades
                     ? LateralCitiesPanel(
                         expanded: true,
-                        loading: _vm.cargandoCiudades,
-                        ciudades: _vm.ciudades,
+                        loading: vm.cargandoCiudades,
+                        ciudades: vm.ciudades,
                         spacing: innerSpacing,
                         maxItems: maxItems,
                         scrollController: _ciudadesScrollController,
@@ -110,13 +106,13 @@ class _LateralScreenState extends State<LateralScreen> {
                         children: [
                           LateralChatsPanel(
                             expanded: false,
-                            loading: _vm.cargandoChats,
-                            chats: _vm.chats,
+                            loading: vm.cargandoChats,
+                            chats: vm.chats,
                             spacing: innerSpacing,
                             maxItems: maxItems,
                             scrollController: _chatsScrollController,
                             onChatTap: (chat) => context.pop(chat.id),
-                            onDeleteChat: (chat) => _vm.eliminarChat(chat.id),
+                            onDeleteChat: _confirmarEliminarChat,
                             onExpand: () => setState(
                               () => _panelExpandido = _PanelExpandido.chats,
                             ),
@@ -125,8 +121,8 @@ class _LateralScreenState extends State<LateralScreen> {
                           SizedBox(height: innerSpacing),
                           LateralCitiesPanel(
                             expanded: false,
-                            loading: _vm.cargandoCiudades,
-                            ciudades: _vm.ciudades,
+                            loading: vm.cargandoCiudades,
+                            ciudades: vm.ciudades,
                             spacing: innerSpacing,
                             maxItems: maxItems,
                             scrollController: _ciudadesScrollController,
@@ -144,8 +140,8 @@ class _LateralScreenState extends State<LateralScreen> {
             // FOOTER
             const Divider(height: 1, indent: 20, endIndent: 20),
             LateralProfileFooter(
-              inicial: inicial,
-              nombre: user?.displayName ?? user?.email ?? 'Usuario',
+              inicial: vm.inicial,
+              nombre: vm.nombre,
               onProfileTap: () => context.push('/perfil'),
               onSettingsTap: () => context.push('/ajustes'),
             ),
@@ -153,5 +149,30 @@ class _LateralScreenState extends State<LateralScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmarEliminarChat(Chat chat) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar conversación'),
+        content: const Text(
+          '¿Seguro que quieres eliminar esta conversación? No se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      context.read<LateralViewModel>().eliminarChat(chat.id);
+    }
   }
 }

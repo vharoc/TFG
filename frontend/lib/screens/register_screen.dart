@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
 import '../widgets/auth/auth_error_text.dart';
 import '../widgets/auth/auth_labeled_password_field.dart';
 import '../widgets/auth/auth_labeled_text_field.dart';
@@ -9,50 +11,43 @@ import '../widgets/auth/auth_switch_link.dart';
 import '../widgets/common/separator.dart';
 import '../viewmodels/register_view_model.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => RegisterViewModel(),
+      child: const _RegisterBody(),
+    );
+  }
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterBody extends StatefulWidget {
+  const _RegisterBody();
+
+  @override
+  State<_RegisterBody> createState() => _RegisterBodyState();
+}
+
+class _RegisterBodyState extends State<_RegisterBody> {
   final _email = TextEditingController();
   final _passwd = TextEditingController();
   final _user = TextEditingController();
-
   bool _obscure = true;
-  final _vm = RegisterViewModel();
-
-  @override
-  void initState() {
-    super.initState();
-    _vm.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
 
   @override
   void dispose() {
     _email.dispose();
     _passwd.dispose();
     _user.dispose();
-    _vm.dispose();
     super.dispose();
-  }
-
-  Future<void> _register() async {
-    final ok = await _vm.register(
-      email: _email.text.trim(),
-      passwd: _passwd.text.trim(),
-      nombre: _user.text.trim(),
-    );
-
-    if (ok && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<RegisterViewModel>();
+
     return AuthPageLayout(
       title: 'Crear cuenta',
       child: Column(
@@ -81,13 +76,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onToggleVisibility: () => setState(() => _obscure = !_obscure),
           ),
           const SizedBox(height: 28),
-          if (_vm.error != null) ...[
-            AuthErrorText(message: _vm.error!),
+          if (vm.error != null) ...[
+            AuthErrorText(message: vm.error!),
             const SizedBox(height: 12),
           ],
           AuthPrimaryButton(
             label: 'Crear cuenta',
-            loading: _vm.loading,
+            loading: vm.loading,
             onPressed: _register,
           ),
           const SizedBox(height: 24),
@@ -101,5 +96,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _register() async {
+    final vm = context.read<RegisterViewModel>();
+    final ok = await vm.register(
+      email: _email.text.trim(),
+      passwd: _passwd.text.trim(),
+      nombre: _user.text.trim(),
+    );
+    if (!mounted) return;
+    if (ok) context.go('/home');
   }
 }

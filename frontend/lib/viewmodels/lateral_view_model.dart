@@ -2,10 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/chat.dart';
 import '../models/ciudad.dart';
+import '../services/auth_services.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_services.dart';
 
 class LateralViewModel extends ChangeNotifier {
+  final _auth = AuthService();
+
   List<Chat> chats = [];
   List<Ciudad> ciudades = [];
   bool cargandoChats = true;
@@ -18,6 +21,16 @@ class LateralViewModel extends ChangeNotifier {
   LateralViewModel() {
     _suscribir();
   }
+
+  String get inicial {
+    final user = _auth.currentUser;
+    if (user?.displayName?.isNotEmpty == true) return user!.displayName![0].toUpperCase();
+    if (user?.email?.isNotEmpty == true) return user!.email![0].toUpperCase();
+    return '?';
+  }
+
+  String get nombre =>
+      _auth.currentUser?.displayName ?? _auth.currentUser?.email ?? 'Usuario';
 
   void _suscribir() {
     try {

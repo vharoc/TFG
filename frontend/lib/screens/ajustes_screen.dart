@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/ajustes_view_model.dart';
-import '../widgets/ajustes/settings_app_bar.dart';
+import '../widgets/common/back_title_app_bar.dart';
 import '../widgets/ajustes/settings_sections.dart';
 
 class AjustesScreen extends StatelessWidget {
@@ -26,7 +26,7 @@ class _AjustesScreenState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
-      appBar: const SettingsAppBar(title: 'Ajustes'),
+      appBar: const BackTitleAppBar(title: 'Ajustes'),
       body: SettingsSections(
         onProfileTap: () => context.push('/perfil'),
         onPermissionsTap: () => _abrirPermisosDispositivo(context),

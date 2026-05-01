@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../viewmodels/perfil_view_model.dart';
 import '../widgets/perfil/delete_account_card.dart';
 import '../widgets/perfil/delete_account_dialog.dart';
-import '../widgets/perfil/perfil_app_bar.dart';
+import '../widgets/common/back_title_app_bar.dart';
 import '../widgets/perfil/password_card.dart';
 import '../widgets/perfil/profile_header.dart';
 import '../widgets/perfil/username_card.dart';
@@ -62,7 +62,7 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
-      appBar: const PerfilAppBar(title: 'Perfil'),
+      appBar: const BackTitleAppBar(title: 'Perfil'),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
