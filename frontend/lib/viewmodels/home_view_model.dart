@@ -98,6 +98,14 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = _chatId!;
 
+    final historial = _messages
+        .where((m) => m.tipo == MensajeTipo.texto)
+        .toList()
+      ..sort((a, b) => a.fecha.compareTo(b.fecha));
+    final historialReciente = historial.length > 10
+        ? historial.sublist(historial.length - 10)
+        : historial;
+
     await _guardarMensajeTexto(
       chatId: chatIdActual,
       contenido: textoTrimmed,
@@ -110,6 +118,7 @@ class HomeViewModel extends ChangeNotifier {
       final respuesta = await OllamaService.query(
         textoTrimmed,
         ciudad: _ciudadActual!,
+        history: historialReciente,
       );
       await _guardarMensajeTexto(
         chatId: chatIdActual,

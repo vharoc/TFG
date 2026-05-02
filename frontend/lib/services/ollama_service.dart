@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../models/mensaje.dart';
 
 class OllamaService {
   OllamaService._();
@@ -24,10 +25,21 @@ class OllamaService {
     ];
   }
 
+  static List<Map<String, String>> _convertirHistorial(List<Mensaje> history) {
+    return history
+        .where((m) => m.tipo == MensajeTipo.texto && m.contenido != null)
+        .map((m) => {
+              'role': m.role == MensajeRole.usuario ? 'user' : 'assistant',
+              'content': m.contenido!,
+            })
+        .toList();
+  }
+
   static Future<String> query(
     String prompt, {
     String system = '',
     String ciudad = '',
+    List<Mensaje> history = const [],
   }) async {
     Exception? lastError;
 
@@ -41,6 +53,7 @@ class OllamaService {
                 'prompt': prompt,
                 'system': system,
                 'ciudad': ciudad,
+                'history': _convertirHistorial(history),
               }),
             )
             .timeout(const Duration(seconds: 270));
