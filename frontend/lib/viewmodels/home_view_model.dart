@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
+import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
 import '../services/chat_services.dart';
 import '../services/ollama_service.dart';
@@ -22,6 +23,15 @@ class HomeViewModel extends ChangeNotifier {
 
   String? _ciudadActual;
   String? get ciudadActual => _ciudadActual;
+
+  CiudadSoportada? _ciudadSoportada;
+
+  String? _mensajeErrorFoto;
+  String? get mensajeErrorFoto => _mensajeErrorFoto;
+
+  void limpiarErrorFoto() {
+    _mensajeErrorFoto = null;
+  }
 
   bool _gpsDisponible = false;
   bool get gpsDisponible => _gpsDisponible;
@@ -53,6 +63,50 @@ class HomeViewModel extends ChangeNotifier {
   void seleccionarCiudad(String ciudad) {
     _ciudadActual = ciudad;
     notifyListeners();
+    // Carga los datos de la ciudad en segundo plano para validar fotos posteriores
+    UbicacionService.instance.cargarCiudadesSoportadas().then((lista) {
+      for (final c in lista) {
+        if (c.nombre == ciudad) {
+          _ciudadSoportada = c;
+          break;
+        }
+      }
+    }).catchError((_) {});
+  }
+
+  // Intenta detectar la ciudad a partir de las coordenadas GPS actuales.
+  // Devuelve true si se encontró una ciudad soportada y la cacheó.
+  Future<bool> _detectarCiudadDesdeGps() async {
+    try {
+      final pos = await UbicacionService.instance.obtenerPosicion();
+      final ciudad = await UbicacionService.instance
+          .detectarCiudad(pos.latitude, pos.longitude);
+      if (ciudad == null) return false;
+      _ciudadActual = ciudad.nombre;
+      _ciudadSoportada = ciudad;
+      notifyListeners();
+      if (_chatId != null) {
+        ChatService.instance
+            .actualizarCiudad(chatId: _chatId!, ciudad: ciudad.nombre)
+            .catchError((_) {});
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Comprueba si las coordenadas actuales del dispositivo están dentro del
+  // radio de la ciudad en curso. Devuelve true si no puede validar (fail open).
+  Future<bool> _fotoEnRangoDeCiudad() async {
+    if (!_gpsDisponible || _ciudadSoportada == null) return true;
+    try {
+      final pos = await UbicacionService.instance.obtenerPosicion();
+      return UbicacionService.instance
+          .dentroDeRadio(pos.latitude, pos.longitude, _ciudadSoportada!);
+    } catch (_) {
+      return true;
+    }
   }
 
   void _suscribir() {
@@ -106,7 +160,12 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> enviarTexto(String texto) async {
     final textoTrimmed = texto.trim();
-    if (textoTrimmed.isEmpty || _ciudadActual == null) return;
+    if (textoTrimmed.isEmpty) return;
+
+    if (_ciudadActual == null) {
+      if (_gpsDisponible) await _detectarCiudadDesdeGps();
+      if (_ciudadActual == null) return;
+    }
 
     await _crearChatSiNecesario();
     if (_chatId == null) return;
@@ -151,7 +210,28 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> enviarImagen(XFile img) async {
-    if (_ciudadActual == null) return;
+    if (_ciudadActual == null) {
+      // Primera foto: detectar ciudad desde GPS
+      if (_gpsDisponible) {
+        final detectada = await _detectarCiudadDesdeGps();
+        if (!detectada) {
+          _mensajeErrorFoto =
+              'No se encontró ninguna ciudad compatible con tu ubicación.';
+          notifyListeners();
+          return;
+        }
+      } else {
+        return; // Sin GPS ni ciudad: el selector debería haberla pedido antes
+      }
+    } else {
+      // Fotos posteriores: validar que siguen dentro del radio de la ciudad
+      final enRango = await _fotoEnRangoDeCiudad();
+      if (!enRango) {
+        _mensajeErrorFoto = 'La foto está fuera del alcance de $_ciudadActual.';
+        notifyListeners();
+        return;
+      }
+    }
 
     await _crearChatSiNecesario();
     if (_chatId == null) return;
@@ -243,6 +323,7 @@ class HomeViewModel extends ChangeNotifier {
     _chatSub?.cancel();
     _chatId = null;
     _ciudadActual = null;
+    _ciudadSoportada = null;
     _messages = [];
     _tituloChat = '';
     _cargando = false;

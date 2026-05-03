@@ -71,6 +71,14 @@ class ChatService {
     await _chatsRef.doc(chatId).update({'titulo': nuevoTitulo});
   }
 
+  // -- Actualizar ciudad (cuando GPS la detecta tras crear el chat) --
+  Future<void> actualizarCiudad({
+    required String chatId,
+    required String ciudad,
+  }) async {
+    await _chatsRef.doc(chatId).update({'ciudad': ciudad});
+  }
+
   // -- Eliminar conversación y sus mensajes --
   Future<void> eliminarConversacion(String chatId) async {
     final msgs = await _mensajesRef(chatId).get();

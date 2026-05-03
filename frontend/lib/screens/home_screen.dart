@@ -59,6 +59,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_vm.necesitaCiudad) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
     }
+    if (_vm.mensajeErrorFoto != null) {
+      final mensaje = _vm.mensajeErrorFoto!;
+      _vm.limpiarErrorFoto();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(mensaje)),
+        );
+      });
+    }
   }
 
   Future<void> _inicializar() async {
