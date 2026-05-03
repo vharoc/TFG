@@ -221,4 +221,10 @@ frontend/.packages
 backend/.venv/
 backend/serviceTourClickFirebaseKey.json
 
+# Local
+
+
+generar_roadmap.py
+roadmap_tourclick.pdf
+
 # Firebase

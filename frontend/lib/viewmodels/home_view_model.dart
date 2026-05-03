@@ -5,6 +5,7 @@ import '../models/chat.dart';
 import '../models/mensaje.dart';
 import '../services/chat_services.dart';
 import '../services/ollama_service.dart';
+import '../services/ubicacion_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
@@ -22,7 +23,14 @@ class HomeViewModel extends ChangeNotifier {
   String? _ciudadActual;
   String? get ciudadActual => _ciudadActual;
 
-  bool get necesitaCiudad => _chatId == null && _ciudadActual == null;
+  bool _gpsDisponible = false;
+  bool get gpsDisponible => _gpsDisponible;
+
+  bool _gpsPermanentementeDenegado = false;
+  bool get gpsPermanentementeDenegado => _gpsPermanentementeDenegado;
+
+  // Necesita selector manual solo si no hay ciudad, no hay GPS y no hay chat abierto
+  bool get necesitaCiudad => _chatId == null && _ciudadActual == null && !_gpsDisponible;
 
   StreamSubscription<List<Mensaje>>? _sub;
   StreamSubscription<Chat?>? _chatSub;
@@ -33,6 +41,13 @@ class HomeViewModel extends ChangeNotifier {
       _chatId = initialChatId;
       _suscribir();
     }
+  }
+
+  Future<void> inicializarUbicacion() async {
+    final estado = await UbicacionService.instance.verificarPermiso();
+    _gpsDisponible = estado == EstadoPermiso.concedido;
+    _gpsPermanentementeDenegado = estado == EstadoPermiso.permanentementeDenegado;
+    notifyListeners();
   }
 
   void seleccionarCiudad(String ciudad) {

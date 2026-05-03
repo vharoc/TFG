@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../services/ubicacion_service.dart';
 import '../viewmodels/ajustes_view_model.dart';
 import '../widgets/common/back_title_app_bar.dart';
 import '../widgets/ajustes/settings_sections.dart';
@@ -14,13 +14,37 @@ class AjustesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AjustesViewModel(),
-      child: const _AjustesScreenState(),
+      child: const _AjustesBody(),
     );
   }
 }
 
-class _AjustesScreenState extends StatelessWidget {
-  const _AjustesScreenState();
+class _AjustesBody extends StatefulWidget {
+  const _AjustesBody();
+
+  @override
+  State<_AjustesBody> createState() => _AjustesBodyState();
+}
+
+class _AjustesBodyState extends State<_AjustesBody> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<AjustesViewModel>().recargarUbicacion();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,47 +53,83 @@ class _AjustesScreenState extends StatelessWidget {
       appBar: const BackTitleAppBar(title: 'Ajustes'),
       body: SettingsSections(
         onProfileTap: () => context.push('/perfil'),
-        onPermissionsTap: () => _abrirPermisosDispositivo(context),
+        onUbicacionToggle: (value) => _toggleUbicacion(context, value),
+        onCamaraToggle: (value) => _toggleCamara(context, value),
+        onAlbumToggle: (value) => _toggleAlbum(context, value),
         onLogoutTap: () => _confirmarCerrarSesion(context),
       ),
     );
   }
 
-  // ── Abre los ajustes de permisos del sistema ─────────────────────────────
-  Future<void> _abrirPermisosDispositivo(BuildContext context) async {
-    // Abre la pantalla de ajustes de la app en el sistema operativo.
-    // Requiere el paquete `app_settings` (app_settings: ^5.x).
-    // Si no lo tienes instalado, puedes usar el channel nativo o simplemente
-    // redirigir al usuario con un diálogo informativo.
-    try {
-      // Intenta usar el paquete app_settings si está disponible.
-      // ignore: avoid_dynamic_calls
-      const MethodChannel('flutter/platform').invokeMethod('openAppSettings');
-    } catch (_) {
-      if (context.mounted) {
-        showDialog<void>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Permisos'),
-            content: const Text(
-              'Ve a Ajustes → Aplicaciones → [Esta app] para gestionar los permisos.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Entendido'),
-              ),
-            ],
-          ),
-        );
+  Future<void> _toggleUbicacion(BuildContext context, bool activar) async {
+    final vm = context.read<AjustesViewModel>();
+
+    if (activar) {
+      final estado = await vm.activarUbicacion();
+      if (!context.mounted) return;
+      if (estado == EstadoPermiso.permanentementeDenegado) {
+        _mostrarDialogoAjustes(context, vm, 'ubicación');
       }
+    } else {
+      _mostrarDialogoAjustes(context, vm, 'ubicación');
     }
   }
 
-  // ── Confirmar cierre de sesión ───────────────────────────────────────────
-  Future<void> _confirmarCerrarSesion(BuildContext context) async {
+  Future<void> _toggleCamara(BuildContext context, bool activar) async {
     final vm = context.read<AjustesViewModel>();
 
+    if (activar) {
+      final concedido = await vm.activarCamara();
+      if (!context.mounted) return;
+      if (!concedido) {
+        _mostrarDialogoAjustes(context, vm, 'cámara');
+      }
+    } else {
+      _mostrarDialogoAjustes(context, vm, 'cámara');
+    }
+  }
+
+  Future<void> _toggleAlbum(BuildContext context, bool activar) async {
+    final vm = context.read<AjustesViewModel>();
+
+    if (activar) {
+      final concedido = await vm.activarAlbum();
+      if (!context.mounted) return;
+      if (!concedido) {
+        _mostrarDialogoAjustes(context, vm, 'álbum');
+      }
+    } else {
+      _mostrarDialogoAjustes(context, vm, 'álbum');
+    }
+  }
+
+  void _mostrarDialogoAjustes(BuildContext context, AjustesViewModel vm, String permiso) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Permiso de $permiso'),
+        content: Text(
+          'Para cambiar el permiso de $permiso ve a los Ajustes del sistema.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              vm.abrirAjustesApp();
+            },
+            child: const Text('Ir a Ajustes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmarCerrarSesion(BuildContext context) async {
+    final vm = context.read<AjustesViewModel>();
     final ok = await vm.cerrarSesion();
     if (context.mounted) {
       if (ok) {

@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final HomeViewModel _vm;
   final ScrollController _scrollController = ScrollController();
   bool _mostrandoSelectorCiudad = false;
@@ -25,10 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _vm = HomeViewModel(initialChatId: widget.chatId);
     _vm.addListener(_scrollToBottom);
     _vm.addListener(_onVmChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _inicializar());
   }
 
   @override
@@ -38,8 +39,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _vm.cambiarChat(widget.chatId);
   }
 
+  // Se llama cuando la app vuelve al primer plano (p.ej. al volver de Ajustes)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _vm.gpsPermanentementeDenegado) {
+      _inicializar();
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _vm.dispose();
     super.dispose();
@@ -49,6 +59,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_vm.necesitaCiudad) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
     }
+  }
+
+  Future<void> _inicializar() async {
+    await _vm.inicializarUbicacion();
+    if (mounted) _mostrarSelectorSiNecesario();
   }
 
   Future<void> _mostrarSelectorSiNecesario() async {
