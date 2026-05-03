@@ -66,10 +66,25 @@ class UbicacionService {
     );
   }
 
-  // Carga todas las ciudades soportadas desde Firestore
+  static const _ciudadesFallback = [
+    CiudadSoportada(
+      id: 'salamanca',
+      nombre: 'Salamanca',
+      lat: 40.9701,
+      lng: -5.6635,
+      radioKm: 15.0,
+    ),
+  ];
+
+  // Carga todas las ciudades soportadas desde Firestore, con fallback local
   Future<List<CiudadSoportada>> cargarCiudadesSoportadas() async {
-    final snap = await _db.collection('supported_cities').get();
-    return snap.docs.map(CiudadSoportada.fromFirestore).toList();
+    try {
+      final snap = await _db.collection('supported_cities').get();
+      if (snap.docs.isEmpty) return _ciudadesFallback;
+      return snap.docs.map(CiudadSoportada.fromFirestore).toList();
+    } catch (_) {
+      return _ciudadesFallback;
+    }
   }
 
   // Devuelve la ciudad soportada en cuyo radio se encuentran las coordenadas,

@@ -44,6 +44,7 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
             Container(
@@ -98,15 +99,17 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
               ),
             ),
             const SizedBox(height: 8),
-            Flexible(
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 280),
               child: _filtradas.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No se encontró ninguna ciudad',
-                        style: AppTheme.cuerpo.copyWith(color: Colors.grey),
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text('No se encontró ninguna ciudad'),
                       ),
                     )
                   : ListView.separated(
+                      shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 8,
