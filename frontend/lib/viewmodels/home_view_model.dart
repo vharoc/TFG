@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
@@ -236,13 +237,30 @@ class HomeViewModel extends ChangeNotifier {
     await _crearChatSiNecesario();
     if (_chatId == null) return;
 
+    final chatIdActual = _chatId!;
+
     await _guardarMensajeImagen(
-      chatId: _chatId!,
+      chatId: chatIdActual,
       imgUrl: img.path,
       role: MensajeRole.usuario,
     );
 
     await _actualizarTituloSiVacio('[Imagen]');
+
+    try {
+      final clase = await OllamaService.classify(File(img.path));
+      await _guardarMensajeTexto(
+        chatId: chatIdActual,
+        contenido: 'He identificado: $clase',
+        role: MensajeRole.bot,
+      );
+    } catch (_) {
+      await _guardarMensajeTexto(
+        chatId: chatIdActual,
+        contenido: 'No he podido analizar la imagen. Intentalo de nuevo.',
+        role: MensajeRole.bot,
+      );
+    }
   }
 
   Future<void> _crearChatSiNecesario() async {
