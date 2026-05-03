@@ -27,13 +27,16 @@ class AjustesViewModel extends ChangeNotifier {
   }
 
   Future<void> _cargarEstadoPermisos() async {
-    final estadoUbicacion = await UbicacionService.instance.verificarPermiso();
-    _ubicacionActiva = estadoUbicacion == EstadoPermiso.concedido;
-
-    _camaraActiva = await Permission.camera.isGranted;
-    _albumActivo = await Permission.photos.isGranted;
-
-    notifyListeners();
+    try {
+      final estadoUbicacion = await UbicacionService.instance.verificarPermiso();
+      _ubicacionActiva = estadoUbicacion == EstadoPermiso.concedido;
+      _camaraActiva = await Permission.camera.isGranted;
+      _albumActivo = await Permission.photos.isGranted;
+    } catch (_) {
+      // mantener los valores actuales si falla la consulta
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> recargarUbicacion() => _cargarEstadoPermisos();

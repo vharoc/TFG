@@ -44,7 +44,6 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
             Container(
@@ -99,8 +98,7 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
               ),
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 280,
+            Flexible(
               child: _filtradas.isEmpty
                   ? Center(
                       child: Text(

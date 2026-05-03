@@ -39,10 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _vm.cambiarChat(widget.chatId);
   }
 
-  // Se llama cuando la app vuelve al primer plano (p.ej. al volver de Ajustes)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _vm.gpsPermanentementeDenegado) {
+    if (state == AppLifecycleState.resumed) {
       _inicializar();
     }
   }

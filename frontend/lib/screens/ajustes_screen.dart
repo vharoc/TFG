@@ -69,6 +69,8 @@ class _AjustesBodyState extends State<_AjustesBody> with WidgetsBindingObserver 
       if (!context.mounted) return;
       if (estado == EstadoPermiso.permanentementeDenegado) {
         _mostrarDialogoAjustes(context, vm, 'ubicación');
+      } else if (estado == EstadoPermiso.servicioDesactivado) {
+        _mostrarDialogoServicioDesactivado(context, vm);
       }
     } else {
       _mostrarDialogoAjustes(context, vm, 'ubicación');
@@ -101,6 +103,31 @@ class _AjustesBodyState extends State<_AjustesBody> with WidgetsBindingObserver 
     } else {
       _mostrarDialogoAjustes(context, vm, 'álbum');
     }
+  }
+
+  void _mostrarDialogoServicioDesactivado(BuildContext context, AjustesViewModel vm) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Servicio de ubicación desactivado'),
+        content: const Text(
+          'El GPS de tu dispositivo está desactivado. Actívalo en los Ajustes del sistema para usar la ubicación.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              vm.abrirAjustesApp();
+            },
+            child: const Text('Ir a Ajustes'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _mostrarDialogoAjustes(BuildContext context, AjustesViewModel vm, String permiso) {
