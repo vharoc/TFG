@@ -28,7 +28,7 @@ class ClasificadorService:
         features = self.session.run([self.output_name], {self.input_name: tensor})[0]
 
         if features.ndim == 3:
-            features = features[:, 0, :]  # CLS token
+            features = features[:, 0, :]
 
         pred = self.clf.predict(features)[0]
 

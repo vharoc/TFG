@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
@@ -239,9 +241,21 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = _chatId!;
 
+    String imgUrl;
+    try {
+      imgUrl = await _subirImagenAStorage(img, chatIdActual);
+    } catch (_) {
+      await _guardarMensajeTexto(
+        chatId: chatIdActual,
+        contenido: 'No se pudo subir la imagen. Comprueba tu conexión.',
+        role: MensajeRole.bot,
+      );
+      return;
+    }
+
     await _guardarMensajeImagen(
       chatId: chatIdActual,
-      imgUrl: img.path,
+      imgUrl: imgUrl,
       role: MensajeRole.usuario,
     );
 
@@ -261,6 +275,15 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     }
+  }
+
+  Future<String> _subirImagenAStorage(XFile img, String chatId) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final ext = img.path.contains('.') ? img.path.split('.').last : 'jpg';
+    final nombre = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final ref = FirebaseStorage.instance.ref('users/$uid/chats/$chatId/$nombre');
+    await ref.putFile(File(img.path));
+    return ref.getDownloadURL();
   }
 
   Future<void> _crearChatSiNecesario() async {
