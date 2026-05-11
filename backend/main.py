@@ -6,6 +6,7 @@ from typing import Optional
 import httpx
 import logging
 from services.clasificador_service import ClasificadorService
+from services.monumento_service import MonumentoService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,6 +17,13 @@ clasificador = ClasificadorService(
         classes_path="models/class_names.npy",
         meta_path="models/meta_tourclick.json",
 )
+
+try:
+    monumentos = MonumentoService("data/monumentos_salamanca.json")
+    logger.info(f"MonumentoService cargado con {len(monumentos._data)} monumentos")
+except FileNotFoundError:
+    monumentos = None
+    logger.warning("No se encontró monumentos_salamanca.json — /classify devolverá solo la clase")
 
 app = FastAPI(title="TourClick API", version="1.0.0")
 
@@ -84,6 +92,20 @@ async def health():
 @app.post("/classify")
 @app.post("/api/classify")
 async def classify(imagen: UploadFile = File(...)):
-        data = await imagen.read()
-        clase = clasificador.clasificar(data)
-        return JSONResponse(content={"clase":clase})
+    data = await imagen.read()
+    clase = clasificador.clasificar(data)
+
+    if monumentos is None:
+        return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
+
+    monumento = monumentos.lookup_by_class(clase)
+    if monumento is None:
+        return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
+
+    pois = monumentos.get_nearby(monumento["id"])
+    return JSONResponse(content={
+        "clase": clase,
+        "nombre": monumento["nombre"],
+        "descripcion_corta": monumento["descripcion_corta"],
+        "pois_cercanos": [{"id": p["id"], "nombre": p["nombre"]} for p in pois],
+    })
