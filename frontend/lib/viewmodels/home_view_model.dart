@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
@@ -13,7 +11,13 @@ import '../services/ubicacion_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
-  List<Mensaje> get messages => List.unmodifiable(_messages);
+  List<Mensaje> _localImages = [];
+
+  List<Mensaje> get messages {
+    final combined = [..._messages, ..._localImages];
+    combined.sort((a, b) => a.fecha.compareTo(b.fecha));
+    return List.unmodifiable(combined);
+  }
 
   String _tituloChat = '';
   String get tituloChat => _tituloChat;
@@ -152,6 +156,7 @@ class HomeViewModel extends ChangeNotifier {
     _chatSub?.cancel();
     _chatId = nuevoChatId;
     _messages = [];
+    _localImages = [];
     _tituloChat = '';
     _cargando = false;
     notifyListeners();
@@ -240,24 +245,16 @@ class HomeViewModel extends ChangeNotifier {
     if (_chatId == null) return;
 
     final chatIdActual = _chatId!;
+    final ahora = DateTime.now();
 
-    String imgUrl;
-    try {
-      imgUrl = await _subirImagenAStorage(img, chatIdActual);
-    } catch (_) {
-      await _guardarMensajeTexto(
-        chatId: chatIdActual,
-        contenido: 'No se pudo subir la imagen. Comprueba tu conexión.',
-        role: MensajeRole.bot,
-      );
-      return;
-    }
-
-    await _guardarMensajeImagen(
+    _localImages.add(Mensaje.imagen(
+      id: 'local_${ahora.millisecondsSinceEpoch}',
       chatId: chatIdActual,
-      imgUrl: imgUrl,
+      imgUrl: img.path,
       role: MensajeRole.usuario,
-    );
+      fecha: ahora,
+    ));
+    notifyListeners();
 
     await _actualizarTituloSiVacio('[Imagen]');
 
@@ -275,15 +272,6 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     }
-  }
-
-  Future<String> _subirImagenAStorage(XFile img, String chatId) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ext = img.path.contains('.') ? img.path.split('.').last : 'jpg';
-    final nombre = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-    final ref = FirebaseStorage.instance.ref('users/$uid/chats/$chatId/$nombre');
-    await ref.putFile(File(img.path));
-    return ref.getDownloadURL();
   }
 
   Future<void> _crearChatSiNecesario() async {
@@ -342,23 +330,6 @@ class HomeViewModel extends ChangeNotifier {
     );
   }
 
-  Future<void> _guardarMensajeImagen({
-    required String chatId,
-    required String imgUrl,
-    required MensajeRole role,
-  }) {
-    return ChatService.instance.guardarMensaje(
-      chatId: chatId,
-      mensaje: Mensaje.imagen(
-        id: '',
-        chatId: chatId,
-        imgUrl: imgUrl,
-        role: role,
-        fecha: DateTime.now(),
-      ),
-    );
-  }
-
   void nuevaConversacion() {
     _sub?.cancel();
     _chatSub?.cancel();
@@ -366,6 +337,7 @@ class HomeViewModel extends ChangeNotifier {
     _ciudadActual = null;
     _ciudadSoportada = null;
     _messages = [];
+    _localImages = [];
     _tituloChat = '';
     _cargando = false;
     notifyListeners();

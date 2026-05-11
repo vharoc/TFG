@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/mensaje.dart';
 import '../../theme/theme.dart';
@@ -34,17 +35,22 @@ class ChatBubble extends StatelessWidget {
               ),
             ),
           ),
-          MensajeTipo.imagen => Image.network(
-            mensaje.imgUrl!,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return const SizedBox(
-                height: 150,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            },
-          ),
+          MensajeTipo.imagen => mensaje.imgUrl!.startsWith('http')
+              ? Image.network(
+                  mensaje.imgUrl!,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const SizedBox(
+                      height: 150,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                )
+              : Image.file(
+                  File(mensaje.imgUrl!),
+                  fit: BoxFit.cover,
+                ),
         },
       ),
     );
