@@ -1,19 +1,25 @@
 import io
+import json
 import numpy as np
 import onnxruntime as ort
 import joblib
 from PIL import Image
+from sklearn.preprocessing import normalize
 
 _MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 _STD  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 class ClasificadorService:
-    def __init__(self, onnx_path: str, clf_path: str, classes_path: str):
+    def __init__(self, onnx_path: str, clf_path: str, classes_path: str, meta_path: str):
         self.session     = ort.InferenceSession(onnx_path)
         self.clf         = joblib.load(clf_path)
         self.class_names = np.load(classes_path, allow_pickle=True)
         self.input_name  = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
+
+        with open(meta_path) as f:
+            meta = json.load(f)
+        self.umbral = meta["umbral_confianza"]
 
     def _preprocess(self, image_bytes: bytes) -> np.ndarray:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -26,12 +32,12 @@ class ClasificadorService:
     def clasificar(self, image_bytes: bytes) -> str:
         tensor   = self._preprocess(image_bytes)
         features = self.session.run([self.output_name], {self.input_name: tensor})[0]
-
         if features.ndim == 3:
-            features = features[:, 0, :]
+            features = features[:, 0, :]  # CLS token
 
-        pred = self.clf.predict(features)[0]
-
-        if isinstance(pred, (int, np.integer)):
-            return str(self.class_names[pred])
-        return str(pred)
+        features_norm = normalize(features, norm="l2")
+        proba  = self.clf.predict_proba(features_norm)[0]
+        idx    = np.argmax(proba)
+        if proba[idx] < self.umbral:
+            return "DESCONOCIDO"
+        return str(self.class_names[idx])

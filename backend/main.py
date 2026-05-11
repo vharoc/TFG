@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 
 clasificador = ClasificadorService(
         onnx_path="models/dinov2_small_full.onnx",
-        clf_path="models/clasificador_tourclick.pkl",
+        clf_path="models/clasificador_tourclick_final.pkl",
         classes_path="models/class_names.npy",
+        meta_path="models/meta_tourclick.json",
 )
 
 app = FastAPI(title="TourClick API", version="1.0.0")

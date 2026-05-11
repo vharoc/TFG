@@ -21,13 +21,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final HomeViewModel _vm;
   final ScrollController _scrollController = ScrollController();
   bool _mostrandoSelectorCiudad = false;
+  int _previousMessageCount = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _vm = HomeViewModel(initialChatId: widget.chatId);
-    _vm.addListener(_scrollToBottom);
     _vm.addListener(_onVmChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _inicializar());
   }
@@ -55,6 +55,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _onVmChanged() {
+    _scrollToBottomIfNeeded();
+
     if (_vm.necesitaCiudad) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
     }
@@ -68,6 +70,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       });
     }
+  }
+
+  void _scrollToBottomIfNeeded() {
+    final newCount = _vm.messages.length;
+    if (newCount <= _previousMessageCount) return;
+    _previousMessageCount = newCount;
+
+    final shouldScroll = !_scrollController.hasClients ||
+        (_scrollController.position.maxScrollExtent -
+                _scrollController.position.pixels <
+            150);
+    if (!shouldScroll) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _inicializar() async {
@@ -141,15 +164,4 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
 }
