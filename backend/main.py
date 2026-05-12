@@ -109,6 +109,7 @@ async def classify(imagen: UploadFile = File(...)):
     pois = monumentos.get_nearby(monumento["id"])
     return JSONResponse(content={
         "clase": clase,
+        "id": monumento["id"],
         "nombre": monumento["nombre"],
         "descripcion_corta": monumento["descripcion_corta"],
         "pois_cercanos": [{"id": p["id"], "nombre": p["nombre"]} for p in pois],

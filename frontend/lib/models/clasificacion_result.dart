@@ -2,12 +2,14 @@ import 'poi_sugerido.dart';
 
 class ClasificacionResult {
   final String clase;
+  final String? id;
   final String nombre;
   final String? descripcionCorta;
   final List<PoiSugerido> poisCercanos;
 
   const ClasificacionResult({
     required this.clase,
+    this.id,
     required this.nombre,
     this.descripcionCorta,
     required this.poisCercanos,
@@ -16,6 +18,7 @@ class ClasificacionResult {
   factory ClasificacionResult.fromJson(Map<String, dynamic> json) {
     return ClasificacionResult(
       clase: json['clase'] as String,
+      id: json['id'] as String?,
       nombre: (json['nombre'] as String?) ?? json['clase'] as String,
       descripcionCorta: json['descripcion_corta'] as String?,
       poisCercanos: (json['pois_cercanos'] as List<dynamic>? ?? [])

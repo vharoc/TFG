@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
+import '../models/poi_sugerido.dart';
 import '../services/chat_services.dart';
 import '../services/ollama_service.dart';
 import '../services/ubicacion_service.dart';
@@ -166,7 +167,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> enviarTexto(String texto) async {
+  Future<void> enviarTexto(String texto, {String? monumentoId}) async {
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
 
@@ -201,6 +202,7 @@ class HomeViewModel extends ChangeNotifier {
         textoTrimmed,
         ciudad: _ciudadActual!,
         history: historialReciente,
+        monumentoId: monumentoId,
       );
       await _guardarMensajeTexto(
         chatId: chatIdActual,
@@ -259,11 +261,17 @@ class HomeViewModel extends ChangeNotifier {
     await _actualizarTituloSiVacio('[Imagen]');
 
     try {
-      final clase = await OllamaService.classify(File(img.path));
+      final resultado = await OllamaService.classify(File(img.path));
+      final respuesta = await OllamaService.query(
+        'Acabo de fotografiar este lugar, preséntamelo brevemente.',
+        ciudad: _ciudadActual!,
+        monumentoId: resultado.id,
+      );
       await _guardarMensajeTexto(
         chatId: chatIdActual,
-        contenido: 'He identificado: $clase',
+        contenido: respuesta,
         role: MensajeRole.bot,
+        poisCercanos: resultado.poisCercanos,
       );
     } catch (_) {
       await _guardarMensajeTexto(
@@ -272,6 +280,10 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     }
+  }
+
+  Future<void> preguntarSobrePoi(PoiSugerido poi) async {
+    await enviarTexto('Cuéntame más sobre ${poi.nombre}', monumentoId: poi.id);
   }
 
   Future<void> _crearChatSiNecesario() async {
@@ -317,6 +329,7 @@ class HomeViewModel extends ChangeNotifier {
     required String chatId,
     required String contenido,
     required MensajeRole role,
+    List<PoiSugerido> poisCercanos = const [],
   }) {
     return ChatService.instance.guardarMensaje(
       chatId: chatId,
@@ -326,6 +339,7 @@ class HomeViewModel extends ChangeNotifier {
         contenido: contenido,
         role: role,
         fecha: DateTime.now(),
+        poisCercanos: poisCercanos,
       ),
     );
   }

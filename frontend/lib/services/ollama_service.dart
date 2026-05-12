@@ -65,7 +65,7 @@ class OllamaService {
                 'system': system,
                 'ciudad': ciudad,
                 'history': _convertirHistorial(history),
-                if (monumentoId != null) 'monumento_id': monumentoId,
+                'monumento_id': monumentoId,
               }),
             )
             .timeout(const Duration(seconds: 270));

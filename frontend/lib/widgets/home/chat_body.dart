@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/mensaje.dart';
+import '../../models/poi_sugerido.dart';
 import 'chat_input.dart';
 import 'messages_list.dart';
 
@@ -11,6 +12,7 @@ class HomeChatBody extends StatelessWidget {
   final ScrollController scrollController;
   final Future<void> Function(String texto) onSend;
   final Future<void> Function(XFile image) onImagePicked;
+  final void Function(PoiSugerido)? onPoiTap;
 
   const HomeChatBody({
     super.key,
@@ -19,6 +21,7 @@ class HomeChatBody extends StatelessWidget {
     required this.scrollController,
     required this.onSend,
     required this.onImagePicked,
+    this.onPoiTap,
   });
 
   @override
@@ -30,6 +33,7 @@ class HomeChatBody extends StatelessWidget {
             cargando: cargando,
             messages: messages,
             controller: scrollController,
+            onPoiTap: onPoiTap,
           ),
         ),
         ChatInput(onSend: onSend, onImagePicked: onImagePicked),

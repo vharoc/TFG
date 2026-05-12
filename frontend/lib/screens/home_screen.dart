@@ -139,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         scrollController: _scrollController,
                         onSend: vm.enviarTexto,
                         onImagePicked: vm.enviarImagen,
+                        onPoiTap: vm.preguntarSobrePoi,
                       ),
                     ),
                   ],

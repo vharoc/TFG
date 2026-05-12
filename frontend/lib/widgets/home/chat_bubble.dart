@@ -52,36 +52,48 @@ class ChatBubble extends StatelessWidget {
       },
     );
 
-    return Align(
+    final burbujaAligned = Align(
       alignment: esUsuario ? Alignment.centerRight : Alignment.centerLeft,
-      child: mostrarChips
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                burbuja,
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: mensaje.poisCercanos
-                        .map((poi) => ActionChip(
-                              label: Text(
-                                poi.nombre,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              onPressed: () => onPoiTap?.call(poi),
-                              backgroundColor: AppTheme.fondo,
-                              side: const BorderSide(color: AppTheme.ocre),
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ],
-            )
-          : burbuja,
+      child: burbuja,
+    );
+
+    if (!mostrarChips) return burbujaAligned;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        burbujaAligned,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...mensaje.poisCercanos.map((poi) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: FilledButton(
+                      onPressed: () => onPoiTap?.call(poi),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.ocre,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
+                      ),
+                      child: Text(
+                        poi.nombre,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w500),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
