@@ -1,5 +1,6 @@
 import json
 import math
+import unicodedata
 from pathlib import Path
 from typing import Optional
 
@@ -8,12 +9,20 @@ class MonumentoService:
     def __init__(self, json_path: str, vecinos: int = 3):
         self._data: list[dict] = json.loads(Path(json_path).read_text(encoding="utf-8"))
         self._by_class: dict[str, dict] = {
-            m["classifier_class"].strip().upper(): m for m in self._data
+            self._normalizar(m["classifier_class"]): m for m in self._data
         }
+        self._by_id: dict[str, dict] = {m["id"]: m for m in self._data}
         self._grafo: dict[str, list[dict]] = self._build_graph(vecinos)
 
+    def lookup_by_id(self, monument_id: str) -> Optional[dict]:
+        return self._by_id.get(monument_id)
+
     def lookup_by_class(self, class_name: str) -> Optional[dict]:
-        return self._by_class.get(class_name.strip().upper())
+        return self._by_class.get(self._normalizar(class_name))
+
+    @staticmethod
+    def _normalizar(s: str) -> str:
+        return unicodedata.normalize("NFC", s).strip().upper()
 
     def get_nearby(self, monument_id: str) -> list[dict]:
         return self._grafo.get(monument_id, [])

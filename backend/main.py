@@ -19,7 +19,7 @@ clasificador = ClasificadorService(
 )
 
 try:
-    monumentos = MonumentoService("data/monumentos_salamanca.json")
+    monumentos = MonumentoService("/home/tfg/data/monumentos_salamanca.json")
     logger.info(f"MonumentoService cargado con {len(monumentos._data)} monumentos")
 except FileNotFoundError:
     monumentos = None
@@ -51,20 +51,24 @@ class Query(BaseModel):
     system: Optional[str] = None
     ciudad: Optional[str] = None
     history: list[Message] = []
+    monumento_id: Optional[str] = None
 
 
-def build_system_prompt(system: Optional[str], ciudad: Optional[str]) -> str:
+def build_system_prompt(system: Optional[str], ciudad: Optional[str], monumento: Optional[dict] = None) -> str:
     base = system.strip() if system and system.strip() else DEFAULT_SYSTEM_PROMPT
     if ciudad and ciudad.strip():
-        return f"{base}\nEl usuario se encuentra actualmente en: {ciudad.strip()}."
+        base = f"{base}\nEl usuario se encuentra actualmente en: {ciudad.strip()}."
+    if monumento:
+        base = f"{base}\nInformación verificada sobre el monumento del que hablas: {monumento['descripcion_corta']} Responde ÚNICAMENTE usando esta información. No añadas datos, nombres, lugares ni fechas que no aparezcan aquí."
     return base
 
 @app.post("/query")
 @app.post("/api/query")
 async def query(q: Query):
+    monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
     messages = [
         {
-                "role": "system", "content": build_system_prompt(q.system, q.ciudad)
+                "role": "system", "content": build_system_prompt(q.system, q.ciudad, monumento)
         },
         *[m.model_dump() for m in q.history],
         {
