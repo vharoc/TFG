@@ -4,6 +4,32 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import '../models/mensaje.dart';
+import '../models/poi_sugerido.dart';
+
+class ClasificacionResult {
+  final String clase;
+  final String nombre;
+  final String? descripcionCorta;
+  final List<PoiSugerido> poisCercanos;
+
+  const ClasificacionResult({
+    required this.clase,
+    required this.nombre,
+    this.descripcionCorta,
+    required this.poisCercanos,
+  });
+
+  factory ClasificacionResult.fromJson(Map<String, dynamic> json) {
+    return ClasificacionResult(
+      clase: json['clase'] as String,
+      nombre: (json['nombre'] as String?) ?? json['clase'] as String,
+      descripcionCorta: json['descripcion_corta'] as String?,
+      poisCercanos: (json['pois_cercanos'] as List<dynamic>? ?? [])
+          .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
 
 class OllamaService {
   OllamaService._();
@@ -49,6 +75,7 @@ class OllamaService {
     String system = '',
     String ciudad = '',
     List<Mensaje> history = const [],
+    String? monumentoId,
   }) async {
     Exception? lastError;
 
@@ -63,6 +90,7 @@ class OllamaService {
                 'system': system,
                 'ciudad': ciudad,
                 'history': _convertirHistorial(history),
+                if (monumentoId != null) 'monumento_id': monumentoId,
               }),
             )
             .timeout(const Duration(seconds: 270));
@@ -96,7 +124,7 @@ class OllamaService {
     throw lastError ?? Exception('No se pudo contactar con el servidor.');
   }
 
-  static Future<String> classify(File imagen) async {
+  static Future<ClasificacionResult> classify(File imagen) async {
     Exception? lastError;
 
     for (final uri in _classifyUris()) {
@@ -117,11 +145,10 @@ class OllamaService {
         }
 
         final data = jsonDecode(body) as Map<String, dynamic>;
-        final clase = data['clase'];
-        if (clase is! String || clase.isEmpty) {
+        if (data['clase'] is! String || (data['clase'] as String).isEmpty) {
           throw const FormatException('Respuesta de clasificación vacía.');
         }
-        return clase;
+        return ClasificacionResult.fromJson(data);
       } on TimeoutException {
         throw Exception('El servidor tardó demasiado en responder.');
       } on FormatException {
