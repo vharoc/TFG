@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'poi_sugerido.dart';
 
 enum MensajeTipo { 
   texto, 
@@ -17,6 +18,7 @@ class Mensaje {
   final MensajeTipo tipo;
   final MensajeRole role;
   final DateTime fecha;
+  final List<PoiSugerido> poisCercanos;
 
   const Mensaje({
     required this.id,
@@ -26,6 +28,7 @@ class Mensaje {
     required this.tipo,
     required this.role,
     required this.fecha,
+    this.poisCercanos = const [],
   }): assert(
     // si es un texto o imagen no pueden ser null
     tipo == MensajeTipo.texto && contenido != null || tipo == MensajeTipo.imagen && imgUrl != null,
@@ -46,6 +49,9 @@ class Mensaje {
         orElse: () => MensajeRole.usuario,
       ),
       fecha: (map['fecha'] as Timestamp).toDate(),
+      poisCercanos: (map['poisCercanos'] as List<dynamic>? ?? [])
+          .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -61,6 +67,7 @@ class Mensaje {
       'tipo': tipo.name,
       'role': role.name,
       'fecha': Timestamp.fromDate(fecha),
+      'poisCercanos': poisCercanos.map((p) => p.toMap()).toList(),
     };
   }
 
@@ -71,6 +78,7 @@ class Mensaje {
     MensajeTipo? tipo,
     MensajeRole? role,
     DateTime? fecha,
+    List<PoiSugerido>? poisCercanos,
   }) {
     return Mensaje(
       id: id,
@@ -80,6 +88,7 @@ class Mensaje {
       tipo: tipo ?? this.tipo,
       role: role ?? this.role,
       fecha: fecha ?? this.fecha,
+      poisCercanos: poisCercanos ?? this.poisCercanos,
     );
   }
 
@@ -90,6 +99,7 @@ class Mensaje {
     required String contenido,
     required MensajeRole role,
     required DateTime fecha,
+    List<PoiSugerido> poisCercanos = const [],
   }) {
     return Mensaje(
       id: id,
@@ -98,6 +108,7 @@ class Mensaje {
       tipo: MensajeTipo.texto,
       role: role,
       fecha: fecha,
+      poisCercanos: poisCercanos,
     );
   }
  
