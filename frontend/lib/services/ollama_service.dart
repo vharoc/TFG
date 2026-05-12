@@ -4,32 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import '../models/mensaje.dart';
-import '../models/poi_sugerido.dart';
-
-class ClasificacionResult {
-  final String clase;
-  final String nombre;
-  final String? descripcionCorta;
-  final List<PoiSugerido> poisCercanos;
-
-  const ClasificacionResult({
-    required this.clase,
-    required this.nombre,
-    this.descripcionCorta,
-    required this.poisCercanos,
-  });
-
-  factory ClasificacionResult.fromJson(Map<String, dynamic> json) {
-    return ClasificacionResult(
-      clase: json['clase'] as String,
-      nombre: (json['nombre'] as String?) ?? json['clase'] as String,
-      descripcionCorta: json['descripcion_corta'] as String?,
-      poisCercanos: (json['pois_cercanos'] as List<dynamic>? ?? [])
-          .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-}
+import '../models/clasificacion_result.dart';
 
 class OllamaService {
   OllamaService._();
