@@ -63,6 +63,9 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ID del último monumento clasificado por foto, persiste entre mensajes de texto.
+  String? _monumentoIdActual;
+
   void cancelarRespuesta() {
     _clientActivo?.close();
     _clientActivo = null;
@@ -227,7 +230,7 @@ class HomeViewModel extends ChangeNotifier {
         textoTrimmed,
         ciudad: _ciudadActual!,
         history: historialReciente,
-        monumentoId: monumentoId,
+        monumentoId: monumentoId ?? _monumentoIdActual,
         modo: _modo,
         client: client,
       );
@@ -304,6 +307,10 @@ class HomeViewModel extends ChangeNotifier {
         modo: _modo,
         client: client,
       );
+      // Guardar el monumento activo para usarlo en mensajes de texto posteriores.
+      if (resultado.id != null) {
+        _monumentoIdActual = resultado.id;
+      }
       final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
           ? resultado.descripcionCorta!
           : resultado.nombre;
@@ -395,6 +402,7 @@ class HomeViewModel extends ChangeNotifier {
     _chatId = null;
     _ciudadActual = null;
     _ciudadSoportada = null;
+    _monumentoIdActual = null;
     _messages = [];
     _localImages = [];
     _tituloChat = '';

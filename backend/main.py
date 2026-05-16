@@ -25,7 +25,7 @@ try:
     logger.info(f"MonumentoService cargado con {len(monumentos._data)} monumentos")
 except FileNotFoundError:
     monumentos = None
-    logger.warning("No se encontró monumentos_salamanca.json — /classify devolverá solo la clase")
+    logger.warning("No se encontro monumentos_salamanca.json — /classify devolvera solo la clase")
 
 
 @asynccontextmanager
@@ -51,10 +51,10 @@ OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 MODEL = "qwen2.5:1.5b"
 
 DEFAULT_SYSTEM_PROMPT = (
-    "Eres un guía turístico experto en Salamanca. Responde siempre en español, de forma clara y amable. "
-    "Da respuestas muy cortas y concisas, máximo 2-3 frases. "
+    "Eres un guia turistico experto en Salamanca. Responde siempre en espanol, de forma clara y amable. "
+    "Da respuestas muy cortas y concisas, maximo 2-3 frases. "
     "Si te preguntan algo que no tiene que ver con turismo o Salamanca, "
-    "redirige amablemente la conversación hacia el turismo en Salamanca."
+    "redirige amablemente la conversacion hacia el turismo en Salamanca."
 )
 
 # Tool que Qwen puede invocar para buscar información en ChromaDB
@@ -62,14 +62,22 @@ RAG_TOOL = {
     "type": "function",
     "function": {
         "name": "buscar_info_monumento",
-        "description": "Busca información relevante sobre un monumento de Salamanca en la base de conocimiento.",
+        "description": "Busca informacion relevante sobre un monumento de Salamanca en la base de conocimiento.",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Consulta de búsqueda semántica sobre el monumento (en español)",
-                }
+                    "description": "Consulta de busqueda semantica sobre el monumento (en español)",
+                },
+                "monumento_clase": {
+                    "type": "string",
+                    "description": (
+                        "Clase exacta del monumento a consultar. "
+                        "Usalo SOLO si el usuario pregunta sobre un monumento diferente al actual. "
+                        "Debe ser uno de los valores de la lista de monumentos soportados."
+                    ),
+                },
             },
             "required": ["query"],
         },
@@ -105,17 +113,45 @@ async def _llamar_qwen(messages: list, tools: list | None = None, timeout: float
         return res.json()
 
 
-async def _extraer_query(prompt: str, monumento: dict, history: list[Message]) -> str:
+def _clases_soportadas() -> list[str]:
+    if monumentos is None:
+        return []
+    return [m.get("classifier_class", "").upper() for m in monumentos._data if m.get("classifier_class")]
+
+
+async def _extraer_query(
+    prompt: str,
+    history: list[Message],
+    monumento_actual: dict | None = None,
+) -> tuple[str, str | None]:
     """
-    Llama a Qwen con la definición de la tool RAG para que extraiga la query
-    semántica más relevante del prompt del usuario.
-    Fallback: devuelve el prompt original si el modelo no llama a la tool.
+    Llama a Qwen con la tool RAG para:
+    - Extraer la query semántica más relevante del prompt.
+    - Detectar si el usuario pregunta sobre un monumento diferente al actual.
+
+    Returns:
+        (query_semantica, clase_monumento_a_usar | None)
+        Si clase es None, usar el monumento_actual.
     """
-    system = (
-        f"Eres un asistente turístico de Salamanca. Cuando el usuario pregunte sobre "
-        f"{monumento.get('nombre', 'el monumento')}, usa la tool buscar_info_monumento "
-        f"para buscar información en la base de conocimiento."
-    )
+    clases = _clases_soportadas()
+
+    if monumento_actual:
+        nombre_actual = monumento_actual.get("nombre", "el monumento actual")
+        system = (
+            f"Eres un asistente turistico de Salamanca. "
+            f"El contexto actual de la conversacion es: {nombre_actual}.\n"
+            f"Monumentos soportados: {', '.join(clases)}.\n"
+            f"SIEMPRE usa la tool buscar_info_monumento para responder preguntas sobre monumentos. "
+            f"Si el usuario pregunta sobre un monumento diferente al actual, indica su clase exacta en monumento_clase."
+        )
+    else:
+        system = (
+            f"Eres un asistente turistico de Salamanca. "
+            f"Monumentos soportados en la aplicacion: {', '.join(clases)}.\n"
+            f"Si el usuario pregunta sobre alguno de estos monumentos, usa la tool buscar_info_monumento. "
+            f"Si no pregunta sobre ningun monumento soportado, no uses la tool."
+        )
+
     messages = [
         {"role": "system", "content": system},
         *[m.model_dump() for m in history],
@@ -127,12 +163,24 @@ async def _extraer_query(prompt: str, monumento: dict, history: list[Message]) -
         if tool_calls:
             args = tool_calls[0].get("function", {}).get("arguments", {})
             query = args.get("query", "").strip()
+            clase_override = args.get("monumento_clase", "").strip().upper() or None
+
+            # Sin override si coincide con el monumento actual
+            if clase_override and monumento_actual:
+                if clase_override == monumento_actual.get("classifier_class", "").upper():
+                    clase_override = None
+
+            # Rechazar clases que no están en la lista soportada
+            if clase_override and clase_override not in clases:
+                logger.warning("Qwen devolvio clase no soportada: %s — ignorando", clase_override)
+                clase_override = None
+
             if query:
-                logger.info("Tool call extrajo query: %s", query)
-                return query
+                logger.info("Tool call: query=%r, clase=%s", query, clase_override or "(actual)")
+                return query, clase_override
     except Exception as e:
-        logger.warning("Tool call falló, usando prompt directo: %s", e)
-    return prompt
+        logger.warning("Tool call fallo, usando prompt directo: %s", e)
+    return prompt, None
 
 
 async def _reformatear(texto: str, pregunta: str) -> str:
@@ -141,10 +189,10 @@ async def _reformatear(texto: str, pregunta: str) -> str:
     únicamente para mejorar el formato y el estilo, sin añadir información.
     """
     system = (
-        "Eres un guía turístico de Salamanca. Presenta la siguiente información de forma "
-        "natural y amable en español. "
-        "CRÍTICO: NO añadas datos, fechas, nombres, lugares ni información que no esté "
-        "en el texto original. Solo reformatea lo que ya está escrito."
+        "Eres un guia turistico de Salamanca. Presenta la siguiente informacion de forma "
+        "natural y amable en espanol. "
+        "CRITICO: NO añadas datos, fechas, nombres, lugares ni informacion que no este "
+        "en el texto original. Solo reformatea lo que ya esta escrito."
     )
     messages = [
         {"role": "system", "content": system},
@@ -166,30 +214,36 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 async def query(q: Query):
     monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
 
-    # --- Flujo con monumento conocido: RAG ---
-    if monumento:
-        clase = monumento.get("classifier_class", "").upper()
+    # Paso 1 — Qwen extrae la query y, opcionalmente, detecta un monumento distinto
+    query_extraida, clase_override = await _extraer_query(q.prompt, q.history, monumento_actual=monumento)
 
-        # Paso 1 — Qwen extrae la query semántica vía tool call
-        query_extraida = await _extraer_query(q.prompt, monumento, q.history)
+    # Paso 2 — Determinar qué clase usar para la búsqueda RAG
+    clase_rag: str | None = None
+    monumento_rag = monumento
 
-        # Paso 2 — Búsqueda en ChromaDB
-        chunks = consultar_rag(query_extraida, clase, n_resultados=1)
-        texto = chunks[0]["texto"] if chunks else monumento.get("descripcion_corta", "")
+    if clase_override:
+        # Qwen detectó que el usuario pregunta por otro monumento
+        monumento_rag = monumentos.lookup_by_class(clase_override) if monumentos else None
+        clase_rag = clase_override if monumento_rag else None
+    elif monumento:
+        clase_rag = monumento.get("classifier_class", "").upper()
 
-        # Modo rápido: el chunk va directo a la app, Qwen no genera respuesta
-        if q.modo == "rapido":
-            return JSONResponse(content={"response": texto, "modo": "rapido"})
+    # Paso 3 — RAG si tenemos clase válida
+    if clase_rag:
+        chunks = consultar_rag(query_extraida, clase_rag, n_resultados=1)
+        texto = chunks[0]["texto"] if chunks else (monumento_rag.get("descripcion_corta", "") if monumento_rag else "")
 
-        # Modo pensar: Qwen reformatea el chunk sin añadir información
-        try:
-            respuesta = await _reformatear(texto, q.prompt)
-        except Exception as e:
-            logger.error("Reformateo falló, devolviendo texto sin formatear: %s", e)
-            respuesta = texto
-        return JSONResponse(content={"response": respuesta, "modo": "pensar"})
+        if texto:
+            if q.modo == "rapido":
+                return JSONResponse(content={"response": texto, "modo": "rapido"})
+            try:
+                respuesta = await _reformatear(texto, q.prompt)
+            except Exception as e:
+                logger.error("Reformateo fallo: %s", e)
+                respuesta = texto
+            return JSONResponse(content={"response": respuesta, "modo": "pensar"})
 
-    # --- Flujo general: conversación sin monumento ---
+    # --- Flujo general: conversación sin monumento o RAG vacío ---
     system = q.system.strip() if q.system and q.system.strip() else DEFAULT_SYSTEM_PROMPT
     if q.ciudad and q.ciudad.strip():
         system = f"{system}\nEl usuario se encuentra actualmente en: {q.ciudad.strip()}."
