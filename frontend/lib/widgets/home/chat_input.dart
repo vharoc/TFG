@@ -5,11 +5,17 @@ import '../../theme/theme.dart';
 class ChatInput extends StatefulWidget {
   // Callback que se ejecuta al pulsar enviar con el texto introducido.
   final void Function(String text)? onSend;
-
-  // Callback que se ejecuta cuando el usuario captura o selecciona una imagen.
   final void Function(XFile image)? onImagePicked;
+  final bool isLoading;
+  final VoidCallback? onCancel;
 
-  const ChatInput({super.key, this.onSend, this.onImagePicked});
+  const ChatInput({
+    super.key,
+    this.onSend,
+    this.onImagePicked,
+    this.isLoading = false,
+    this.onCancel,
+  });
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -64,7 +70,7 @@ class _ChatInputState extends State<ChatInput> {
           ),
         ],
       ),
-      child: Column(
+      child: widget.isLoading ? _buildLoading() : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Campo de texto ───────────────────
@@ -147,6 +153,32 @@ class _ChatInputState extends State<ChatInput> {
                     : const SizedBox.shrink(key: ValueKey('empty')),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ocre),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Clicky está generando...',
+              style: TextStyle(color: Colors.black54, fontSize: 14),
+            ),
+          ),
+          GestureDetector(
+            onTap: widget.onCancel,
+            child: const Icon(Icons.close_rounded, color: Colors.black54, size: 22),
           ),
         ],
       ),

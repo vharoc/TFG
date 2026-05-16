@@ -51,86 +51,102 @@ class OllamaService {
     String ciudad = '',
     List<Mensaje> history = const [],
     String? monumentoId,
+    http.Client? client,
   }) async {
     Exception? lastError;
+    final ownClient = client == null;
+    final c = client ?? http.Client();
 
-    for (final uri in _queryUris()) {
-      try {
-        final response = await http
-            .post(
-              uri,
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'prompt': prompt,
-                'system': system,
-                'ciudad': ciudad,
-                'history': _convertirHistorial(history),
-                'monumento_id': monumentoId,
-              }),
-            )
-            .timeout(const Duration(seconds: 270));
+    try {
+      for (final uri in _queryUris()) {
+        try {
+          final response = await c
+              .post(
+                uri,
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({
+                  'prompt': prompt,
+                  'system': system,
+                  'ciudad': ciudad,
+                  'history': _convertirHistorial(history),
+                  'monumento_id': monumentoId,
+                }),
+              )
+              .timeout(const Duration(seconds: 270));
 
-        if (response.statusCode == 404) {
-          lastError = Exception('Endpoint no encontrado: $uri');
-          continue;
+          if (response.statusCode == 404) {
+            lastError = Exception('Endpoint no encontrado: $uri');
+            continue;
+          }
+
+          if (response.statusCode != 200) {
+            throw Exception('Error ${response.statusCode}: ${response.body}');
+          }
+
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final raw = data['response'] ?? data['respuesta'];
+          final respuesta = raw is String ? raw.trim() : null;
+          if (respuesta == null || respuesta.isEmpty) {
+            throw const FormatException('Respuesta vacia del servidor.');
+          }
+
+          return respuesta;
+        } on TimeoutException {
+          throw Exception('El servidor tardo demasiado en responder.');
+        } on FormatException {
+          rethrow;
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
         }
-
-        if (response.statusCode != 200) {
-          throw Exception('Error ${response.statusCode}: ${response.body}');
-        }
-
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final raw = data['response'] ?? data['respuesta'];
-        final respuesta = raw is String ? raw.trim() : null;
-        if (respuesta == null || respuesta.isEmpty) {
-          throw const FormatException('Respuesta vacia del servidor.');
-        }
-
-        return respuesta;
-      } on TimeoutException {
-        throw Exception('El servidor tardo demasiado en responder.');
-      } on FormatException {
-        rethrow;
-      } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
       }
+    } finally {
+      if (ownClient) c.close();
     }
 
     throw lastError ?? Exception('No se pudo contactar con el servidor.');
   }
 
-  static Future<ClasificacionResult> classify(File imagen) async {
+  static Future<ClasificacionResult> classify(
+    File imagen, {
+    http.Client? client,
+  }) async {
     Exception? lastError;
+    final ownClient = client == null;
+    final c = client ?? http.Client();
 
-    for (final uri in _classifyUris()) {
-      try {
-        final request = http.MultipartRequest('POST', uri)
-          ..files.add(await http.MultipartFile.fromPath('imagen', imagen.path));
+    try {
+      for (final uri in _classifyUris()) {
+        try {
+          final request = http.MultipartRequest('POST', uri)
+            ..files.add(await http.MultipartFile.fromPath('imagen', imagen.path));
 
-        final streamed = await request.send().timeout(const Duration(seconds: 60));
-        final body = await streamed.stream.bytesToString();
+          final streamed = await c.send(request).timeout(const Duration(seconds: 60));
+          final body = await streamed.stream.bytesToString();
 
-        if (streamed.statusCode == 404) {
-          lastError = Exception('Endpoint no encontrado: $uri');
-          continue;
+          if (streamed.statusCode == 404) {
+            lastError = Exception('Endpoint no encontrado: $uri');
+            continue;
+          }
+
+          if (streamed.statusCode != 200) {
+            throw Exception('Error ${streamed.statusCode}: $body');
+          }
+
+          final data = jsonDecode(body) as Map<String, dynamic>;
+          if (data['clase'] is! String || (data['clase'] as String).isEmpty) {
+            throw const FormatException('Respuesta de clasificación vacía.');
+          }
+          return ClasificacionResult.fromJson(data);
+        } on TimeoutException {
+          throw Exception('El servidor tardó demasiado en responder.');
+        } on FormatException {
+          rethrow;
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
         }
-
-        if (streamed.statusCode != 200) {
-          throw Exception('Error ${streamed.statusCode}: $body');
-        }
-
-        final data = jsonDecode(body) as Map<String, dynamic>;
-        if (data['clase'] is! String || (data['clase'] as String).isEmpty) {
-          throw const FormatException('Respuesta de clasificación vacía.');
-        }
-        return ClasificacionResult.fromJson(data);
-      } on TimeoutException {
-        throw Exception('El servidor tardó demasiado en responder.');
-      } on FormatException {
-        rethrow;
-      } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
       }
+    } finally {
+      if (ownClient) c.close();
     }
 
     throw lastError ?? Exception('No se pudo contactar con el servidor.');

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
@@ -49,6 +50,17 @@ class HomeViewModel extends ChangeNotifier {
 
   // Necesita selector manual solo si no hay ciudad, no hay GPS y no hay chat abierto
   bool get necesitaCiudad => _chatId == null && _ciudadActual == null && !_gpsDisponible;
+
+  bool _generando = false;
+  bool get generando => _generando;
+  http.Client? _clientActivo;
+
+  void cancelarRespuesta() {
+    _clientActivo?.close();
+    _clientActivo = null;
+    _generando = false;
+    notifyListeners();
+  }
 
   StreamSubscription<List<Mensaje>>? _sub;
   StreamSubscription<Chat?>? _chatSub;
@@ -197,12 +209,18 @@ class HomeViewModel extends ChangeNotifier {
 
     await _actualizarTituloSiVacio(textoTrimmed);
 
+    final client = http.Client();
+    _clientActivo = client;
+    _generando = true;
+    notifyListeners();
+
     try {
       final respuesta = await OllamaService.query(
         textoTrimmed,
         ciudad: _ciudadActual!,
         history: historialReciente,
         monumentoId: monumentoId,
+        client: client,
       );
       await _guardarMensajeTexto(
         chatId: chatIdActual,
@@ -210,12 +228,16 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     } catch (_) {
+      if (_clientActivo == null) return; // cancelado por el usuario
       await _guardarMensajeTexto(
         chatId: chatIdActual,
-        contenido:
-          'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
+        contenido: 'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
         role: MensajeRole.bot,
       );
+    } finally {
+      _clientActivo = null;
+      _generando = false;
+      notifyListeners();
     }
   }
 
@@ -260,12 +282,18 @@ class HomeViewModel extends ChangeNotifier {
 
     await _actualizarTituloSiVacio('[Imagen]');
 
+    final client = http.Client();
+    _clientActivo = client;
+    _generando = true;
+    notifyListeners();
+
     try {
-      final resultado = await OllamaService.classify(File(img.path));
+      final resultado = await OllamaService.classify(File(img.path), client: client);
       final respuesta = await OllamaService.query(
         'Acabo de fotografiar este lugar, preséntamelo brevemente.',
         ciudad: _ciudadActual!,
         monumentoId: resultado.id,
+        client: client,
       );
       await _guardarMensajeTexto(
         chatId: chatIdActual,
@@ -274,11 +302,16 @@ class HomeViewModel extends ChangeNotifier {
         poisCercanos: resultado.poisCercanos,
       );
     } catch (_) {
+      if (_clientActivo == null) return; // cancelado por el usuario
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: 'No he podido analizar la imagen. Intentalo de nuevo.',
         role: MensajeRole.bot,
       );
+    } finally {
+      _clientActivo = null;
+      _generando = false;
+      notifyListeners();
     }
   }
 

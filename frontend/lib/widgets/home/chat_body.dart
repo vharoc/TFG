@@ -13,6 +13,8 @@ class HomeChatBody extends StatelessWidget {
   final Future<void> Function(String texto) onSend;
   final Future<void> Function(XFile image) onImagePicked;
   final void Function(PoiSugerido)? onPoiTap;
+  final bool generando;
+  final VoidCallback? onCancelar;
 
   const HomeChatBody({
     super.key,
@@ -22,6 +24,8 @@ class HomeChatBody extends StatelessWidget {
     required this.onSend,
     required this.onImagePicked,
     this.onPoiTap,
+    this.generando = false,
+    this.onCancelar,
   });
 
   @override
@@ -36,7 +40,12 @@ class HomeChatBody extends StatelessWidget {
             onPoiTap: onPoiTap,
           ),
         ),
-        ChatInput(onSend: onSend, onImagePicked: onImagePicked),
+        ChatInput(
+          onSend: onSend,
+          onImagePicked: onImagePicked,
+          isLoading: generando,
+          onCancel: onCancelar,
+        ),
       ],
     );
   }

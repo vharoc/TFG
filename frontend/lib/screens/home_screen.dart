@@ -140,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onSend: vm.enviarTexto,
                         onImagePicked: vm.enviarImagen,
                         onPoiTap: vm.preguntarSobrePoi,
+                        generando: vm.generando,
+                        onCancelar: vm.cancelarRespuesta,
                       ),
                     ),
                   ],
