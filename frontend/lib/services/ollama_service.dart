@@ -51,6 +51,7 @@ class OllamaService {
     String ciudad = '',
     List<Mensaje> history = const [],
     String? monumentoId,
+    String modo = 'rapido',
     http.Client? client,
   }) async {
     Exception? lastError;
@@ -70,6 +71,7 @@ class OllamaService {
                   'ciudad': ciudad,
                   'history': _convertirHistorial(history),
                   'monumento_id': monumentoId,
+                  'modo': modo,
                 }),
               )
               .timeout(const Duration(seconds: 270));
@@ -108,6 +110,7 @@ class OllamaService {
 
   static Future<ClasificacionResult> classify(
     File imagen, {
+    String modo = 'rapido',
     http.Client? client,
   }) async {
     Exception? lastError;
@@ -118,7 +121,8 @@ class OllamaService {
       for (final uri in _classifyUris()) {
         try {
           final request = http.MultipartRequest('POST', uri)
-            ..files.add(await http.MultipartFile.fromPath('imagen', imagen.path));
+            ..files.add(await http.MultipartFile.fromPath('imagen', imagen.path))
+            ..fields['modo'] = modo;
 
           final streamed = await c.send(request).timeout(const Duration(seconds: 60));
           final body = await streamed.stream.bytesToString();

@@ -55,6 +55,14 @@ class HomeViewModel extends ChangeNotifier {
   bool get generando => _generando;
   http.Client? _clientActivo;
 
+  String _modo = 'rapido'; // 'rapido' | 'pensar'
+  String get modo => _modo;
+
+  void toggleModo() {
+    _modo = _modo == 'rapido' ? 'pensar' : 'rapido';
+    notifyListeners();
+  }
+
   void cancelarRespuesta() {
     _clientActivo?.close();
     _clientActivo = null;
@@ -220,6 +228,7 @@ class HomeViewModel extends ChangeNotifier {
         ciudad: _ciudadActual!,
         history: historialReciente,
         monumentoId: monumentoId,
+        modo: _modo,
         client: client,
       );
       await _guardarMensajeTexto(
@@ -288,13 +297,16 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final resultado = await OllamaService.classify(File(img.path), client: client);
-      final respuesta = await OllamaService.query(
-        'Acabo de fotografiar este lugar, preséntamelo brevemente.',
-        ciudad: _ciudadActual!,
-        monumentoId: resultado.id,
+      // El servidor clasifica y, si modo=='pensar', Qwen reformatea la descripción.
+      // En ambos modos la respuesta es descripcionCorta: no se llama a /query.
+      final resultado = await OllamaService.classify(
+        File(img.path),
+        modo: _modo,
         client: client,
       );
+      final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
+          ? resultado.descripcionCorta!
+          : resultado.nombre;
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: respuesta,

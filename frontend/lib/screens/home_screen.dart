@@ -131,7 +131,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               children: [
                 Column(
                   children: [
-                    HeaderHome(titulo: vm.tituloChat),
+                    HeaderHome(
+                      titulo: vm.tituloChat,
+                      modo: vm.modo,
+                      onToggleModo: vm.toggleModo,
+                    ),
                     Expanded(
                       child: HomeChatBody(
                         cargando: vm.cargando,
