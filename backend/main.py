@@ -57,32 +57,6 @@ DEFAULT_SYSTEM_PROMPT = (
     "redirige amablemente la conversacion hacia el turismo en Salamanca."
 )
 
-# Tool que Qwen puede invocar para buscar informacion en ChromaDB
-RAG_TOOL = {
-    "type": "function",
-    "function": {
-        "name": "buscar_info_monumento",
-        "description": "Busca informacion relevante sobre un monumento de Salamanca en la base de conocimiento.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Consulta de busqueda semantica sobre el monumento (en español)",
-                },
-                "monumento_clase": {
-                    "type": "string",
-                    "description": (
-                        "Clase exacta del monumento a consultar. "
-                        "Usalo SOLO si el usuario pregunta sobre un monumento diferente al actual. "
-                        "Debe ser uno de los valores de la lista de monumentos soportados."
-                    ),
-                },
-            },
-            "required": ["query"],
-        },
-    },
-}
 
 
 class Message(BaseModel):
@@ -116,71 +90,20 @@ async def _llamar_qwen(messages: list, tools: list | None = None, timeout: float
 def _clases_soportadas() -> list[str]:
     if monumentos is None:
         return []
-    return [m.get("classifier_class", "").upper() for m in monumentos._data if m.get("classifier_class")]
+    return [m.get("classifier_class", "").strip().upper() for m in monumentos._data if m.get("classifier_class")]
 
 
-async def _extraer_query(
-    prompt: str,
-    history: list[Message],
-    monumento_actual: dict | None = None,
-) -> tuple[str, str | None]:
+def _detectar_monumento_en_texto(texto: str) -> str | None:
     """
-    Llama a Qwen con la tool RAG para:
-    - Extraer la query semantica mas relevante del prompt.
-    - Detectar si el usuario pregunta sobre un monumento diferente al actual.
-
-    Returns:
-        (query_semantica, clase_monumento_a_usar | None)
-        Si clase es None, usar el monumento_actual.
+    Comprueba si el texto del usuario menciona algún monumento soportado.
+    Usa matching exacto contra la lista normalizada de classifier_class.
+    Devuelve la clase del monumento detectado, o None si no hay coincidencia.
     """
-    clases = _clases_soportadas()
-
-    if monumento_actual:
-        nombre_actual = monumento_actual.get("nombre", "el monumento actual")
-        system = (
-            f"Eres un asistente turistico de Salamanca. "
-            f"El contexto actual de la conversacion es: {nombre_actual}.\n"
-            f"Monumentos soportados: {', '.join(clases)}.\n"
-            f"SIEMPRE usa la tool buscar_info_monumento para responder preguntas sobre monumentos. "
-            f"Si el usuario pregunta sobre un monumento diferente al actual, indica su clase exacta en monumento_clase."
-        )
-    else:
-        system = (
-            f"Eres un asistente turistico de Salamanca. "
-            f"Monumentos soportados en la aplicacion: {', '.join(clases)}.\n"
-            f"Si el usuario pregunta sobre alguno de estos monumentos, usa la tool buscar_info_monumento. "
-            f"Si no pregunta sobre ningun monumento soportado, no uses la tool."
-        )
-
-    messages = [
-        {"role": "system", "content": system},
-        *[m.model_dump() for m in history],
-        {"role": "user", "content": prompt},
-    ]
-    try:
-        data = await _llamar_qwen(messages, tools=[RAG_TOOL], timeout=60.0)
-        tool_calls = data.get("message", {}).get("tool_calls", [])
-        if tool_calls:
-            args = tool_calls[0].get("function", {}).get("arguments", {})
-            query = args.get("query", "").strip()
-            clase_override = args.get("monumento_clase", "").strip().upper() or None
-
-            # Sin override si coincide con el monumento actual
-            if clase_override and monumento_actual:
-                if clase_override == monumento_actual.get("classifier_class", "").upper():
-                    clase_override = None
-
-            # Rechazar clases que no estan en la lista soportada
-            if clase_override and clase_override not in clases:
-                logger.warning("Qwen devolvio clase no soportada: %s — ignorando", clase_override)
-                clase_override = None
-
-            if query:
-                logger.info("Tool call: query=%r, clase=%s", query, clase_override or "(actual)")
-                return query, clase_override
-    except Exception as e:
-        logger.warning("Tool call fallo, usando prompt directo: %s", e)
-    return prompt, None
+    texto_upper = texto.upper()
+    for clase in _clases_soportadas():
+        if clase in texto_upper:
+            return clase
+    return None
 
 
 async def _reformatear(texto: str, pregunta: str) -> str:
@@ -214,23 +137,37 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 async def query(q: Query):
     monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
 
-    # Paso 1 — Qwen extrae la query y, opcionalmente, detecta un monumento distinto
-    query_extraida, clase_override = await _extraer_query(q.prompt, q.history, monumento_actual=monumento)
-
-    # Paso 2 — Determinar que clase usar para la busqueda RAG
+    # --- Determinar qué monumento usar para RAG ---
     clase_rag: str | None = None
     monumento_rag = monumento
 
-    if clase_override:
-        # Qwen detecto que el usuario pregunta por otro monumento
-        monumento_rag = monumentos.lookup_by_class(clase_override) if monumentos else None
-        clase_rag = clase_override if monumento_rag else None
-    elif monumento:
-        clase_rag = monumento.get("classifier_class", "").upper()
+    if monumento:
+        clase_actual = monumento.get("classifier_class", "").strip().upper()
+        # Comprobar si el usuario menciona un monumento diferente en el texto
+        clase_mencionada = _detectar_monumento_en_texto(q.prompt)
+        if clase_mencionada and clase_mencionada != clase_actual and monumentos:
+            m_nuevo = monumentos.lookup_by_class(clase_mencionada)
+            if m_nuevo:
+                monumento_rag = m_nuevo
+                clase_rag = clase_mencionada
+                logger.info("Cambio de contexto: %s -> %s", clase_actual, clase_rag)
+            else:
+                clase_rag = clase_actual
+        else:
+            clase_rag = clase_actual
+    else:
+        # Sin contexto de foto: detectar monumento mencionado en el texto
+        clase_mencionada = _detectar_monumento_en_texto(q.prompt)
+        if clase_mencionada and monumentos:
+            m = monumentos.lookup_by_class(clase_mencionada)
+            if m:
+                monumento_rag = m
+                clase_rag = clase_mencionada
 
-    # Paso 3 — RAG si tenemos clase valida
+    # --- RAG si hay clase válida ---
     if clase_rag:
-        chunks = consultar_rag(query_extraida, clase_rag, n_resultados=1)
+        chunks = consultar_rag(q.prompt, clase_rag, n_resultados=1)
+        logger.info("RAG: clase=%s chunks=%d", clase_rag, len(chunks))
         texto = chunks[0]["texto"] if chunks else (monumento_rag.get("descripcion_corta", "") if monumento_rag else "")
 
         if texto:
