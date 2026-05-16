@@ -57,7 +57,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "redirige amablemente la conversacion hacia el turismo en Salamanca."
 )
 
-# Tool que Qwen puede invocar para buscar información en ChromaDB
+# Tool que Qwen puede invocar para buscar informacion en ChromaDB
 RAG_TOOL = {
     "type": "function",
     "function": {
@@ -126,7 +126,7 @@ async def _extraer_query(
 ) -> tuple[str, str | None]:
     """
     Llama a Qwen con la tool RAG para:
-    - Extraer la query semántica más relevante del prompt.
+    - Extraer la query semantica mas relevante del prompt.
     - Detectar si el usuario pregunta sobre un monumento diferente al actual.
 
     Returns:
@@ -170,7 +170,7 @@ async def _extraer_query(
                 if clase_override == monumento_actual.get("classifier_class", "").upper():
                     clase_override = None
 
-            # Rechazar clases que no están en la lista soportada
+            # Rechazar clases que no estan en la lista soportada
             if clase_override and clase_override not in clases:
                 logger.warning("Qwen devolvio clase no soportada: %s — ignorando", clase_override)
                 clase_override = None
@@ -185,8 +185,8 @@ async def _extraer_query(
 
 async def _reformatear(texto: str, pregunta: str) -> str:
     """
-    Pasa el texto recuperado (descripción corta o chunk RAG) por Qwen
-    únicamente para mejorar el formato y el estilo, sin añadir información.
+    Pasa el texto recuperado (descripcion corta o chunk RAG) por Qwen
+    unicamente para mejorar el formato y el estilo, sin añadir informacion.
     """
     system = (
         "Eres un guia turistico de Salamanca. Presenta la siguiente informacion de forma "
@@ -198,7 +198,7 @@ async def _reformatear(texto: str, pregunta: str) -> str:
         {"role": "system", "content": system},
         {
             "role": "user",
-            "content": f"Pregunta del usuario: {pregunta}\n\nInformación verificada:\n{texto}",
+            "content": f"Pregunta del usuario: {pregunta}\n\nInformacion verificada:\n{texto}",
         },
     ]
     data = await _llamar_qwen(messages)
@@ -217,18 +217,18 @@ async def query(q: Query):
     # Paso 1 — Qwen extrae la query y, opcionalmente, detecta un monumento distinto
     query_extraida, clase_override = await _extraer_query(q.prompt, q.history, monumento_actual=monumento)
 
-    # Paso 2 — Determinar qué clase usar para la búsqueda RAG
+    # Paso 2 — Determinar que clase usar para la busqueda RAG
     clase_rag: str | None = None
     monumento_rag = monumento
 
     if clase_override:
-        # Qwen detectó que el usuario pregunta por otro monumento
+        # Qwen detecto que el usuario pregunta por otro monumento
         monumento_rag = monumentos.lookup_by_class(clase_override) if monumentos else None
         clase_rag = clase_override if monumento_rag else None
     elif monumento:
         clase_rag = monumento.get("classifier_class", "").upper()
 
-    # Paso 3 — RAG si tenemos clase válida
+    # Paso 3 — RAG si tenemos clase valida
     if clase_rag:
         chunks = consultar_rag(query_extraida, clase_rag, n_resultados=1)
         texto = chunks[0]["texto"] if chunks else (monumento_rag.get("descripcion_corta", "") if monumento_rag else "")
@@ -243,7 +243,7 @@ async def query(q: Query):
                 respuesta = texto
             return JSONResponse(content={"response": respuesta, "modo": "pensar"})
 
-    # --- Flujo general: conversación sin monumento o RAG vacío ---
+    # --- Flujo general: conversacion sin monumento o RAG vacio ---
     system = q.system.strip() if q.system and q.system.strip() else DEFAULT_SYSTEM_PROMPT
     if q.ciudad and q.ciudad.strip():
         system = f"{system}\nEl usuario se encuentra actualmente en: {q.ciudad.strip()}."
@@ -283,12 +283,12 @@ async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido")):
     pois = monumentos.get_nearby(monumento["id"])
     descripcion = monumento["descripcion_corta"]
 
-    # Modo pensar: Qwen reformatea la descripción corta antes de devolverla
+    # Modo pensar: Qwen reformatea la descripcion corta antes de devolverla
     if modo == "pensar" and descripcion:
         try:
-            descripcion = await _reformatear(descripcion, f"Preséntame {monumento['nombre']}")
+            descripcion = await _reformatear(descripcion, f"Presentame {monumento['nombre']}")
         except Exception as e:
-            logger.warning("Reformateo en classify falló: %s", e)
+            logger.warning("Reformateo en classify fallo: %s", e)
 
     return JSONResponse(content={
         "clase": clase,
