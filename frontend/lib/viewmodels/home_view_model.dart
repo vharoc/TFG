@@ -63,6 +63,12 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setModo(String modo) {
+    if (_modo == modo) return;
+    _modo = modo;
+    notifyListeners();
+  }
+
   // ID del último monumento clasificado por foto, persiste entre mensajes de texto.
   String? _monumentoIdActual;
 

@@ -8,6 +8,8 @@ class ChatInput extends StatefulWidget {
   final void Function(XFile image)? onImagePicked;
   final bool isLoading;
   final VoidCallback? onCancel;
+  final String modo;
+  final void Function(String modo)? onModoChanged;
 
   const ChatInput({
     super.key,
@@ -15,6 +17,8 @@ class ChatInput extends StatefulWidget {
     this.onImagePicked,
     this.isLoading = false,
     this.onCancel,
+    this.modo = 'rapido',
+    this.onModoChanged,
   });
 
   @override
@@ -121,6 +125,16 @@ class _ChatInputState extends State<ChatInput> {
                 ),
               ),
 
+              const SizedBox(width: 6),
+
+              // ── Selector de modo (estilo Gemini) ─────────
+              Builder(
+                builder: (ctx) => GestureDetector(
+                  onTap: () => _showModoMenu(ctx),
+                  child: _ModoChip(modo: widget.modo),
+                ),
+              ),
+
               const Spacer(),
 
               // ── Botón enviar ─────────────────────────────
@@ -221,6 +235,50 @@ class _ChatInputState extends State<ChatInput> {
     });
   }
 
+  void _showModoMenu(BuildContext context) {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final Offset pos = button.localToGlobal(Offset.zero, ancestor: overlay);
+
+    showMenu<String>(
+      context: context,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 8,
+      position: RelativeRect.fromLTRB(
+        pos.dx,
+        pos.dy - 120,
+        overlay.size.width - pos.dx - button.size.width,
+        0,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'rapido',
+          child: _modoRow(
+            Icons.bolt_rounded,
+            'Rápido',
+            const Color(0xFFE07B00),
+            widget.modo == 'rapido',
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'pensar',
+          child: _modoRow(
+            Icons.psychology_rounded,
+            'Pensar',
+            const Color(0xFF5B6FA6),
+            widget.modo == 'pensar',
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value != null) {
+        widget.onModoChanged?.call(value);
+      }
+    });
+  }
+
   Widget _menuRow(IconData icon, String label, {bool hasArrow = false}) {
     return Row(
       children: [
@@ -239,6 +297,72 @@ class _ChatInputState extends State<ChatInput> {
         if (hasArrow)
           const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
       ],
+    );
+  }
+
+  Widget _modoRow(IconData icon, String label, Color color, bool selected) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.black,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ),
+        if (selected) Icon(Icons.check_rounded, size: 18, color: color),
+      ],
+    );
+  }
+}
+
+class _ModoChip extends StatelessWidget {
+  final String modo;
+
+  const _ModoChip({required this.modo});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool esRapido = modo == 'rapido';
+    final Color color = esRapido ? const Color(0xFFE07B00) : const Color(0xFF5B6FA6);
+    final Color bgColor = esRapido ? const Color(0xFFFFF3E0) : const Color(0xFFEDE7F6);
+    final Color borderColor = esRapido
+        ? const Color(0xFFE07B00).withValues(alpha: 0.35)
+        : const Color(0xFF5B6FA6).withValues(alpha: 0.35);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            esRapido ? Icons.bolt_rounded : Icons.psychology_rounded,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            esRapido ? 'Rápido' : 'Pensar',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 1),
+          Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: color),
+        ],
+      ),
     );
   }
 }

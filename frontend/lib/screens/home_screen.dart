@@ -133,8 +133,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     HeaderHome(
                       titulo: vm.tituloChat,
-                      modo: vm.modo,
-                      onToggleModo: vm.toggleModo,
                     ),
                     Expanded(
                       child: HomeChatBody(
@@ -146,6 +144,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onPoiTap: vm.preguntarSobrePoi,
                         generando: vm.generando,
                         onCancelar: vm.cancelarRespuesta,
+                        modo: vm.modo,
+                        onModoChanged: vm.setModo,
                       ),
                     ),
                   ],

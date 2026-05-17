@@ -15,6 +15,8 @@ class HomeChatBody extends StatelessWidget {
   final void Function(PoiSugerido)? onPoiTap;
   final bool generando;
   final VoidCallback? onCancelar;
+  final String modo;
+  final void Function(String modo)? onModoChanged;
 
   const HomeChatBody({
     super.key,
@@ -26,6 +28,8 @@ class HomeChatBody extends StatelessWidget {
     this.onPoiTap,
     this.generando = false,
     this.onCancelar,
+    this.modo = 'rapido',
+    this.onModoChanged,
   });
 
   @override
@@ -45,6 +49,8 @@ class HomeChatBody extends StatelessWidget {
           onImagePicked: onImagePicked,
           isLoading: generando,
           onCancel: onCancelar,
+          modo: modo,
+          onModoChanged: onModoChanged,
         ),
       ],
     );

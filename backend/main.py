@@ -31,7 +31,7 @@ except FileNotFoundError:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        inicializar_rag(chroma_path="./chroma_db")
+        inicializar_rag(chroma_path="./chroma_db/chroma_db")
     except Exception as e:
         logger.warning("RAG no disponible: %s", e)
     yield
