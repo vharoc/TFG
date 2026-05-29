@@ -7,7 +7,9 @@ import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
+import '../services/auth_services.dart';
 import '../services/chat_services.dart';
+import '../services/foto_service.dart';
 import '../services/ollama_service.dart';
 import '../services/ubicacion_service.dart';
 
@@ -300,8 +302,9 @@ class HomeViewModel extends ChangeNotifier {
     final chatIdActual = _chatId!;
     final ahora = DateTime.now();
 
+    final localId = 'local_${ahora.millisecondsSinceEpoch}';
     _localImages.add(Mensaje.imagen(
-      id: 'local_${ahora.millisecondsSinceEpoch}',
+      id: localId,
       chatId: chatIdActual,
       imgUrl: img.path,
       role: MensajeRole.usuario,
@@ -317,17 +320,45 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // El servidor clasifica y, si modo=='pensar', Qwen reformatea la descripción.
-      // En ambos modos la respuesta es descripcionCorta: no se llama a /query.
-      final resultado = await OllamaService.classify(
+      final uid = AuthService.instance.currentUser?.uid ?? '';
+
+      // Classify y upload en paralelo — el tiempo total es el del más lento
+      final classifyFuture = OllamaService.classify(
         File(img.path),
         modo: _modo,
         client: client,
       );
-      // Guardar el monumento activo para usarlo en mensajes de texto posteriores.
-      if (resultado.id != null) {
-        _monumentoIdActual = resultado.id;
+      final uploadFuture = FotoService.instance.subirFoto(
+        file: File(img.path),
+        uid: uid,
+        chatId: chatIdActual,
+        fecha: ahora,
+      );
+
+      final resultado = await classifyFuture;
+
+      // Upload: si falla solo se pierde la persistencia, no bloqueamos al usuario
+      String? imageUrl;
+      try {
+        imageUrl = await uploadFuture;
+      } catch (_) {}
+
+      // Guardar imagen en Firestore (solo si el upload tuvo éxito)
+      if (imageUrl != null) {
+        await ChatService.instance.guardarMensaje(
+          chatId: chatIdActual,
+          mensaje: Mensaje.imagen(
+            id: '',
+            chatId: chatIdActual,
+            imgUrl: imageUrl,
+            role: MensajeRole.usuario,
+            fecha: ahora,
+          ),
+        );
       }
+
+      if (resultado.id != null) _monumentoIdActual = resultado.id;
+
       final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
           ? resultado.descripcionCorta!
           : resultado.nombre;
@@ -345,6 +376,7 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     } finally {
+      _localImages.removeWhere((m) => m.id == localId);
       _clientActivo = null;
       _generando = false;
       notifyListeners();
