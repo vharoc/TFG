@@ -141,14 +141,16 @@ async def query(q: Query):
 
         if texto:
             mid = monumento_rag["id"]
+            pois = monumentos.get_nearby(mid) if monumentos else []
+            pois_data = [{"id": p["id"], "nombre": p["nombre"]} for p in pois]
             if q.modo == "rapido":
-                return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid})
+                return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
             try:
                 respuesta = await _reformatear(texto, q.prompt)
             except Exception as e:
                 logger.error("Reformateo fallo: %s", e)
                 respuesta = texto
-            return JSONResponse(content={"response": respuesta, "modo": "pensar", "monumento_id": mid})
+            return JSONResponse(content={"response": respuesta, "modo": "pensar", "monumento_id": mid, "pois_cercanos": pois_data})
 
     # --- Flujo general: conversacion sin monumento o RAG vacio ---
     system = q.system.strip() if q.system and q.system.strip() else DEFAULT_SYSTEM_PROMPT
@@ -162,7 +164,7 @@ async def query(q: Query):
     ]
     try:
         data = await _llamar_qwen(messages)
-        return JSONResponse(content={"response": data["message"]["content"], "monumento_id": None})
+        return JSONResponse(content={"response": data["message"]["content"], "monumento_id": None, "pois_cercanos": []})
     except Exception as e:
         logger.error(f"ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

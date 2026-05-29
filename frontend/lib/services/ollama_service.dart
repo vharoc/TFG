@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/mensaje.dart';
 import '../models/clasificacion_result.dart';
+import '../models/poi_sugerido.dart';
 
 class OllamaService {
   OllamaService._();
@@ -45,7 +46,7 @@ class OllamaService {
         .toList();
   }
 
-  static Future<String> query(
+  static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos})> query(
     String prompt, {
     String system = '',
     String ciudad = '',
@@ -91,8 +92,12 @@ class OllamaService {
           if (respuesta == null || respuesta.isEmpty) {
             throw const FormatException('Respuesta vacia del servidor.');
           }
+          final mId = data['monumento_id'] as String?;
+          final pois = (data['pois_cercanos'] as List<dynamic>? ?? [])
+              .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
+              .toList();
 
-          return respuesta;
+          return (response: respuesta, monumentoId: mId, poisCercanos: pois);
         } on TimeoutException {
           throw Exception('El servidor tardo demasiado en responder.');
         } on FormatException {

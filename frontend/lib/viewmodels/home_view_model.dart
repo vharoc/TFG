@@ -188,6 +188,7 @@ class HomeViewModel extends ChangeNotifier {
     _messages = [];
     _localImages = [];
     _tituloChat = '';
+    _monumentoIdActual = null;
     _cargando = false;
     notifyListeners();
 
@@ -196,7 +197,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> enviarTexto(String texto, {String? monumentoId}) async {
+  Future<void> enviarTexto(String texto) async {
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
 
@@ -210,13 +211,19 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = _chatId!;
 
-    final historial = _messages
-        .where((m) => m.tipo == MensajeTipo.texto)
-        .toList()
-      ..sort((a, b) => a.fecha.compareTo(b.fecha));
-    final historialReciente = historial.length > 10
-        ? historial.sublist(historial.length - 10)
-        : historial;
+    // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
+    final List<Mensaje> historialReciente;
+    if (_monumentoIdActual != null && _modo == 'rapido') {
+      historialReciente = const [];
+    } else {
+      final historial = _messages
+          .where((m) => m.tipo == MensajeTipo.texto)
+          .toList()
+        ..sort((a, b) => a.fecha.compareTo(b.fecha));
+      historialReciente = historial.length > 10
+          ? historial.sublist(historial.length - 10)
+          : historial;
+    }
 
     await _guardarMensajeTexto(
       chatId: chatIdActual,
@@ -232,18 +239,22 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final respuesta = await OllamaService.query(
+      final resultado = await OllamaService.query(
         textoTrimmed,
         ciudad: _ciudadActual!,
         history: historialReciente,
-        monumentoId: monumentoId ?? _monumentoIdActual,
+        monumentoId: _monumentoIdActual,
         modo: _modo,
         client: client,
       );
+      if (resultado.monumentoId != null) {
+        _monumentoIdActual = resultado.monumentoId;
+      }
       await _guardarMensajeTexto(
         chatId: chatIdActual,
-        contenido: respuesta,
+        contenido: resultado.response,
         role: MensajeRole.bot,
+        poisCercanos: resultado.poisCercanos,
       );
     } catch (_) {
       if (_clientActivo == null) return; // cancelado por el usuario
@@ -341,7 +352,8 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> preguntarSobrePoi(PoiSugerido poi) async {
-    await enviarTexto('Cuéntame más sobre ${poi.nombre}', monumentoId: poi.id);
+    _monumentoIdActual = poi.id;
+    await enviarTexto('Cuéntame más sobre ${poi.nombre}');
   }
 
   Future<void> _crearChatSiNecesario() async {
