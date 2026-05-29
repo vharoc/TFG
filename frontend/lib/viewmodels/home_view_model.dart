@@ -318,42 +318,11 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = AuthService.instance.currentUser?.uid ?? '';
-
-      // Classify y upload en paralelo — el tiempo total es el del más lento
-      final classifyFuture = OllamaService.classify(
+      final resultado = await OllamaService.classify(
         File(img.path),
         modo: _modo,
         client: client,
       );
-      final uploadFuture = FotoService.instance.subirFoto(
-        file: File(img.path),
-        uid: uid,
-        chatId: chatIdActual,
-        fecha: ahora,
-      );
-
-      final resultado = await classifyFuture;
-
-      // Upload: si falla solo se pierde la persistencia, no bloqueamos al usuario
-      String? imageUrl;
-      try {
-        imageUrl = await uploadFuture;
-      } catch (_) {}
-
-      // Guardar imagen en Firestore (solo si el upload tuvo éxito)
-      if (imageUrl != null) {
-        await ChatService.instance.guardarMensaje(
-          chatId: chatIdActual,
-          mensaje: Mensaje.imagen(
-            id: '',
-            chatId: chatIdActual,
-            imgUrl: imageUrl,
-            role: MensajeRole.usuario,
-            fecha: ahora,
-          ),
-        );
-      }
 
       if (resultado.id != null) _monumentoIdActual = resultado.id;
 
