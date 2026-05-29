@@ -7,9 +7,7 @@ import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
-import '../services/auth_services.dart';
 import '../services/chat_services.dart';
-import '../services/foto_service.dart';
 import '../services/ollama_service.dart';
 import '../services/ubicacion_service.dart';
 
