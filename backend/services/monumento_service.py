@@ -12,6 +12,13 @@ class MonumentoService:
             self._normalizar(m["classifier_class"]): m for m in self._data
         }
         self._by_id: dict[str, dict] = {m["id"]: m for m in self._data}
+        # alias → monumento (alias más largos primero para preferir coincidencias más específicas)
+        self._by_alias: dict[str, dict] = {}
+        for m in self._data:
+            for a in m.get("alias", []):
+                key = self._normalizar(a)
+                if key not in self._by_alias:
+                    self._by_alias[key] = m
         self._grafo: dict[str, list[dict]] = self._build_graph(vecinos)
 
     def lookup_by_id(self, monument_id: str) -> Optional[dict]:
@@ -19,6 +26,18 @@ class MonumentoService:
 
     def lookup_by_class(self, class_name: str) -> Optional[dict]:
         return self._by_class.get(self._normalizar(class_name))
+
+    def detectar_en_texto(self, texto: str) -> Optional[dict]:
+        """Devuelve el primer monumento cuyo alias o clase aparece en texto."""
+        texto_norm = self._normalizar(texto)
+        # Aliases de mayor a menor longitud para preferir coincidencias específicas
+        for alias_norm in sorted(self._by_alias, key=len, reverse=True):
+            if alias_norm in texto_norm:
+                return self._by_alias[alias_norm]
+        for class_norm, monumento in self._by_class.items():
+            if class_norm in texto_norm:
+                return monumento
+        return None
 
     @staticmethod
     def _normalizar(s: str) -> str:

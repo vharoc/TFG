@@ -87,24 +87,6 @@ async def _llamar_qwen(messages: list, tools: list | None = None, timeout: float
         return res.json()
 
 
-def _clases_soportadas() -> list[str]:
-    if monumentos is None:
-        return []
-    return [m.get("classifier_class", "").strip().upper() for m in monumentos._data if m.get("classifier_class")]
-
-
-def _detectar_monumento_en_texto(texto: str) -> str | None:
-    """
-    Comprueba si el texto del usuario menciona algún monumento soportado.
-    Usa matching exacto contra la lista normalizada de classifier_class.
-    Devuelve la clase del monumento detectado, o None si no hay coincidencia.
-    """
-    texto_upper = texto.upper()
-    for clase in _clases_soportadas():
-        if clase in texto_upper:
-            return clase
-    return None
-
 
 async def _reformatear(texto: str, pregunta: str) -> str:
     """
@@ -136,49 +118,37 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 @app.post("/api/query")
 async def query(q: Query):
     monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
+    m_mencionado = monumentos.detectar_en_texto(q.prompt) if monumentos else None
 
     # --- Determinar qué monumento usar para RAG ---
-    clase_rag: str | None = None
     monumento_rag = monumento
+    clase_rag: str | None = None
 
     if monumento:
-        clase_actual = monumento.get("classifier_class", "").strip().upper()
-        # Comprobar si el usuario menciona un monumento diferente en el texto
-        clase_mencionada = _detectar_monumento_en_texto(q.prompt)
-        if clase_mencionada and clase_mencionada != clase_actual and monumentos:
-            m_nuevo = monumentos.lookup_by_class(clase_mencionada)
-            if m_nuevo:
-                monumento_rag = m_nuevo
-                clase_rag = clase_mencionada
-                logger.info("Cambio de contexto: %s -> %s", clase_actual, clase_rag)
-            else:
-                clase_rag = clase_actual
-        else:
-            clase_rag = clase_actual
-    else:
-        # Sin contexto de foto: detectar monumento mencionado en el texto
-        clase_mencionada = _detectar_monumento_en_texto(q.prompt)
-        if clase_mencionada and monumentos:
-            m = monumentos.lookup_by_class(clase_mencionada)
-            if m:
-                monumento_rag = m
-                clase_rag = clase_mencionada
+        if m_mencionado and m_mencionado["id"] != monumento["id"]:
+            monumento_rag = m_mencionado
+            logger.info("Cambio de contexto: %s -> %s", monumento["id"], m_mencionado["id"])
+        clase_rag = monumento_rag["classifier_class"].strip().upper()
+    elif m_mencionado:
+        monumento_rag = m_mencionado
+        clase_rag = m_mencionado["classifier_class"].strip().upper()
 
     # --- RAG si hay clase válida ---
-    if clase_rag:
+    if clase_rag and monumento_rag:
         chunks = consultar_rag(q.prompt, clase_rag, n_resultados=1)
         logger.info("RAG: clase=%s chunks=%d", clase_rag, len(chunks))
-        texto = chunks[0]["texto"] if chunks else (monumento_rag.get("descripcion_corta", "") if monumento_rag else "")
+        texto = chunks[0]["texto"] if chunks else monumento_rag.get("descripcion_corta", "")
 
         if texto:
+            mid = monumento_rag["id"]
             if q.modo == "rapido":
-                return JSONResponse(content={"response": texto, "modo": "rapido"})
+                return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid})
             try:
                 respuesta = await _reformatear(texto, q.prompt)
             except Exception as e:
                 logger.error("Reformateo fallo: %s", e)
                 respuesta = texto
-            return JSONResponse(content={"response": respuesta, "modo": "pensar"})
+            return JSONResponse(content={"response": respuesta, "modo": "pensar", "monumento_id": mid})
 
     # --- Flujo general: conversacion sin monumento o RAG vacio ---
     system = q.system.strip() if q.system and q.system.strip() else DEFAULT_SYSTEM_PROMPT
@@ -192,7 +162,7 @@ async def query(q: Query):
     ]
     try:
         data = await _llamar_qwen(messages)
-        return JSONResponse(content={"response": data["message"]["content"]})
+        return JSONResponse(content={"response": data["message"]["content"], "monumento_id": None})
     except Exception as e:
         logger.error(f"ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
