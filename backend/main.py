@@ -57,6 +57,13 @@ DEFAULT_SYSTEM_PROMPT = (
     "redirige amablemente la conversacion hacia el turismo en Salamanca."
 )
 
+PENSAR_SYSTEM_PROMPT = (
+    "Eres un guia turistico experto y apasionado de Salamanca. Responde siempre en espanol, "
+    "de forma clara, amable y elaborada. Puedes extenderte hasta 5 frases si el tema lo merece. "
+    "Si te preguntan algo que no tiene que ver con turismo o Salamanca, "
+    "redirige amablemente la conversacion hacia el turismo en Salamanca."
+)
+
 
 
 class Message(BaseModel):
@@ -95,7 +102,7 @@ async def _reformatear(texto: str, pregunta: str) -> str:
     """
     system = (
         "Eres un guia turistico de Salamanca. Presenta la siguiente informacion de forma "
-        "natural y amable en espanol. "
+        "natural y amable en espanol. Maximo 2 frases concisas. "
         "CRITICO: NO añadas datos, fechas, nombres, lugares ni informacion que no este "
         "en el texto original. Solo reformatea lo que ya esta escrito."
     )
@@ -153,7 +160,8 @@ async def query(q: Query):
             return JSONResponse(content={"response": respuesta, "modo": "pensar", "monumento_id": mid, "pois_cercanos": pois_data})
 
     # --- Flujo general: conversacion sin monumento o RAG vacio ---
-    system = q.system.strip() if q.system and q.system.strip() else DEFAULT_SYSTEM_PROMPT
+    default = PENSAR_SYSTEM_PROMPT if q.modo == "pensar" else DEFAULT_SYSTEM_PROMPT
+    system = q.system.strip() if q.system and q.system.strip() else default
     if q.ciudad and q.ciudad.strip():
         system = f"{system}\nEl usuario se encuentra actualmente en: {q.ciudad.strip()}."
 
