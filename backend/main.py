@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 import httpx
+import json
 import logging
 import os
 from dotenv import load_dotenv
@@ -90,16 +91,112 @@ class Query(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _llamar_llm(messages: list, timeout: float = 60.0) -> dict:
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "usar_rag",
+            "description": (
+                "Busca información verificada sobre un monumento o lugar de interés de la ciudad. "
+                "Úsala cuando el usuario pregunte sobre un monumento, edificio, escultura o patrimonio concreto."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "description": "Nombre o descripción del monumento a buscar"
+                    }
+                },
+                "required": ["nombre"]
+            }
+        }
+    }
+]
+
+
+async def _llamar_llm(messages: list, tools: list | None = None, timeout: float = 60.0) -> dict:
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = {"model": MODEL, "messages": messages, "stream": False}
+    if tools:
+        payload["tools"] = tools
     async with httpx.AsyncClient(timeout=timeout) as client:
         res = await client.post(GROQ_URL, headers=headers, json=payload)
         res.raise_for_status()
         return res.json()
+
+
+def _usar_rag(nombre: str) -> dict:
+    if monumentos is None:
+        return {"informacion": "Servicio de monumentos no disponible.", "monumento_id": None, "pois_cercanos": []}
+
+    m = monumentos.detectar_en_texto(nombre)
+    if m is None:
+        return {"informacion": f"No tengo información verificada sobre '{nombre}'.", "monumento_id": None, "pois_cercanos": []}
+
+    clase_rag = m["classifier_class"].strip().upper()
+    chunks = consultar_rag(nombre, clase_rag, n_resultados=1)
+    texto = chunks[0]["texto"] if chunks else m.get("descripcion_corta", "")
+
+    pois = monumentos.get_nearby(m["id"])
+    return {
+        "informacion": texto,
+        "monumento_id": m["id"],
+        "nombre_monumento": m["nombre"],
+        "pois_cercanos": [{"id": p["id"], "nombre": p["nombre"]} for p in pois],
+    }
+
+
+async def _query_pensar_agente(q: "Query", monumento_activo: dict | None) -> "JSONResponse":
+    system = PENSAR_SYSTEM_PROMPT
+    if q.ciudad and q.ciudad.strip():
+        system += f"\nEl usuario se encuentra en: {q.ciudad.strip()}."
+    if monumento_activo:
+        system += f"\nContexto actual: el usuario está visitando '{monumento_activo['nombre']}'."
+
+    messages = [
+        {"role": "system", "content": system},
+        *[m.model_dump() for m in q.history],
+        {"role": "user", "content": q.prompt},
+    ]
+
+    # Primera llamada: el modelo decide si usar usar_rag o responder directo
+    data = await _llamar_llm(messages, tools=TOOLS)
+    choice = data["choices"][0]
+
+    monumento_id = None
+    pois_data = []
+
+    if choice.get("finish_reason") == "tool_calls":
+        tool_call = choice["message"]["tool_calls"][0]
+        args = json.loads(tool_call["function"]["arguments"])
+        logger.info("Tool call: usar_rag(nombre='%s')", args.get("nombre"))
+
+        resultado = _usar_rag(args["nombre"])
+        monumento_id = resultado["monumento_id"]
+        pois_data = resultado["pois_cercanos"]
+
+        # Segunda llamada: genera la respuesta con el resultado del RAG
+        messages.append(choice["message"])
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call["id"],
+            "content": json.dumps({"informacion": resultado["informacion"]}, ensure_ascii=False),
+        })
+        final = await _llamar_llm(messages)
+        respuesta = final["choices"][0]["message"]["content"]
+    else:
+        respuesta = choice["message"]["content"]
+
+    return JSONResponse(content={
+        "response": respuesta,
+        "modo": "pensar",
+        "monumento_id": monumento_id,
+        "pois_cercanos": pois_data,
+    })
 
 
 
@@ -125,53 +222,49 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 @app.post("/query")
 @app.post("/api/query")
 async def query(q: Query):
+    # Modo pensar: agente con tool calling
+    if q.modo == "pensar":
+        monumento_activo = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
+        try:
+            return await _query_pensar_agente(q, monumento_activo)
+        except Exception as e:
+            logger.error("Error en modo pensar: %s", e)
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # Modo rápido: alias matching + RAG directo, sin LLM para monumentos
     monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
     m_mencionado = monumentos.detectar_en_texto(q.prompt) if monumentos else None
 
-    # --- Determinar qué monumento usar para RAG ---
     monumento_rag = monumento
     clase_rag: str | None = None
 
     if monumento:
         if m_mencionado:
-            # Texto menciona un monumento: puede ser el mismo u otro (cambio de contexto)
             if m_mencionado["id"] != monumento["id"]:
                 monumento_rag = m_mencionado
                 logger.info("Cambio de contexto: %s -> %s", monumento["id"], m_mencionado["id"])
             clase_rag = monumento_rag["classifier_class"].strip().upper()
-        # Sin mención explícita: monumento_rag queda como contexto pero clase_rag=None
-        # → cae al flujo general donde el LLM decide si hablar del monumento o no
     elif m_mencionado:
         monumento_rag = m_mencionado
         clase_rag = m_mencionado["classifier_class"].strip().upper()
 
-    # --- RAG si hay clase válida ---
     if clase_rag and monumento_rag:
         chunks = consultar_rag(q.prompt, clase_rag, n_resultados=1)
-        logger.info("RAG: clase=%s chunks=%d", clase_rag, len(chunks))
+        logger.info("RAG rapido: clase=%s chunks=%d", clase_rag, len(chunks))
         texto = chunks[0]["texto"] if chunks else monumento_rag.get("descripcion_corta", "")
-
         if texto:
             mid = monumento_rag["id"]
             pois = monumentos.get_nearby(mid) if monumentos else []
             pois_data = [{"id": p["id"], "nombre": p["nombre"]} for p in pois]
-            if q.modo == "rapido":
-                return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
-            try:
-                respuesta = await _reformatear(texto, q.prompt)
-            except Exception as e:
-                logger.error("Reformateo fallo: %s", e)
-                respuesta = texto
-            return JSONResponse(content={"response": respuesta, "modo": "pensar", "monumento_id": mid, "pois_cercanos": pois_data})
+            return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
 
-    # --- Flujo general: conversacion sin monumento o RAG vacio ---
-    default = PENSAR_SYSTEM_PROMPT if q.modo == "pensar" else DEFAULT_SYSTEM_PROMPT
-    system = q.system.strip() if q.system and q.system.strip() else default
+    # Sin RAG: LLM con contexto de monumento activo si lo hay
+    system = DEFAULT_SYSTEM_PROMPT
     if q.ciudad and q.ciudad.strip():
-        system = f"{system}\nEl usuario se encuentra actualmente en: {q.ciudad.strip()}."
+        system += f"\nEl usuario se encuentra en: {q.ciudad.strip()}."
     if monumento_rag:
-        system = (
-            f"{system}\nContexto: el usuario visita '{monumento_rag['nombre']}'. "
+        system += (
+            f"\nContexto: el usuario visita '{monumento_rag['nombre']}'. "
             f"Descripcion verificada: {monumento_rag.get('descripcion_corta', '')} "
             f"Habla de este lugar si la pregunta guarda relacion, o responde normalmente si no."
         )
@@ -185,7 +278,7 @@ async def query(q: Query):
         data = await _llamar_llm(messages)
         return JSONResponse(content={"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": []})
     except Exception as e:
-        logger.error(f"ERROR: {type(e).__name__}: {e}")
+        logger.error("Error en modo rapido: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
