@@ -132,10 +132,14 @@ async def query(q: Query):
     clase_rag: str | None = None
 
     if monumento:
-        if m_mencionado and m_mencionado["id"] != monumento["id"]:
-            monumento_rag = m_mencionado
-            logger.info("Cambio de contexto: %s -> %s", monumento["id"], m_mencionado["id"])
-        clase_rag = monumento_rag["classifier_class"].strip().upper()
+        if m_mencionado:
+            # Texto menciona un monumento: puede ser el mismo u otro (cambio de contexto)
+            if m_mencionado["id"] != monumento["id"]:
+                monumento_rag = m_mencionado
+                logger.info("Cambio de contexto: %s -> %s", monumento["id"], m_mencionado["id"])
+            clase_rag = monumento_rag["classifier_class"].strip().upper()
+        # Sin mención explícita: monumento_rag queda como contexto pero clase_rag=None
+        # → cae al flujo general donde el LLM decide si hablar del monumento o no
     elif m_mencionado:
         monumento_rag = m_mencionado
         clase_rag = m_mencionado["classifier_class"].strip().upper()
@@ -164,6 +168,12 @@ async def query(q: Query):
     system = q.system.strip() if q.system and q.system.strip() else default
     if q.ciudad and q.ciudad.strip():
         system = f"{system}\nEl usuario se encuentra actualmente en: {q.ciudad.strip()}."
+    if monumento_rag:
+        system = (
+            f"{system}\nContexto: el usuario visita '{monumento_rag['nombre']}'. "
+            f"Descripcion verificada: {monumento_rag.get('descripcion_corta', '')} "
+            f"Habla de este lugar si la pregunta guarda relacion, o responde normalmente si no."
+        )
 
     messages = [
         {"role": "system", "content": system},
