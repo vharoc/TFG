@@ -6,9 +6,13 @@ from pydantic import BaseModel
 from typing import Optional
 import httpx
 import logging
+import os
+from dotenv import load_dotenv
 from services.clasificador_service import ClasificadorService
 from services.monumento_service import MonumentoService
 from rag.rag_module import inicializar_rag, consultar_rag
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,21 +51,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
-MODEL = "qwen2.5:1.5b"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+MODEL = "llama-3.3-70b-versatile"
 
 DEFAULT_SYSTEM_PROMPT = (
-    "Eres un guia turistico experto en Salamanca. Responde siempre en espanol, de forma clara y amable. "
-    "Da respuestas muy cortas y concisas, maximo 2-3 frases. "
-    "Si te preguntan algo que no tiene que ver con turismo o Salamanca, "
-    "redirige amablemente la conversacion hacia el turismo en Salamanca."
+    "Eres Clicky, el asistente turistico virtual de Salamanca. "
+    "Hablas en espanol con un tono cercano, entusiasta y culto, como un amigo que conoce la ciudad al dedillo. "
+    "Responde de forma directa y concisa, en 2-3 frases. "
+    "Si te preguntan algo ajeno al turismo de Salamanca, redirigelo amablemente."
 )
 
 PENSAR_SYSTEM_PROMPT = (
-    "Eres un guia turistico experto y apasionado de Salamanca. Responde siempre en espanol, "
-    "de forma clara, amable y elaborada. Puedes extenderte hasta 5 frases si el tema lo merece. "
-    "Si te preguntan algo que no tiene que ver con turismo o Salamanca, "
-    "redirige amablemente la conversacion hacia el turismo en Salamanca."
+    "Eres Clicky, el asistente turistico virtual de Salamanca. "
+    "Hablas en espanol con un tono cercano, entusiasta y culto, como un amigo que conoce la ciudad al dedillo. "
+    "Puedes extenderte hasta 4-5 frases cuando el tema lo merece. "
+    "Si te preguntan algo ajeno al turismo de Salamanca, redirigelo amablemente."
 )
 
 
@@ -84,37 +89,32 @@ class Query(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-async def _llamar_qwen(messages: list, tools: list | None = None, timeout: float = 300.0) -> dict:
+async def _llamar_llm(messages: list, timeout: float = 60.0) -> dict:
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
     payload = {"model": MODEL, "messages": messages, "stream": False}
-    if tools:
-        payload["tools"] = tools
     async with httpx.AsyncClient(timeout=timeout) as client:
-        res = await client.post(OLLAMA_URL, json=payload)
+        res = await client.post(GROQ_URL, headers=headers, json=payload)
         res.raise_for_status()
         return res.json()
 
 
 
 async def _reformatear(texto: str, pregunta: str) -> str:
-    """
-    Pasa el texto recuperado (descripcion corta o chunk RAG) por Qwen
-    unicamente para mejorar el formato y el estilo, sin añadir informacion.
-    """
     system = (
-        "Eres un guia turistico de Salamanca. Presenta la siguiente informacion de forma "
-        "natural y amable en espanol. Maximo 2 frases concisas. "
-        "CRITICO: NO añadas datos, fechas, nombres, lugares ni informacion que no este "
-        "en el texto original. Solo reformatea lo que ya esta escrito."
+        "Eres Clicky, el asistente turistico de Salamanca. Reformatea el siguiente texto verificado "
+        "para que suene natural y cercano en espanol, en 2 frases como maximo. "
+        "IMPORTANTE: usa unicamente la informacion del texto proporcionado. "
+        "No inventes fechas, nombres, cifras ni datos que no esten en el."
     )
     messages = [
         {"role": "system", "content": system},
-        {
-            "role": "user",
-            "content": f"Pregunta del usuario: {pregunta}\n\nInformacion verificada:\n{texto}",
-        },
+        {"role": "user", "content": f"Pregunta del usuario: {pregunta}\n\nInformacion verificada:\n{texto}"},
     ]
-    data = await _llamar_qwen(messages)
-    return data["message"]["content"]
+    data = await _llamar_llm(messages)
+    return data["choices"][0]["message"]["content"]
 
 
 # ---------------------------------------------------------------------------
@@ -171,8 +171,8 @@ async def query(q: Query):
         {"role": "user", "content": q.prompt},
     ]
     try:
-        data = await _llamar_qwen(messages)
-        return JSONResponse(content={"response": data["message"]["content"], "monumento_id": None, "pois_cercanos": []})
+        data = await _llamar_llm(messages)
+        return JSONResponse(content={"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": []})
     except Exception as e:
         logger.error(f"ERROR: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -200,7 +200,6 @@ async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido")):
     pois = monumentos.get_nearby(monumento["id"])
     descripcion = monumento["descripcion_corta"]
 
-    # Modo pensar: Qwen reformatea la descripcion corta antes de devolverla
     if modo == "pensar" and descripcion:
         try:
             descripcion = await _reformatear(descripcion, f"Presentame {monumento['nombre']}")
