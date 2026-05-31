@@ -2,7 +2,7 @@
     { 
         "id": "astronauta", 
         "classifier_class": "ASTRONAUTA", 
-        "nombre": "astronauta de la fachada de la catedral", 
+        "nombre": "Astronauta de la Catedral",
         "descripcion_corta": "Anacrónica figura tallada en la Puerta de Ramos durante la restauración de 1992. Representa la modernidad integrada en el arte plateresco como firma de los canteros contemporáneos.", 
         "lat": 40.96104382956685, 
         "lon": -5.666394496947901,
@@ -11,7 +11,7 @@
     { 
         "id": "calixto_y_melibea", 
         "classifier_class": "CALIXTO Y MELIBEA", 
-        "nombre": "jardín de calixto y melibea", 
+        "nombre": "Huerto de Calixto y Melibea",
         "descripcion_corta": "Huerto romántico situado sobre la muralla, escenario que inspiró la tragicomedia de Fernando de Rojas. Es un remanso de paz con vistas privilegiadas a las catedrales y al río Tormes.", 
         "lat": 40.95954024858229, 
         "lon": -5.665308901347369,
@@ -20,7 +20,7 @@
     { 
         "id": "casa_conchas", 
         "classifier_class": "CASA DE LAS CONCHAS", 
-        "nombre": "casa de las conchas", 
+        "nombre": "Casa de las Conchas",
         "descripcion_corta": "Antiguo palacio señorial del siglo XV famoso por su fachada decorada con más de 300 conchas de piedra. Mezcla estilos gótico tardío, renacentista y mudéjar.", 
         "lat": 40.962811515865, 
         "lon": -5.665912444158351,
@@ -29,7 +29,7 @@
     { 
         "id": "casa_lis", 
         "classifier_class": "CASA LIS ", 
-        "nombre": "casa lis-museo", 
+        "nombre": "Casa Lis",
         "descripcion_corta": "Palacete modernista de principios del siglo XX con impresionantes vidrieras de colores. Actualmente alberga el Museo de Art Nouveau y Art Déco de la ciudad.", 
         "lat": 40.95968850173317, 
         "lon": -5.666795947973821,
@@ -38,7 +38,7 @@
     {
         "id": "catedral", 
         "classifier_class": "CATEDRAL", 
-        "nombre": "catedral de salamanca", 
+        "nombre": "Catedral de Salamanca",
         "descripcion_corta": "Conjunto monumental formado por la Catedral Vieja (románica) y la Catedral Nueva (gótica y barroca). Es uno de los perfiles más icónicos del skyline salmantino.", 
         "lat": 40.9605965614044, 
         "lon": -5.666183223939122,
@@ -47,7 +47,7 @@
     {
         "id": "cielo_salamanca", 
         "classifier_class": "CIELO DE SALAMANCA", 
-        "nombre": "El cielo de Salamanca", 
+        "nombre": "Cielo de Salamanca",
         "descripcion_corta": "Pintura mural del siglo XV realizada por Fernando Gallego que representa constelaciones y signos del zodiaco. Originalmente decoraba el techo de la antigua biblioteca de la Universidad.", 
         "lat": 40.96134876946041, 
         "lon": -5.668303560724776,
@@ -56,7 +56,7 @@
     {
         "id": "convento_san_esteban", 
         "classifier_class": "CONVENTO DE SAN ESTEBAN", 
-        "nombre": "convento de san esteban", 
+        "nombre": "Convento de San Esteban",
         "descripcion_corta": "Impresionante edificio dominico con una de las fachadas platerescas más ricas de España. En su interior se alojó Cristóbal Colón mientras buscaba apoyo para su viaje a las Indias.", 
         "lat": 40.96060410949614, 
         "lon": -5.6627563614674115,
@@ -65,7 +65,7 @@
     {
         "id": "cueva_salamanca", 
         "classifier_class": "CUEVA DE SALAMANCA", 
-        "nombre": "cueva de salamanca", 
+        "nombre": "Cueva de Salamanca",
         "descripcion_corta": "Lugar legendario donde la tradición dice que el Diablo impartía clases de artes oscuras a siete alumnos durante siete años. Se encuentra en la antigua cripta de la iglesia de Cebrián.", 
         "lat": 40.960085373419105,  
         "lon": -5.664664160724847,
@@ -74,7 +74,7 @@
     {
         "id": "dragon", 
         "classifier_class": "DRAGÓN", 
-        "nombre": "dragon de la fachada de la catedral", 
+        "nombre": "Dragón de la Catedral",
         "descripcion_corta": "Pequeña y curiosa figura de un dragón comiendo helado esculpida durante la restauración de 1992. Se ha convertido en uno de los detalles más buscados por los turistas en la Puerta de Ramos.", 
         "lat": 40.96104382956685, 
         "lon": -5.666394496947901,
@@ -83,7 +83,7 @@
     {
         "id": "edificio_universidad", 
         "classifier_class": "EDIFICIO HISTORICO DE LA UNIVERSIDAD", 
-        "nombre": "escuelas mayores de la universidad de salamanca", 
+        "nombre": "Universidad de Salamanca",
         "descripcion_corta": "Corazón de una de las universidades más antiguas del mundo. Destaca su fachada de piedra franca tallada como una obra de orfebrería cargada de simbolismo renacentista.", 
         "lat": 40.961438152726146, 
         "lon": -5.667197421839523,
@@ -92,7 +92,7 @@
     {
         "id": "fray_luis", 
         "classifier_class": "FRAY LUIS DE LEÓN", 
-        "nombre": "monumento a fray luis de león", 
+        "nombre": "Monumento a Fray Luis de León",
         "descripcion_corta": "Estatua de bronce dedicada al célebre humanista y profesor que preside el Patio de Escuelas. Es el símbolo del rigor académico y la historia literaria de la ciudad.", 
         "lat": 40.96160709995951, 
         "lon": -5.667584801229547,
@@ -101,7 +101,7 @@
     {
         "id": "onanista", 
         "classifier_class": "ONANISTA", 
-        "nombre": "onanista", 
+        "nombre": "El Onanista",
         "descripcion_corta": "Atrevida figura erótica oculta entre la profusa decoración de la fachada universitaria. Representa la picardía de los canteros y las advertencias morales comunes en el arte de la época.", 
         "lat": 40.961546290462046,  
         "lon": -5.6677168324981615,
@@ -110,7 +110,7 @@
     {
         "id": "palacio_anaya", 
         "classifier_class": "PALACIO DE ANAYA", 
-        "nombre": "palacio de anaya", 
+        "nombre": "Palacio de Anaya",
         "descripcion_corta": "Edificio neoclásico que fue uno de los cuatro Colegios Mayores de Salamanca. Actualmente es la sede de la Facultad de Filología y destaca por sus imponentes columnas jónicas.", 
         "lat": 40.961618076971796, 
         "lon": -5.665534067471626,
@@ -119,7 +119,7 @@
     {
         "id": "plaza_mayor", 
         "classifier_class": "PLAZA MAYOR", 
-        "nombre": "plaza mayor de salamanca", 
+        "nombre": "Plaza Mayor",
         "descripcion_corta": "Considerada una de las plazas más bellas de España, es el centro neurálgico de la vida social. Fue construida en estilo barroco bajo el diseño de Alberto Churriguera.", 
         "lat": 40.96499036352135,  
         "lon": -5.6640513625938524,
@@ -128,7 +128,7 @@
     {
         "id": "puente_romano", 
         "classifier_class": "PUENTE ROMANO", 
-        "nombre": "puente romano", 
+        "nombre": "Puente Romano",
         "descripcion_corta": "Construcción del siglo I que formaba parte de la Vía de la Plata. Sus arcos más cercanos a la ciudad conservan los sillares originales de la época del emperador Trajano.", 
         "lat": 40.95798901550857, 
         "lon": -5.670109716547848,
@@ -137,7 +137,7 @@
     {
         "id": "rana", 
         "classifier_class": "RANA", 
-        "nombre": "rana de la universidad", 
+        "nombre": "Rana de la Universidad",
         "descripcion_corta": "Famoso detalle esculpido sobre una calavera en la fachada de la Universidad. Según la leyenda, los estudiantes que logran encontrarla sin ayuda aprobarán sus exámenes.", 
         "lat": 40.9614839356265,
         "lon": -5.667329161747708,
@@ -146,7 +146,7 @@
     {
         "id": "verraco", 
         "classifier_class": "VERRACO", 
-        "nombre": "verraco del puente romano", 
+        "nombre": "Verraco del Puente Romano",
         "descripcion_corta": "Escultura zoomorfa de origen vetón que data de la Edad del Hierro. Es la pieza arqueológica más antigua de la ciudad y aparece mencionada en el inicio del Lazarillo de Tormes.", 
         "lat": 40.95914838441035, 
         "lon": -5.669153874218622,
