@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import '../models/mensaje.dart';
 import '../models/clasificacion_result.dart';
+import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
+import '../models/ruta_result.dart';
 
 class OllamaService {
   OllamaService._();
@@ -34,6 +35,24 @@ class OllamaService {
       return [Uri.parse('$base/classify'), Uri.parse('$rootBase/classify')];
     }
     return [Uri.parse('$base/classify'), Uri.parse('$base/api/classify')];
+  }
+
+  static List<Uri> _rutaUris() {
+    final base = _normalizedBase;
+    if (base.endsWith('/api')) {
+      final rootBase = base.substring(0, base.length - 4);
+      return [Uri.parse('$base/ruta'), Uri.parse('$rootBase/ruta')];
+    }
+    return [Uri.parse('$base/ruta'), Uri.parse('$base/api/ruta')];
+  }
+
+  static List<Uri> _monumentosUris() {
+    final base = _normalizedBase;
+    if (base.endsWith('/api')) {
+      final rootBase = base.substring(0, base.length - 4);
+      return [Uri.parse('$base/monumentos'), Uri.parse('$rootBase/monumentos')];
+    }
+    return [Uri.parse('$base/monumentos'), Uri.parse('$base/api/monumentos')];
   }
 
   static List<Map<String, String>> _convertirHistorial(List<Mensaje> history) {
@@ -158,6 +177,80 @@ class OllamaService {
       if (ownClient) c.close();
     }
 
+    throw lastError ?? Exception('No se pudo contactar con el servidor.');
+  }
+
+  static Future<RutaResult> ruta({
+    required double lat,
+    required double lon,
+    required String filtro,
+    required List<String> visitados,
+  }) async {
+    Exception? lastError;
+    final c = http.Client();
+    try {
+      for (final uri in _rutaUris()) {
+        try {
+          final response = await c
+              .post(
+                uri,
+                headers: {'Content-Type': 'application/json'},
+                body: jsonEncode({
+                  'lat': lat,
+                  'lon': lon,
+                  'filtro': filtro,
+                  'visitados': visitados,
+                }),
+              )
+              .timeout(const Duration(seconds: 30));
+
+          if (response.statusCode == 404) {
+            lastError = Exception('Endpoint no encontrado: $uri');
+            continue;
+          }
+          if (response.statusCode != 200) {
+            throw Exception('Error ${response.statusCode}: ${response.body}');
+          }
+          return RutaResult.fromMap(jsonDecode(response.body) as Map<String, dynamic>);
+        } on TimeoutException {
+          throw Exception('El servidor tardó demasiado en responder.');
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
+        }
+      }
+    } finally {
+      c.close();
+    }
+    throw lastError ?? Exception('No se pudo contactar con el servidor.');
+  }
+
+  static Future<List<PoiSugerido>> monumentos() async {
+    Exception? lastError;
+    final c = http.Client();
+    try {
+      for (final uri in _monumentosUris()) {
+        try {
+          final response = await c.get(uri).timeout(const Duration(seconds: 15));
+          if (response.statusCode == 404) {
+            lastError = Exception('Endpoint no encontrado: $uri');
+            continue;
+          }
+          if (response.statusCode != 200) {
+            throw Exception('Error ${response.statusCode}');
+          }
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          return (data['monumentos'] as List<dynamic>)
+              .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
+              .toList();
+        } on TimeoutException {
+          throw Exception('Timeout al cargar monumentos.');
+        } catch (e) {
+          lastError = e is Exception ? e : Exception(e.toString());
+        }
+      }
+    } finally {
+      c.close();
+    }
     throw lastError ?? Exception('No se pudo contactar con el servidor.');
   }
 }

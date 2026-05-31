@@ -7,8 +7,10 @@ import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
+import '../models/ruta_result.dart';
 import '../services/chat_services.dart';
 import '../services/ollama_service.dart';
+import '../services/poi_visitado_service.dart';
 import '../services/ubicacion_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
@@ -72,6 +74,14 @@ class HomeViewModel extends ChangeNotifier {
   // ID del último monumento clasificado por foto, persiste entre mensajes de texto.
   String? _monumentoIdActual;
 
+  // Monumentos fotografiados — sincronizado con Firestore.
+  final Set<String> _visitados = {};
+  Set<String> get visitados => Set.unmodifiable(_visitados);
+  StreamSubscription<Set<String>>? _visitadosSub;
+
+  RutaState? _rutaState;
+  RutaState? get rutaState => _rutaState;
+
   void cancelarRespuesta() {
     _clientActivo?.close();
     _clientActivo = null;
@@ -84,6 +94,12 @@ class HomeViewModel extends ChangeNotifier {
   bool _creandoChat = false;
 
   HomeViewModel({String? initialChatId}) {
+    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((ids) {
+      _visitados
+        ..clear()
+        ..addAll(ids);
+      notifyListeners();
+    });
     if (initialChatId != null) {
       _chatId = initialChatId;
       _suscribir();
@@ -189,6 +205,7 @@ class HomeViewModel extends ChangeNotifier {
     _localImages = [];
     _tituloChat = '';
     _monumentoIdActual = null;
+    _rutaState = null;
     _cargando = false;
     notifyListeners();
 
@@ -324,7 +341,12 @@ class HomeViewModel extends ChangeNotifier {
         client: client,
       );
 
-      if (resultado.id != null) _monumentoIdActual = resultado.id;
+      if (resultado.id != null) {
+        _monumentoIdActual = resultado.id;
+        PoiVisitadoService.instance
+            .marcarVisitado(resultado.id!, resultado.nombre)
+            .catchError((_) {});
+      }
 
       final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
           ? resultado.descripcionCorta!
@@ -353,6 +375,103 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> preguntarSobrePoi(PoiSugerido poi) async {
     _monumentoIdActual = poi.id;
     await enviarTexto('Cuéntame más sobre ${poi.nombre}');
+  }
+
+  // ── Ruta ──────────────────────────────────────────────────────────────────
+
+  void iniciarFlujoRuta() {
+    if (_generando) return;
+    _rutaState = RutaState.seleccionando();
+    notifyListeners();
+  }
+
+  Future<void> seleccionarFiltroRuta(String filtro) async {
+    _rutaState = RutaState.cargando();
+    notifyListeners();
+
+    try {
+      double lat = 40.9640, lon = -5.6640;
+      if (_gpsDisponible) {
+        try {
+          final pos = await UbicacionService.instance.obtenerPosicion();
+          lat = pos.latitude;
+          lon = pos.longitude;
+        } catch (_) {}
+      }
+
+      final resultado = await OllamaService.ruta(
+        lat: lat,
+        lon: lon,
+        filtro: filtro,
+        visitados: _visitados.toList(),
+      );
+      _rutaState = RutaState.resumen(resultado);
+    } catch (_) {
+      _rutaState = null;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> comenzarRuta() async {
+    final rs = _rutaState;
+    if (rs == null || rs.estado != EstadoRuta.mostrandoResumen || rs.resultado == null) return;
+    if (rs.resultado!.paradas.isEmpty) {
+      _rutaState = null;
+      notifyListeners();
+      return;
+    }
+
+    await _crearChatSiNecesario();
+    if (_chatId == null) return;
+
+    _rutaState = RutaState.activo(rs.resultado!);
+    final primera = rs.resultado!.paradas.first;
+    _monumentoIdActual = primera.id;
+    notifyListeners();
+
+    await _guardarMensajeTexto(
+      chatId: _chatId!,
+      contenido: '📍 Primera parada: ${primera.nombre}\n¡Hazte una foto cuando llegues!',
+      role: MensajeRole.bot,
+    );
+  }
+
+  Future<void> siguienteParada() async {
+    final rs = _rutaState;
+    if (rs == null || rs.estado != EstadoRuta.activo || rs.resultado == null) return;
+
+    final siguiente = rs.paradaActual + 1;
+
+    if (siguiente >= rs.resultado!.paradas.length) {
+      _rutaState = null;
+      _monumentoIdActual = null;
+      notifyListeners();
+      await _guardarMensajeTexto(
+        chatId: _chatId!,
+        contenido: '🎉 ¡Ruta completada! Has visitado ${rs.resultado!.paradas.length} monumentos.',
+        role: MensajeRole.bot,
+      );
+      return;
+    }
+
+    _rutaState = rs.copyWith(paradaActual: siguiente);
+    final parada = rs.resultado!.paradas[siguiente];
+    _monumentoIdActual = parada.id;
+    notifyListeners();
+
+    final esUltima = siguiente == rs.resultado!.paradas.length - 1;
+    final prefijo = esUltima ? '📍 ¡Última parada!' : '📍 Parada ${siguiente + 1} de ${rs.resultado!.paradas.length}:';
+    await _guardarMensajeTexto(
+      chatId: _chatId!,
+      contenido: '$prefijo ${parada.nombre}\n¡Hazte una foto cuando llegues!',
+      role: MensajeRole.bot,
+    );
+  }
+
+  void cancelarRuta() {
+    _rutaState = null;
+    notifyListeners();
   }
 
   Future<void> _crearChatSiNecesario() async {
@@ -420,6 +539,7 @@ class HomeViewModel extends ChangeNotifier {
     _ciudadActual = null;
     _ciudadSoportada = null;
     _monumentoIdActual = null;
+    _rutaState = null;
     _messages = [];
     _localImages = [];
     _tituloChat = '';
@@ -431,6 +551,7 @@ class HomeViewModel extends ChangeNotifier {
   void dispose() {
     _sub?.cancel();
     _chatSub?.cancel();
+    _visitadosSub?.cancel();
     super.dispose();
   }
 }

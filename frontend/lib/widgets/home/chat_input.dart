@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../models/ruta_result.dart';
 import '../../theme/theme.dart';
 
 class ChatInput extends StatefulWidget {
-  // Callback que se ejecuta al pulsar enviar con el texto introducido.
   final void Function(String text)? onSend;
   final void Function(XFile image)? onImagePicked;
   final bool isLoading;
   final VoidCallback? onCancel;
   final String modo;
   final void Function(String modo)? onModoChanged;
+  final RutaState? rutaState;
+  final void Function(String filtro)? onFiltroRuta;
+  final VoidCallback? onSiguienteParada;
+  final VoidCallback? onCancelarRuta;
+  final VoidCallback? onIniciarRuta;
 
   const ChatInput({
     super.key,
@@ -19,6 +24,11 @@ class ChatInput extends StatefulWidget {
     this.onCancel,
     this.modo = 'rapido',
     this.onModoChanged,
+    this.rutaState,
+    this.onFiltroRuta,
+    this.onSiguienteParada,
+    this.onCancelarRuta,
+    this.onIniciarRuta,
   });
 
   @override
@@ -74,7 +84,19 @@ class _ChatInputState extends State<ChatInput> {
           ),
         ],
       ),
-      child: widget.isLoading ? _buildLoading() : Column(
+      child: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    if (widget.isLoading) return _buildLoading();
+    final rs = widget.rutaState;
+    if (rs != null) {
+      if (rs.estado == EstadoRuta.seleccionandoFiltro) return _buildFiltroRuta();
+      if (rs.estado == EstadoRuta.cargando) return _buildCargandoRuta();
+      if (rs.estado == EstadoRuta.activo) return _buildRutaActiva();
+    }
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Campo de texto ───────────────────
@@ -135,6 +157,23 @@ class _ChatInputState extends State<ChatInput> {
                 ),
               ),
 
+              const SizedBox(width: 6),
+
+              // ── Botón ruta ────────────────────────────────
+              GestureDetector(
+                onTap: widget.onIniciarRuta,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  child: const Icon(
+                    Icons.route_rounded,
+                    size: 20,
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+
               const Spacer(),
 
               // ── Botón enviar ─────────────────────────────
@@ -169,7 +208,6 @@ class _ChatInputState extends State<ChatInput> {
             ],
           ),
         ],
-      ),
     );
   }
 
@@ -193,6 +231,110 @@ class _ChatInputState extends State<ChatInput> {
           GestureDetector(
             onTap: widget.onCancel,
             child: const Icon(Icons.close_rounded, color: Colors.black54, size: 22),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiltroRuta() {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Elige el tipo de ruta:',
+              style: TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+          ),
+          _rutaChip('Todos', 'todos', AppTheme.usal),
+          const SizedBox(width: 6),
+          _rutaChip('Pendientes', 'pendientes', AppTheme.ocre),
+          const SizedBox(width: 6),
+          _rutaChip('Visitados', 'visitados', Colors.green),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: widget.onCancelarRuta,
+            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rutaChip(String label, String value, Color color) {
+    return GestureDetector(
+      onTap: () => widget.onFiltroRuta?.call(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCargandoRuta() {
+    return const SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.ocre),
+          ),
+          SizedBox(width: 12),
+          Text('Calculando tu ruta...', style: TextStyle(color: Colors.black54, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRutaActiva() {
+    final rs = widget.rutaState!;
+    final parada = rs.paradaActualObj;
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          const Icon(Icons.route_rounded, size: 18, color: AppTheme.usal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              parada != null
+                  ? 'Parada ${rs.paradaActual + 1}/${rs.totalParadas}: ${parada.nombre}'
+                  : 'Ruta activa',
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: widget.onSiguienteParada,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.usal,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Siguiente →',
+                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: widget.onCancelarRuta,
+            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
           ),
         ],
       ),

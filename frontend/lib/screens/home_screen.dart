@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../models/ruta_result.dart';
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
 import '../widgets/home/ciudad_selector_sheet.dart';
 import '../widgets/home/hamburger_btt.dart';
 import '../widgets/home/header_home.dart';
+import '../widgets/home/ruta_resumen_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? chatId;
@@ -21,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final HomeViewModel _vm;
   final ScrollController _scrollController = ScrollController();
   bool _mostrandoSelectorCiudad = false;
+  bool _mostrandoResumenRuta = false;
   int _previousMessageCount = 0;
 
   @override
@@ -60,6 +63,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_vm.necesitaCiudad) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarSelectorSiNecesario());
     }
+    if (_vm.rutaState?.estado == EstadoRuta.mostrandoResumen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarResumenRutaSiNecesario());
+    }
     if (_vm.mensajeErrorFoto != null) {
       final mensaje = _vm.mensajeErrorFoto!;
       _vm.limpiarErrorFoto();
@@ -70,6 +76,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       });
     }
+  }
+
+  Future<void> _mostrarResumenRutaSiNecesario() async {
+    final resultado = _vm.rutaState?.resultado;
+    if (resultado == null || _mostrandoResumenRuta || !mounted) return;
+    _mostrandoResumenRuta = true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => RutaResumenSheet(
+        resultado: resultado,
+        onComenzar: () {
+          Navigator.of(context).pop();
+          _vm.comenzarRuta();
+        },
+        onCancelar: () {
+          Navigator.of(context).pop();
+          _vm.cancelarRuta();
+        },
+      ),
+    );
+
+    _mostrandoResumenRuta = false;
   }
 
   void _scrollToBottomIfNeeded() {
@@ -146,6 +181,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onCancelar: vm.cancelarRespuesta,
                         modo: vm.modo,
                         onModoChanged: vm.setModo,
+                        rutaState: vm.rutaState,
+                        onFiltroRuta: vm.seleccionarFiltroRuta,
+                        onSiguienteParada: vm.siguienteParada,
+                        onCancelarRuta: vm.cancelarRuta,
+                        onIniciarRuta: vm.iniciarFlujoRuta,
                       ),
                     ),
                   ],

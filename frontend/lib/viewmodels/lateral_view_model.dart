@@ -2,9 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/chat.dart';
 import '../models/ciudad.dart';
+import '../models/poi_sugerido.dart';
 import '../services/auth_services.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_services.dart';
+import '../services/ollama_service.dart';
+import '../services/poi_visitado_service.dart';
 
 class LateralViewModel extends ChangeNotifier {
   final _auth = AuthService.instance;
@@ -15,11 +18,36 @@ class LateralViewModel extends ChangeNotifier {
   bool cargandoCiudades = true;
   String? error;
 
+  Set<String> _visitados = {};
+  List<PoiSugerido> todosLosPois = [];
+  bool cargandoPois = false;
+
   StreamSubscription<List<Chat>>? _chatSub;
   StreamSubscription<List<Ciudad>>? _ciudadSub;
+  StreamSubscription<Set<String>>? _visitadosSub;
 
   LateralViewModel() {
     _suscribir();
+    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((ids) {
+      _visitados = ids;
+      notifyListeners();
+    });
+  }
+
+  bool poiVisitado(String id) => _visitados.contains(id);
+
+  Future<void> cargarPois() async {
+    if (todosLosPois.isNotEmpty || cargandoPois) return;
+    cargandoPois = true;
+    notifyListeners();
+    try {
+      todosLosPois = await OllamaService.monumentos();
+    } catch (_) {
+      todosLosPois = [];
+    } finally {
+      cargandoPois = false;
+      notifyListeners();
+    }
   }
 
   String get inicial {
@@ -75,6 +103,7 @@ class LateralViewModel extends ChangeNotifier {
   void dispose() {
     _chatSub?.cancel();
     _ciudadSub?.cancel();
+    _visitadosSub?.cancel();
     super.dispose();
   }
 }

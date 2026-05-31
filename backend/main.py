@@ -424,6 +424,16 @@ async def ruta(req: RutaRequest):
     })
 
 
+@app.get("/monumentos")
+@app.get("/api/monumentos")
+async def listar_monumentos():
+    if monumentos is None:
+        return JSONResponse(content={"monumentos": []})
+    return JSONResponse(content={
+        "monumentos": [{"id": m["id"], "nombre": m["nombre"]} for m in monumentos._data]
+    })
+
+
 @app.get("/health")
 @app.get("/api/health")
 async def health():

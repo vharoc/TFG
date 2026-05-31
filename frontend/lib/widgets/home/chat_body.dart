@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/mensaje.dart';
 import '../../models/poi_sugerido.dart';
+import '../../models/ruta_result.dart';
 import 'chat_input.dart';
 import 'messages_list.dart';
 
@@ -17,6 +18,11 @@ class HomeChatBody extends StatelessWidget {
   final VoidCallback? onCancelar;
   final String modo;
   final void Function(String modo)? onModoChanged;
+  final RutaState? rutaState;
+  final void Function(String filtro)? onFiltroRuta;
+  final VoidCallback? onSiguienteParada;
+  final VoidCallback? onCancelarRuta;
+  final VoidCallback? onIniciarRuta;
 
   const HomeChatBody({
     super.key,
@@ -30,6 +36,11 @@ class HomeChatBody extends StatelessWidget {
     this.onCancelar,
     this.modo = 'rapido',
     this.onModoChanged,
+    this.rutaState,
+    this.onFiltroRuta,
+    this.onSiguienteParada,
+    this.onCancelarRuta,
+    this.onIniciarRuta,
   });
 
   @override
@@ -51,6 +62,11 @@ class HomeChatBody extends StatelessWidget {
           onCancel: onCancelar,
           modo: modo,
           onModoChanged: onModoChanged,
+          rutaState: rutaState,
+          onFiltroRuta: onFiltroRuta,
+          onSiguienteParada: onSiguienteParada,
+          onCancelarRuta: onCancelarRuta,
+          onIniciarRuta: onIniciarRuta,
         ),
       ],
     );
