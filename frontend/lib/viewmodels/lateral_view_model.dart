@@ -36,12 +36,12 @@ class LateralViewModel extends ChangeNotifier {
 
   bool poiVisitado(String id) => _visitados.contains(id);
 
-  Future<void> cargarPois() async {
+  Future<void> cargarPois(String ciudad) async {
     if (todosLosPois.isNotEmpty || cargandoPois) return;
     cargandoPois = true;
     notifyListeners();
     try {
-      todosLosPois = await OllamaService.monumentos();
+      todosLosPois = await OllamaService.monumentos(ciudad: ciudad);
     } catch (_) {
       todosLosPois = [];
     } finally {

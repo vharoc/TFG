@@ -11,7 +11,7 @@ import math
 import os
 from dotenv import load_dotenv
 from services.clasificador_service import ClasificadorService
-from services.monumento_service import MonumentoService
+from services.ciudad_registry import CiudadRegistry
 from rag.rag_module import inicializar_rag, consultar_rag
 
 load_dotenv()
@@ -19,6 +19,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Extractor + clasificador (compartido en esta fase). DINOv2 + cabeza sklearn.
 clasificador = ClasificadorService(
     onnx_path="models/dinov2_small_full.onnx",
     clf_path="models/clasificador_tourclick_final.pkl",
@@ -26,12 +27,8 @@ clasificador = ClasificadorService(
     meta_path="models/meta_tourclick.json",
 )
 
-try:
-    monumentos = MonumentoService("/home/tfg/data/monumentos_salamanca.json")
-    logger.info(f"MonumentoService cargado con {len(monumentos._data)} monumentos")
-except FileNotFoundError:
-    monumentos = None
-    logger.warning("No se encontro monumentos_salamanca.json — /classify devolvera solo la clase")
+# Registro de ciudades: carga cada data/ciudades/<id>/ciudad.json
+registry = CiudadRegistry("data/ciudades", clasificador, default="salamanca")
 
 
 @asynccontextmanager
@@ -97,6 +94,7 @@ class RutaRequest(BaseModel):
     lon: float
     filtro: str = "pendientes"   # "todos" | "visitados" | "pendientes"
     visitados: list[str] = []
+    ciudad: Optional[str] = None
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -167,10 +165,10 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * R * math.asin(math.sqrt(a))
 
 
-def _filtrar_monumentos(filtro: str, visitados: list[str]) -> list[dict]:
-    if monumentos is None:
+def _filtrar_monumentos(mon, filtro: str, visitados: list[str]) -> list[dict]:
+    if mon is None:
         return []
-    todos = monumentos._data
+    todos = mon._data
     if filtro == "visitados":
         return [m for m in todos if m["id"] in visitados]
     if filtro == "pendientes":
@@ -243,8 +241,8 @@ def _construir_paradas(lat: float, lon: float, orden: list[dict]) -> list[dict]:
     return paradas
 
 
-def _ejecutar_generar_ruta(filtro: str, lat: float | None, lon: float | None, visitados: list[str]) -> dict:
-    candidatos = _filtrar_monumentos(filtro, visitados)
+def _ejecutar_generar_ruta(mon, filtro: str, lat: float | None, lon: float | None, visitados: list[str]) -> dict:
+    candidatos = _filtrar_monumentos(mon, filtro, visitados)
     if not candidatos:
         return {"error": f"No hay monumentos para el filtro '{filtro}'", "paradas": [], "tiempo_total_min": 0}
     lat_ini = lat if lat is not None else 40.9640
@@ -276,11 +274,11 @@ async def _narrar_resumen_ruta(paradas: list[dict]) -> str:
         return f"Ruta de {len(paradas)} paradas, aproximadamente {tiempo} minutos a pie."
 
 
-def _usar_rag(nombre: str) -> dict:
-    if monumentos is None:
+def _usar_rag(mon, nombre: str) -> dict:
+    if mon is None:
         return {"informacion": "Servicio de monumentos no disponible.", "monumento_id": None, "pois_cercanos": []}
 
-    m = monumentos.detectar_en_texto(nombre)
+    m = mon.detectar_en_texto(nombre)
     if m is None:
         return {"informacion": f"No tengo información verificada sobre '{nombre}'.", "monumento_id": None, "pois_cercanos": []}
 
@@ -288,7 +286,7 @@ def _usar_rag(nombre: str) -> dict:
     chunks = consultar_rag(nombre, clase_rag, n_resultados=1)
     texto = chunks[0]["texto"] if chunks else m.get("descripcion_corta", "")
 
-    pois = monumentos.get_nearby(m["id"])
+    pois = mon.get_nearby(m["id"])
     return {
         "informacion": texto,
         "monumento_id": m["id"],
@@ -297,7 +295,7 @@ def _usar_rag(nombre: str) -> dict:
     }
 
 
-async def _query_pensar_agente(q: "Query", monumento_activo: dict | None) -> "JSONResponse":
+async def _query_pensar_agente(q: "Query", mon, monumento_activo: dict | None) -> "JSONResponse":
     system = PENSAR_SYSTEM_PROMPT
     if q.ciudad and q.ciudad.strip():
         system += f"\nEl usuario se encuentra en: {q.ciudad.strip()}."
@@ -326,13 +324,14 @@ async def _query_pensar_agente(q: "Query", monumento_activo: dict | None) -> "JS
         logger.info("Tool call: %s(%s)", tool_name, args)
 
         if tool_name == "usar_rag":
-            resultado = _usar_rag(args["nombre"])
+            resultado = _usar_rag(mon, args["nombre"])
             monumento_id = resultado["monumento_id"]
             pois_data = resultado["pois_cercanos"]
             tool_content = json.dumps({"informacion": resultado["informacion"]}, ensure_ascii=False)
 
         elif tool_name == "generar_ruta":
             ejecutado = _ejecutar_generar_ruta(
+                mon,
                 filtro=args.get("filtro", "todos"),
                 lat=q.lat, lon=q.lon,
                 visitados=q.visitados,
@@ -393,18 +392,20 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 @app.post("/query")
 @app.post("/api/query")
 async def query(q: Query):
+    mon = registry.monumentos(q.ciudad)
+
     # Modo pensar: agente con tool calling
     if q.modo == "pensar":
-        monumento_activo = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
+        monumento_activo = mon.lookup_by_id(q.monumento_id) if (mon and q.monumento_id) else None
         try:
-            return await _query_pensar_agente(q, monumento_activo)
+            return await _query_pensar_agente(q, mon, monumento_activo)
         except Exception as e:
             logger.error("Error en modo pensar: %s", e)
             raise HTTPException(status_code=500, detail=str(e))
 
     # Modo rápido: alias matching + RAG directo, sin LLM para monumentos
-    monumento = monumentos.lookup_by_id(q.monumento_id) if (monumentos and q.monumento_id) else None
-    m_mencionado = monumentos.detectar_en_texto(q.prompt) if monumentos else None
+    monumento = mon.lookup_by_id(q.monumento_id) if (mon and q.monumento_id) else None
+    m_mencionado = mon.detectar_en_texto(q.prompt) if mon else None
 
     monumento_rag = monumento
     clase_rag: str | None = None
@@ -425,7 +426,7 @@ async def query(q: Query):
         texto = chunks[0]["texto"] if chunks else monumento_rag.get("descripcion_corta", "")
         if texto:
             mid = monumento_rag["id"]
-            pois = monumentos.get_nearby(mid) if monumentos else []
+            pois = mon.get_nearby(mid) if mon else []
             pois_data = [{"id": p["id"], "nombre": p["nombre"]} for p in pois]
             return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
 
@@ -456,9 +457,10 @@ async def query(q: Query):
 @app.post("/ruta")
 @app.post("/api/ruta")
 async def ruta(req: RutaRequest):
-    if monumentos is None:
+    mon = registry.monumentos(req.ciudad)
+    if mon is None:
         raise HTTPException(status_code=503, detail="Servicio de monumentos no disponible")
-    resultado = _ejecutar_generar_ruta(req.filtro, req.lat, req.lon, req.visitados)
+    resultado = _ejecutar_generar_ruta(mon, req.filtro, req.lat, req.lon, req.visitados)
     if "error" in resultado:
         return JSONResponse(content={"paradas": [], "tiempo_total_min": 0, "resumen": resultado["error"]})
     resumen = await _narrar_resumen_ruta(resultado["paradas"])
@@ -471,12 +473,19 @@ async def ruta(req: RutaRequest):
 
 @app.get("/monumentos")
 @app.get("/api/monumentos")
-async def listar_monumentos():
-    if monumentos is None:
+async def listar_monumentos(ciudad: str = None):
+    mon = registry.monumentos(ciudad)
+    if mon is None:
         return JSONResponse(content={"monumentos": []})
     return JSONResponse(content={
-        "monumentos": [{"id": m["id"], "nombre": m["nombre"]} for m in monumentos._data]
+        "monumentos": [{"id": m["id"], "nombre": m["nombre"]} for m in mon._data]
     })
+
+
+@app.get("/ciudades")
+@app.get("/api/ciudades")
+async def listar_ciudades():
+    return JSONResponse(content={"ciudades": registry.listar_ciudades()})
 
 
 @app.get("/health")
@@ -487,18 +496,19 @@ async def health():
 
 @app.post("/classify")
 @app.post("/api/classify")
-async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido")):
+async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
     data = await imagen.read()
-    clase = clasificador.clasificar(data)
+    clase = registry.clasificar(data, ciudad)
+    mon = registry.monumentos(ciudad)
 
-    if monumentos is None:
+    if mon is None:
         return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
 
-    monumento = monumentos.lookup_by_class(clase)
+    monumento = mon.lookup_by_class(clase)
     if monumento is None:
         return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
 
-    pois = monumentos.get_nearby(monumento["id"])
+    pois = mon.get_nearby(monumento["id"])
     descripcion = monumento["descripcion_corta"]
 
     if modo == "pensar" and descripcion:

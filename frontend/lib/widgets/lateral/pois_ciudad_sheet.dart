@@ -18,7 +18,7 @@ class _PoisCiudadSheetState extends State<PoisCiudadSheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LateralViewModel>().cargarPois();
+      context.read<LateralViewModel>().cargarPois(widget.ciudad);
     });
   }
 

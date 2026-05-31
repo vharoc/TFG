@@ -18,14 +18,21 @@ def inicializar_rag(chroma_path: str = "./chroma_db") -> None:
     logger.info("RAG listo — %d chunks indexados", _collection.count())
 
 
-def consultar_rag(pregunta: str, monumento: str, n_resultados: int = 3) -> list[dict]:
+def consultar_rag(pregunta: str, monumento: str, n_resultados: int = 3,
+                  ciudad: str | None = None) -> list[dict]:
     if _model is None or _collection is None:
         return []
     embedding = _model.encode([pregunta])[0].tolist()
+    # Filtro tolerante: solo se añade `ciudad` cuando los chunks estén
+    # reindexados con ese metadato (multi-ciudad). Hoy se llama sin ciudad.
+    if ciudad:
+        where = {"$and": [{"monumento": monumento}, {"ciudad": ciudad}]}
+    else:
+        where = {"monumento": monumento}
     results = _collection.query(
         query_embeddings=[embedding],
         n_results=n_resultados,
-        where={"monumento": monumento},
+        where=where,
         include=["documents", "metadatas", "distances"],
     )
     chunks = []

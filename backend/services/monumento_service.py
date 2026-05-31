@@ -7,7 +7,17 @@ from typing import Optional
 
 class MonumentoService:
     def __init__(self, json_path: str, vecinos: int = 3):
-        self._data: list[dict] = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        raw = json.loads(Path(json_path).read_text(encoding="utf-8"))
+        # Acepta dos formatos:
+        #  - nuevo:   {"ciudad": {...geo...}, "monumentos": [...]}
+        #  - legacy:  [ ...monumentos... ]   (sin geo de ciudad)
+        if isinstance(raw, dict):
+            self.ciudad: Optional[dict] = raw.get("ciudad")
+            self._data: list[dict] = raw.get("monumentos", [])
+        else:
+            self.ciudad = None
+            self._data = raw
+
         self._by_class: dict[str, dict] = {
             self._normalizar(m["classifier_class"]): m for m in self._data
         }

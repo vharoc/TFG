@@ -1,7 +1,7 @@
 import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/ciudad_soportada.dart';
+import 'ollama_service.dart';
 
 enum EstadoPermiso {
   concedido,
@@ -13,8 +13,6 @@ enum EstadoPermiso {
 class UbicacionService {
   UbicacionService._();
   static final UbicacionService instance = UbicacionService._();
-
-  final _db = FirebaseFirestore.instance;
 
   // Solo comprueba el estado actual sin mostrar ningún diálogo
   Future<EstadoPermiso> verificarPermiso() async {
@@ -76,15 +74,15 @@ class UbicacionService {
     ),
   ];
 
-  // Carga todas las ciudades soportadas desde Firestore, con fallback local
+  // Fuente de verdad: el backend (/ciudades). Fallback local si no responde.
   Future<List<CiudadSoportada>> cargarCiudadesSoportadas() async {
     try {
-      final snap = await _db.collection('supported_cities').get();
-      if (snap.docs.isEmpty) return _ciudadesFallback;
-      return snap.docs.map(CiudadSoportada.fromFirestore).toList();
+      final ciudades = await OllamaService.ciudades();
+      if (ciudades.isNotEmpty) return ciudades;
     } catch (_) {
-      return _ciudadesFallback;
+      // backend no disponible → fallback
     }
+    return _ciudadesFallback;
   }
 
   // Devuelve la ciudad soportada en cuyo radio se encuentran las coordenadas,

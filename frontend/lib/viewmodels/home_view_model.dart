@@ -357,6 +357,7 @@ class HomeViewModel extends ChangeNotifier {
       final resultado = await OllamaService.classify(
         File(img.path),
         modo: modoEfectivo,
+        ciudad: _ciudadActual,
         client: client,
       );
 
@@ -506,6 +507,7 @@ class HomeViewModel extends ChangeNotifier {
         lon: lon,
         filtro: filtro,
         visitados: _visitados.toList(),
+        ciudad: _ciudadActual,
       );
       _rutaState = RutaState.resumen(resultado);
     } catch (_) {
