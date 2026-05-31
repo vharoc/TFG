@@ -192,10 +192,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ],
                 ),
 
+                HamburgerButton(onTap: _abrirLateral),
+
                 if (vm.rutaState != null)
-                  RutaExitButton(onTap: vm.cancelarRuta)
-                else
-                  HamburgerButton(onTap: _abrirLateral),
+                  RutaExitButton(onTap: vm.cancelarRuta),
               ],
             ),
           ),

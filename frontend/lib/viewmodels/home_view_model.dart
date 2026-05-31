@@ -477,7 +477,7 @@ class HomeViewModel extends ChangeNotifier {
         await _guardarMensajeTexto(
           chatId: _chatId!,
           contenido:
-              '🗺️ Modo ruta activado. Hazme una foto del monumento donde estás '
+              '🗺️ Modo ruta activado. Hazle una foto al monumento donde estás '
               'ahora y te montaré un recorrido a pie por los alrededores.',
           role: MensajeRole.bot,
         );
@@ -534,7 +534,7 @@ class HomeViewModel extends ChangeNotifier {
 
     await _guardarMensajeTexto(
       chatId: _chatId!,
-      contenido: '📍 Primera parada: ${primera.nombre}\n¡Hazte una foto cuando llegues!',
+      contenido: '📍 Primera parada: ${primera.nombre}\n¡Hazle una foto cuando llegues!',
       role: MensajeRole.bot,
     );
   }
@@ -566,7 +566,7 @@ class HomeViewModel extends ChangeNotifier {
     final prefijo = esUltima ? '📍 ¡Última parada!' : '📍 Parada ${siguiente + 1} de ${rs.resultado!.paradas.length}:';
     await _guardarMensajeTexto(
       chatId: _chatId!,
-      contenido: '$prefijo ${parada.nombre}\n¡Hazte una foto cuando llegues!',
+      contenido: '$prefijo ${parada.nombre}\n¡Hazle una foto cuando llegues!',
       role: MensajeRole.bot,
     );
   }
