@@ -20,7 +20,9 @@ class Ciudad{
       id: id,
       userId: map['userId'] ?? '',
       nombre: map['nombre'] ?? '',
-      visitadaEn: (map['visitadaEn'] as Timestamp).toDate(),
+      // serverTimestamp() puede ser null en el snapshot local hasta que el
+      // servidor lo confirma: en ese caso usamos la hora actual.
+      visitadaEn: (map['visitadaEn'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
  

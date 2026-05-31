@@ -274,44 +274,54 @@ class _ChatInputState extends State<ChatInput> {
   }
 
   Widget _buildFiltroRuta() {
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Elige el tipo de ruta:',
-              style: TextStyle(fontSize: 13, color: Colors.black54),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Elige el tipo de ruta',
+                style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
-          _rutaChip('Todos', 'todos', AppTheme.usal),
-          const SizedBox(width: 6),
-          _rutaChip('Pendientes', 'pendientes', AppTheme.ocre),
-          const SizedBox(width: 6),
-          _rutaChip('Visitados', 'visitados', Colors.green),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: widget.onCancelarRuta,
-            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
-          ),
-        ],
-      ),
+            GestureDetector(
+              onTap: widget.onCancelarRuta,
+              child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _rutaChip('Todos', 'todos', AppTheme.usal),
+            const SizedBox(width: 8),
+            _rutaChip('Pendientes', 'pendientes', AppTheme.ocre),
+            const SizedBox(width: 8),
+            _rutaChip('Visitados', 'visitados', Colors.green),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _rutaChip(String label, String value, Color color) {
-    return GestureDetector(
-      onTap: () => widget.onFiltroRuta?.call(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => widget.onFiltroRuta?.call(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12.5, color: color, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );

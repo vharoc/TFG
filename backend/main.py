@@ -179,25 +179,68 @@ def _filtrar_monumentos(filtro: str, visitados: list[str]) -> list[dict]:
 
 
 def _nearest_neighbor(lat: float, lon: float, candidatos: list[dict]) -> list[dict]:
+    """Construye una ruta inicial eligiendo siempre el monumento más cercano."""
     pendientes = list(candidatos)
-    ruta = []
+    orden = []
     pos = (lat, lon)
     while pendientes:
         cercano = min(pendientes, key=lambda m: _haversine_km(pos[0], pos[1], m["lat"], m["lon"]))
-        dist_m = round(_haversine_km(pos[0], pos[1], cercano["lat"], cercano["lon"]) * 1000)
-        tiempo_min = max(1, round(dist_m / 80))  # ~80 m/min a pie
-        ruta.append({
-            "id": cercano["id"],
-            "nombre": cercano["nombre"],
-            "descripcion_corta": cercano.get("descripcion_corta", ""),
-            "lat": cercano["lat"],
-            "lon": cercano["lon"],
-            "distancia_m": dist_m,
-            "tiempo_min": tiempo_min,
-        })
+        orden.append(cercano)
         pos = (cercano["lat"], cercano["lon"])
         pendientes.remove(cercano)
-    return ruta
+    return orden
+
+
+def _longitud_ruta(lat: float, lon: float, orden: list[dict]) -> float:
+    """Distancia total recorrida partiendo de (lat, lon) y pasando por cada parada."""
+    total = 0.0
+    pos = (lat, lon)
+    for m in orden:
+        total += _haversine_km(pos[0], pos[1], m["lat"], m["lon"])
+        pos = (m["lat"], m["lon"])
+    return total
+
+
+def _dos_opt(lat: float, lon: float, orden: list[dict]) -> list[dict]:
+    """Refina la ruta con búsqueda local 2-opt: invierte segmentos mientras acorte el total.
+
+    Nearest-neighbor da rutas hasta ~25% peores que el óptimo; 2-opt elimina los
+    cruces y deja la ruta a pocos puntos del óptimo. Con N<=17 es instantáneo.
+    """
+    if len(orden) < 3:
+        return orden
+    mejor = orden
+    mejor_dist = _longitud_ruta(lat, lon, mejor)
+    mejorado = True
+    while mejorado:
+        mejorado = False
+        for i in range(len(mejor) - 1):
+            for j in range(i + 1, len(mejor)):
+                candidato = mejor[:i] + mejor[i:j + 1][::-1] + mejor[j + 1:]
+                dist = _longitud_ruta(lat, lon, candidato)
+                if dist < mejor_dist - 1e-9:
+                    mejor, mejor_dist = candidato, dist
+                    mejorado = True
+    return mejor
+
+
+def _construir_paradas(lat: float, lon: float, orden: list[dict]) -> list[dict]:
+    """Calcula distancia y tiempo de cada tramo a partir del orden final."""
+    paradas = []
+    pos = (lat, lon)
+    for m in orden:
+        dist_m = round(_haversine_km(pos[0], pos[1], m["lat"], m["lon"]) * 1000)
+        paradas.append({
+            "id": m["id"],
+            "nombre": m["nombre"],
+            "descripcion_corta": m.get("descripcion_corta", ""),
+            "lat": m["lat"],
+            "lon": m["lon"],
+            "distancia_m": dist_m,
+            "tiempo_min": max(1, round(dist_m / 80)),  # ~80 m/min a pie
+        })
+        pos = (m["lat"], m["lon"])
+    return paradas
 
 
 def _ejecutar_generar_ruta(filtro: str, lat: float | None, lon: float | None, visitados: list[str]) -> dict:
@@ -206,7 +249,9 @@ def _ejecutar_generar_ruta(filtro: str, lat: float | None, lon: float | None, vi
         return {"error": f"No hay monumentos para el filtro '{filtro}'", "paradas": [], "tiempo_total_min": 0}
     lat_ini = lat if lat is not None else 40.9640
     lon_ini = lon if lon is not None else -5.6640
-    paradas = _nearest_neighbor(lat_ini, lon_ini, candidatos)
+    orden = _nearest_neighbor(lat_ini, lon_ini, candidatos)
+    orden = _dos_opt(lat_ini, lon_ini, orden)
+    paradas = _construir_paradas(lat_ini, lon_ini, orden)
     return {"paradas": paradas, "tiempo_total_min": sum(p["tiempo_min"] for p in paradas)}
 
 

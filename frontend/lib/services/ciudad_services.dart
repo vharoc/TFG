@@ -20,26 +20,25 @@ class CiudadServices {
       _db.collection('cities');
 
   // -- Stream de ciudades del usuario --
+  // Sin orderBy en el query (evita índice compuesto); se ordena en cliente.
   Stream<List<Ciudad>> get ciudadesStream => _ciudadesRef
       .where('userId', isEqualTo: _uid)
-      .orderBy('visitadaEn', descending: true)
       .snapshots()
-      .map((snap) => snap.docs.map(Ciudad.fromFirestore).toList());
+      .map((snap) {
+        final lista = snap.docs.map(Ciudad.fromFirestore).toList();
+        lista.sort((a, b) => b.visitadaEn.compareTo(a.visitadaEn));
+        return lista;
+      });
 
   // -- Añadir ciudad visitada (solo si no existe ya para este usuario) --
+  // ID determinista → no necesita query compuesta ni índice, es idempotente
   Future<void> registrarCiudad(String nombre) async {
-    final snap = await _ciudadesRef
-        .where('userId', isEqualTo: _uid)
-        .where('nombre', isEqualTo: nombre)
-        .limit(1)
-        .get();
-    if (snap.docs.isEmpty) {
-      await _ciudadesRef.add({
-        'userId': _uid,
-        'nombre': nombre,
-        'visitadaEn': FieldValue.serverTimestamp(),
-      });
-    }
+    final docId = '${_uid}_${nombre.toLowerCase().replaceAll(' ', '_')}';
+    await _ciudadesRef.doc(docId).set({
+      'userId': _uid,
+      'nombre': nombre,
+      'visitadaEn': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> crearCiudad(Ciudad ciudad) async {

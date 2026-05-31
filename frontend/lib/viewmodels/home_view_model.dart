@@ -231,9 +231,12 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = _chatId!;
 
+    // En modo ruta todas las respuestas pasan por el modelo (pensar) para dar formato.
+    final modoEfectivo = (_rutaState?.estado == EstadoRuta.activo) ? 'pensar' : _modo;
+
     // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
     final List<Mensaje> historialReciente;
-    if (_monumentoIdActual != null && _modo == 'rapido') {
+    if (_monumentoIdActual != null && modoEfectivo == 'rapido') {
       historialReciente = const [];
     } else {
       final historial = _messages
@@ -264,7 +267,7 @@ class HomeViewModel extends ChangeNotifier {
         ciudad: _ciudadActual!,
         history: historialReciente,
         monumentoId: _monumentoIdActual,
-        modo: _modo,
+        modo: modoEfectivo,
         client: client,
       );
       if (resultado.monumentoId != null) {
@@ -364,26 +367,66 @@ class HomeViewModel extends ChangeNotifier {
             .catchError((_) {});
       }
 
-      // Transición esperandoFoto → seleccionandoFiltro
+      // Contexto de ruta ANTES de mutar el estado (la foto puede ser de inicio o de parada).
+      final esFotoDeRuta = _rutaState?.estado == EstadoRuta.esperandoFoto ||
+          _rutaState?.estado == EstadoRuta.activo;
+      final eraRutaActiva = _rutaState?.estado == EstadoRuta.activo;
+      final iniciaRuta =
+          _rutaState?.estado == EstadoRuta.esperandoFoto && resultado.id != null;
+
+      // Transición esperandoFoto → seleccionandoFiltro.
+      // Si el monumento no se reconoce, no se puede iniciar la ruta.
       if (_rutaState?.estado == EstadoRuta.esperandoFoto) {
-        _rutaLat ??= resultado.lat; // fallback si GPS no disponible
-        _rutaLon ??= resultado.lon;
-        _rutaState = RutaState.seleccionando();
-        notifyListeners();
+        if (resultado.id == null) {
+          _rutaState = null;
+          _rutaLat = null;
+          _rutaLon = null;
+          _mensajeErrorFoto =
+              'No he reconocido este lugar. Acércate a un monumento para empezar la ruta.';
+          notifyListeners();
+        } else {
+          _rutaLat ??= resultado.lat; // fallback si GPS no disponible
+          _rutaLon ??= resultado.lon;
+          _rutaState = RutaState.seleccionando();
+          notifyListeners();
+        }
       }
 
-      final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
-          ? resultado.descripcionCorta!
-          : resultado.nombre;
+      // El nombre del monumento siempre encabeza la respuesta.
+      final descripcion = (resultado.descripcionCorta?.trim().isNotEmpty == true)
+          ? resultado.descripcionCorta!.trim()
+          : '';
+      final respuesta = (resultado.id != null)
+          ? (descripcion.isNotEmpty
+              ? '📍 ${resultado.nombre}\n\n$descripcion'
+              : '📍 ${resultado.nombre}')
+          : (descripcion.isNotEmpty ? descripcion : resultado.nombre);
+
+      // En ruta: chips de curiosidad sobre el monumento. Normal: POIs cercanos.
+      final chips = (esFotoDeRuta && resultado.id != null)
+          ? _chipsPreguntaMonumento(resultado.id!)
+          : resultado.poisCercanos;
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: respuesta,
         role: MensajeRole.bot,
-        poisCercanos: resultado.poisCercanos,
+        poisCercanos: chips,
       );
 
-      // Auto-avanzar en modo ruta activa tras responder
-      if (_rutaState?.estado == EstadoRuta.activo) {
+      // Tras la primera foto, explicar las opciones de filtro de ruta
+      if (iniciaRuta) {
+        await _guardarMensajeTexto(
+          chatId: chatIdActual,
+          contenido: '¿Qué recorrido quieres? Elige abajo 👇\n'
+              '• Todos — todos los monumentos de la ciudad\n'
+              '• Pendientes — los que aún no has visitado\n'
+              '• Visitados — repasa los que ya conoces',
+          role: MensajeRole.bot,
+        );
+      }
+
+      // Auto-avanzar solo si la foto era de una parada de ruta activa
+      if (eraRutaActiva) {
         await siguienteParada();
       }
     } catch (_) {
@@ -402,17 +445,44 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> preguntarSobrePoi(PoiSugerido poi) async {
     _monumentoIdActual = poi.id;
-    await enviarTexto('Cuéntame más sobre ${poi.nombre}');
+    if (poi.esPregunta) {
+      // Chip de curiosidad: el texto del chip ya es la pregunta
+      await enviarTexto(poi.nombre);
+    } else {
+      // Chip de monumento cercano: navegamos a él
+      await enviarTexto('Cuéntame más sobre ${poi.nombre}');
+    }
   }
+
+  // Chips de curiosidad sobre el monumento actual (modo ruta).
+  List<PoiSugerido> _chipsPreguntaMonumento(String monumentoId) => [
+        PoiSugerido(id: monumentoId, nombre: '¿Cuál es su historia?', esPregunta: true),
+        PoiSugerido(id: monumentoId, nombre: '¿Qué tiene de especial?', esPregunta: true),
+        PoiSugerido(id: monumentoId, nombre: 'Cuéntame una curiosidad', esPregunta: true),
+      ];
 
   // ── Ruta ──────────────────────────────────────────────────────────────────
 
-  void iniciarFlujoRuta() {
+  Future<void> iniciarFlujoRuta() async {
     if (_generando) return;
     _rutaLat = null;
     _rutaLon = null;
     _rutaState = RutaState.esperandoFoto();
     notifyListeners();
+
+    // Mensaje explicativo en el chat (si ya hay ciudad para poder crear el chat)
+    if (_ciudadActual != null) {
+      await _crearChatSiNecesario();
+      if (_chatId != null) {
+        await _guardarMensajeTexto(
+          chatId: _chatId!,
+          contenido:
+              '🗺️ Modo ruta activado. Hazme una foto del monumento donde estás '
+              'ahora y te montaré un recorrido a pie por los alrededores.',
+          role: MensajeRole.bot,
+        );
+      }
+    }
   }
 
   Future<void> seleccionarFiltroRuta(String filtro) async {
