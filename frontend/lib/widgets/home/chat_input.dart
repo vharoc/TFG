@@ -92,6 +92,7 @@ class _ChatInputState extends State<ChatInput> {
     if (widget.isLoading) return _buildLoading();
     final rs = widget.rutaState;
     if (rs != null) {
+      if (rs.estado == EstadoRuta.esperandoFoto) return _buildEsperandoFoto();
       if (rs.estado == EstadoRuta.seleccionandoFiltro) return _buildFiltroRuta();
       if (rs.estado == EstadoRuta.cargando) return _buildCargandoRuta();
       if (rs.estado == EstadoRuta.activo) return _buildRutaActiva();
@@ -237,6 +238,41 @@ class _ChatInputState extends State<ChatInput> {
     );
   }
 
+  Widget _buildEsperandoFoto() {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          const Icon(Icons.camera_alt_outlined, size: 18, color: AppTheme.ocre),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Toma una foto del lugar donde estás',
+              style: TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+          ),
+          GestureDetector(
+            onTap: _openCamera,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.ocre,
+              ),
+              child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: widget.onCancelarRuta,
+            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFiltroRuta() {
     return SizedBox(
       height: 44,
@@ -305,28 +341,43 @@ class _ChatInputState extends State<ChatInput> {
       height: 44,
       child: Row(
         children: [
-          const Icon(Icons.route_rounded, size: 18, color: AppTheme.usal),
-          const SizedBox(width: 8),
+          const Icon(Icons.route_rounded, size: 16, color: AppTheme.usal),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               parada != null
-                  ? 'Parada ${rs.paradaActual + 1}/${rs.totalParadas}: ${parada.nombre}'
+                  ? '${rs.paradaActual + 1}/${rs.totalParadas}: ${parada.nombre}'
                   : 'Ruta activa',
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          // Cámara — toma foto y auto-avanza tras la respuesta
+          GestureDetector(
+            onTap: _openCamera,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.ocre,
+              ),
+              child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Saltar — avanza sin foto
           GestureDetector(
             onTap: widget.onSiguienteParada,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: AppTheme.usal,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text(
-                'Siguiente →',
+                'Saltar →',
                 style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),

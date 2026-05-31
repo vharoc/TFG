@@ -26,7 +26,22 @@ class CiudadServices {
       .snapshots()
       .map((snap) => snap.docs.map(Ciudad.fromFirestore).toList());
 
-  // -- Añadir ciudad visitada --
+  // -- Añadir ciudad visitada (solo si no existe ya para este usuario) --
+  Future<void> registrarCiudad(String nombre) async {
+    final snap = await _ciudadesRef
+        .where('userId', isEqualTo: _uid)
+        .where('nombre', isEqualTo: nombre)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) {
+      await _ciudadesRef.add({
+        'userId': _uid,
+        'nombre': nombre,
+        'visitadaEn': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
   Future<void> crearCiudad(Ciudad ciudad) async {
     await _ciudadesRef.add(ciudad.toMap());
   }

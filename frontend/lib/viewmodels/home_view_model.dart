@@ -9,6 +9,7 @@ import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
 import '../models/ruta_result.dart';
 import '../services/chat_services.dart';
+import '../services/ciudad_services.dart';
 import '../services/ollama_service.dart';
 import '../services/poi_visitado_service.dart';
 import '../services/ubicacion_service.dart';
@@ -81,6 +82,8 @@ class HomeViewModel extends ChangeNotifier {
 
   RutaState? _rutaState;
   RutaState? get rutaState => _rutaState;
+  double? _rutaLat;
+  double? _rutaLon;
 
   void cancelarRespuesta() {
     _clientActivo?.close();
@@ -335,9 +338,22 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // GPS real del móvil para el inicio de ruta (antes del classify)
+      if (_rutaState?.estado == EstadoRuta.esperandoFoto && _gpsDisponible) {
+        try {
+          final pos = await UbicacionService.instance.obtenerPosicion();
+          _rutaLat = pos.latitude;
+          _rutaLon = pos.longitude;
+        } catch (_) {}
+      }
+
+      // En modo ruta activa siempre se usa pensar para dar formato a la respuesta
+      final modoEfectivo =
+          (_rutaState?.estado == EstadoRuta.activo) ? 'pensar' : _modo;
+
       final resultado = await OllamaService.classify(
         File(img.path),
-        modo: _modo,
+        modo: modoEfectivo,
         client: client,
       );
 
@@ -346,6 +362,14 @@ class HomeViewModel extends ChangeNotifier {
         PoiVisitadoService.instance
             .marcarVisitado(resultado.id!, resultado.nombre)
             .catchError((_) {});
+      }
+
+      // Transición esperandoFoto → seleccionandoFiltro
+      if (_rutaState?.estado == EstadoRuta.esperandoFoto) {
+        _rutaLat ??= resultado.lat; // fallback si GPS no disponible
+        _rutaLon ??= resultado.lon;
+        _rutaState = RutaState.seleccionando();
+        notifyListeners();
       }
 
       final respuesta = (resultado.descripcionCorta?.trim().isNotEmpty == true)
@@ -357,6 +381,11 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
         poisCercanos: resultado.poisCercanos,
       );
+
+      // Auto-avanzar en modo ruta activa tras responder
+      if (_rutaState?.estado == EstadoRuta.activo) {
+        await siguienteParada();
+      }
     } catch (_) {
       if (_clientActivo == null) return; // cancelado por el usuario
       await _guardarMensajeTexto(
@@ -365,7 +394,6 @@ class HomeViewModel extends ChangeNotifier {
         role: MensajeRole.bot,
       );
     } finally {
-      _localImages.removeWhere((m) => m.id == localId);
       _clientActivo = null;
       _generando = false;
       notifyListeners();
@@ -381,7 +409,9 @@ class HomeViewModel extends ChangeNotifier {
 
   void iniciarFlujoRuta() {
     if (_generando) return;
-    _rutaState = RutaState.seleccionando();
+    _rutaLat = null;
+    _rutaLon = null;
+    _rutaState = RutaState.esperandoFoto();
     notifyListeners();
   }
 
@@ -390,8 +420,10 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      double lat = 40.9640, lon = -5.6640;
-      if (_gpsDisponible) {
+      // Usar coordenadas capturadas de la foto; si no hay, intentar GPS
+      double lat = _rutaLat ?? 40.9640;
+      double lon = _rutaLon ?? -5.6640;
+      if (_rutaLat == null && _gpsDisponible) {
         try {
           final pos = await UbicacionService.instance.obtenerPosicion();
           lat = pos.latitude;
@@ -471,6 +503,8 @@ class HomeViewModel extends ChangeNotifier {
 
   void cancelarRuta() {
     _rutaState = null;
+    _rutaLat = null;
+    _rutaLon = null;
     notifyListeners();
   }
 
@@ -484,6 +518,9 @@ class HomeViewModel extends ChangeNotifier {
       );
       _chatId = id;
       _suscribir();
+      if (_ciudadActual != null) {
+        CiudadServices.instance.registrarCiudad(_ciudadActual!).catchError((_) {});
+      }
     } catch (_) {
       // Si falla la creación, _chatId sigue null
     } finally {

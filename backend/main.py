@@ -467,5 +467,7 @@ async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido")):
         "id": monumento["id"],
         "nombre": monumento["nombre"],
         "descripcion_corta": descripcion,
+        "lat": monumento.get("lat"),
+        "lon": monumento.get("lon"),
         "pois_cercanos": [{"id": p["id"], "nombre": p["nombre"]} for p in pois],
     })

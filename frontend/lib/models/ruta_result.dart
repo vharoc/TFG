@@ -50,7 +50,7 @@ class RutaResult {
 
 // ---------------------------------------------------------------------------
 
-enum EstadoRuta { seleccionandoFiltro, cargando, mostrandoResumen, activo }
+enum EstadoRuta { esperandoFoto, seleccionandoFiltro, cargando, mostrandoResumen, activo }
 
 class RutaState {
   final EstadoRuta estado;
@@ -62,6 +62,9 @@ class RutaState {
     this.resultado,
     this.paradaActual = 0,
   });
+
+  factory RutaState.esperandoFoto() =>
+      const RutaState._(estado: EstadoRuta.esperandoFoto);
 
   factory RutaState.seleccionando() =>
       const RutaState._(estado: EstadoRuta.seleccionandoFiltro);
@@ -90,5 +93,7 @@ class RutaState {
   int get totalParadas => resultado?.paradas.length ?? 0;
 
   bool get bloqueaInput =>
-      estado == EstadoRuta.seleccionandoFiltro || estado == EstadoRuta.cargando;
+      estado == EstadoRuta.esperandoFoto ||
+      estado == EstadoRuta.seleccionandoFiltro ||
+      estado == EstadoRuta.cargando;
 }
