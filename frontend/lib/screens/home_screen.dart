@@ -8,6 +8,7 @@ import '../widgets/home/chat_body.dart';
 import '../widgets/home/ciudad_selector_sheet.dart';
 import '../widgets/home/hamburger_btt.dart';
 import '../widgets/home/header_home.dart';
+import '../widgets/home/ruta_exit_button.dart';
 import '../widgets/home/ruta_resumen_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -191,7 +192,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ],
                 ),
 
-                HamburgerButton(onTap: _abrirLateral),
+                if (vm.rutaState != null)
+                  RutaExitButton(onTap: vm.cancelarRuta)
+                else
+                  HamburgerButton(onTap: _abrirLateral),
               ],
             ),
           ),
@@ -210,5 +214,4 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
   }
-
 }

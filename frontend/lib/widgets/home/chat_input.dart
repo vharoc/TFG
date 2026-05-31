@@ -263,11 +263,6 @@ class _ChatInputState extends State<ChatInput> {
               child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
             ),
           ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: widget.onCancelarRuta,
-            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
-          ),
         ],
       ),
     );
@@ -278,19 +273,9 @@ class _ChatInputState extends State<ChatInput> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Elige el tipo de ruta',
-                style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600),
-              ),
-            ),
-            GestureDetector(
-              onTap: widget.onCancelarRuta,
-              child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
-            ),
-          ],
+        const Text(
+          'Elige el tipo de ruta',
+          style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 10),
         Row(
@@ -391,11 +376,6 @@ class _ChatInputState extends State<ChatInput> {
                 style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: widget.onCancelarRuta,
-            child: const Icon(Icons.close_rounded, size: 20, color: Colors.black45),
           ),
         ],
       ),
