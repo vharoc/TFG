@@ -7,6 +7,7 @@ from typing import Optional
 import httpx
 import json
 import logging
+import math
 import os
 from dotenv import load_dotenv
 from services.clasificador_service import ClasificadorService
@@ -86,6 +87,16 @@ class Query(BaseModel):
     history: list[Message] = []
     monumento_id: Optional[str] = None
     modo: str = "rapido"  # "rapido" | "pensar"
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    visitados: list[str] = []
+
+
+class RutaRequest(BaseModel):
+    lat: float
+    lon: float
+    filtro: str = "pendientes"   # "todos" | "visitados" | "pendientes"
+    visitados: list[str] = []
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -103,12 +114,30 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "nombre": {
-                        "type": "string",
-                        "description": "Nombre o descripción del monumento a buscar"
-                    }
+                    "nombre": {"type": "string", "description": "Nombre o descripción del monumento a buscar"}
                 },
                 "required": ["nombre"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generar_ruta",
+            "description": (
+                "Genera una ruta turística personalizada por los monumentos de la ciudad, "
+                "ordenada por proximidad. Úsala cuando el usuario pida una ruta, itinerario o plan de visita."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filtro": {
+                        "type": "string",
+                        "enum": ["todos", "visitados", "pendientes"],
+                        "description": "Monumentos a incluir: todos, solo los ya visitados, o solo los aún no visitados"
+                    }
+                },
+                "required": ["filtro"]
             }
         }
     }
@@ -127,6 +156,79 @@ async def _llamar_llm(messages: list, tools: list | None = None, timeout: float 
         res = await client.post(GROQ_URL, headers=headers, json=payload)
         res.raise_for_status()
         return res.json()
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def _filtrar_monumentos(filtro: str, visitados: list[str]) -> list[dict]:
+    if monumentos is None:
+        return []
+    todos = monumentos._data
+    if filtro == "visitados":
+        return [m for m in todos if m["id"] in visitados]
+    if filtro == "pendientes":
+        return [m for m in todos if m["id"] not in visitados]
+    return list(todos)
+
+
+def _nearest_neighbor(lat: float, lon: float, candidatos: list[dict]) -> list[dict]:
+    pendientes = list(candidatos)
+    ruta = []
+    pos = (lat, lon)
+    while pendientes:
+        cercano = min(pendientes, key=lambda m: _haversine_km(pos[0], pos[1], m["lat"], m["lon"]))
+        dist_m = round(_haversine_km(pos[0], pos[1], cercano["lat"], cercano["lon"]) * 1000)
+        tiempo_min = max(1, round(dist_m / 80))  # ~80 m/min a pie
+        ruta.append({
+            "id": cercano["id"],
+            "nombre": cercano["nombre"],
+            "descripcion_corta": cercano.get("descripcion_corta", ""),
+            "lat": cercano["lat"],
+            "lon": cercano["lon"],
+            "distancia_m": dist_m,
+            "tiempo_min": tiempo_min,
+        })
+        pos = (cercano["lat"], cercano["lon"])
+        pendientes.remove(cercano)
+    return ruta
+
+
+def _ejecutar_generar_ruta(filtro: str, lat: float | None, lon: float | None, visitados: list[str]) -> dict:
+    candidatos = _filtrar_monumentos(filtro, visitados)
+    if not candidatos:
+        return {"error": f"No hay monumentos para el filtro '{filtro}'", "paradas": [], "tiempo_total_min": 0}
+    lat_ini = lat if lat is not None else 40.9640
+    lon_ini = lon if lon is not None else -5.6640
+    paradas = _nearest_neighbor(lat_ini, lon_ini, candidatos)
+    return {"paradas": paradas, "tiempo_total_min": sum(p["tiempo_min"] for p in paradas)}
+
+
+async def _narrar_resumen_ruta(paradas: list[dict]) -> str:
+    if not paradas:
+        return "No hay paradas disponibles."
+    lista = "\n".join(
+        f"{i+1}. {p['nombre']} (~{p['tiempo_min']} min andando)" for i, p in enumerate(paradas)
+    )
+    tiempo = sum(p["tiempo_min"] for p in paradas)
+    messages = [
+        {"role": "system", "content": (
+            "Eres Clicky, guia turistico. Presenta esta ruta de forma breve y entusiasta en espanol, "
+            "en 2-3 frases. No enumeres todos los monumentos; menciona el primero, el ultimo y cuantos hay en total."
+        )},
+        {"role": "user", "content": f"Ruta de {len(paradas)} paradas (~{tiempo} min):\n{lista}"},
+    ]
+    try:
+        data = await _llamar_llm(messages)
+        return data["choices"][0]["message"]["content"]
+    except Exception:
+        return f"Ruta de {len(paradas)} paradas, aproximadamente {tiempo} minutos a pie."
 
 
 def _usar_rag(nombre: str) -> dict:
@@ -170,21 +272,44 @@ async def _query_pensar_agente(q: "Query", monumento_activo: dict | None) -> "JS
     monumento_id = None
     pois_data = []
 
+    ruta_data = None
+
     if choice.get("finish_reason") == "tool_calls":
         tool_call = choice["message"]["tool_calls"][0]
+        tool_name = tool_call["function"]["name"]
         args = json.loads(tool_call["function"]["arguments"])
-        logger.info("Tool call: usar_rag(nombre='%s')", args.get("nombre"))
+        logger.info("Tool call: %s(%s)", tool_name, args)
 
-        resultado = _usar_rag(args["nombre"])
-        monumento_id = resultado["monumento_id"]
-        pois_data = resultado["pois_cercanos"]
+        if tool_name == "usar_rag":
+            resultado = _usar_rag(args["nombre"])
+            monumento_id = resultado["monumento_id"]
+            pois_data = resultado["pois_cercanos"]
+            tool_content = json.dumps({"informacion": resultado["informacion"]}, ensure_ascii=False)
 
-        # Segunda llamada: genera la respuesta con el resultado del RAG
+        elif tool_name == "generar_ruta":
+            ejecutado = _ejecutar_generar_ruta(
+                filtro=args.get("filtro", "todos"),
+                lat=q.lat, lon=q.lon,
+                visitados=q.visitados,
+            )
+            ruta_data = ejecutado
+            paradas_resumen = [
+                {"nombre": p["nombre"], "distancia_m": p["distancia_m"], "tiempo_min": p["tiempo_min"]}
+                for p in ejecutado.get("paradas", [])
+            ]
+            tool_content = json.dumps({
+                "paradas": paradas_resumen,
+                "tiempo_total_min": ejecutado.get("tiempo_total_min", 0),
+            }, ensure_ascii=False)
+
+        else:
+            tool_content = json.dumps({"error": f"Herramienta '{tool_name}' no reconocida"})
+
         messages.append(choice["message"])
         messages.append({
             "role": "tool",
             "tool_call_id": tool_call["id"],
-            "content": json.dumps({"informacion": resultado["informacion"]}, ensure_ascii=False),
+            "content": tool_content,
         })
         final = await _llamar_llm(messages)
         respuesta = final["choices"][0]["message"]["content"]
@@ -196,6 +321,7 @@ async def _query_pensar_agente(q: "Query", monumento_activo: dict | None) -> "JS
         "modo": "pensar",
         "monumento_id": monumento_id,
         "pois_cercanos": pois_data,
+        "ruta": ruta_data,
     })
 
 
@@ -280,6 +406,22 @@ async def query(q: Query):
     except Exception as e:
         logger.error("Error en modo rapido: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ruta")
+@app.post("/api/ruta")
+async def ruta(req: RutaRequest):
+    if monumentos is None:
+        raise HTTPException(status_code=503, detail="Servicio de monumentos no disponible")
+    resultado = _ejecutar_generar_ruta(req.filtro, req.lat, req.lon, req.visitados)
+    if "error" in resultado:
+        return JSONResponse(content={"paradas": [], "tiempo_total_min": 0, "resumen": resultado["error"]})
+    resumen = await _narrar_resumen_ruta(resultado["paradas"])
+    return JSONResponse(content={
+        "paradas": resultado["paradas"],
+        "tiempo_total_min": resultado["tiempo_total_min"],
+        "resumen": resumen,
+    })
 
 
 @app.get("/health")
