@@ -31,7 +31,8 @@ class Mensaje {
     this.poisCercanos = const [],
   }): assert(
     // si es un texto o imagen no pueden ser null
-    tipo == MensajeTipo.texto && contenido != null || tipo == MensajeTipo.imagen && imgUrl != null,
+    (tipo == MensajeTipo.texto && contenido != null) ||
+        (tipo == MensajeTipo.imagen && imgUrl != null),
   );
 
   factory Mensaje.fromMap(Map<String, dynamic> map, String id){
@@ -48,7 +49,9 @@ class Mensaje {
         (e) => e.name == (map['role'] ?? 'usuario'),
         orElse: () => MensajeRole.usuario,
       ),
-      fecha: (map['fecha'] as Timestamp).toDate(),
+      // serverTimestamp() puede ser null en el snapshot local hasta que el
+      // servidor lo confirma: en ese caso usamos la hora actual.
+      fecha: (map['fecha'] as Timestamp?)?.toDate() ?? DateTime.now(),
       poisCercanos: (map['poisCercanos'] as List<dynamic>? ?? [])
           .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
           .toList(),

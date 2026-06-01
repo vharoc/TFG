@@ -42,17 +42,28 @@ class ChatService {
       .map((snap) => snap.docs.map(Mensaje.fromFirestore).toList());
 
   // -- Crear conversación --
+  // ID con prefijo timestamp UTC (YYYYMMDDTHHmmss) + sufijo aleatorio: la
+  // Firestore Console ordena por ID por defecto, así que los chats aparecen
+  // cronológicamente sin necesidad de aplicar filtros en la consola.
   Future<String> crearConversacion({
     required String titulo,
     required String ciudad,
   }) async {
-    final doc = await _chatsRef.add({
+    final id = '${_timestampPrefix()}_${_chatsRef.doc().id.substring(0, 6)}';
+    await _chatsRef.doc(id).set({
       'titulo': titulo,
       'ciudad': ciudad,
       'fechaCreacion': FieldValue.serverTimestamp(),
       'userId': _uid,
     });
-    return doc.id;
+    return id;
+  }
+
+  String _timestampPrefix() {
+    final now = DateTime.now().toUtc();
+    String p(int n, [int w = 2]) => n.toString().padLeft(w, '0');
+    return '${p(now.year, 4)}${p(now.month)}${p(now.day)}'
+        'T${p(now.hour)}${p(now.minute)}${p(now.second)}';
   }
 
   // -- Guardar mensaje --

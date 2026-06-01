@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/chat.dart';
-import '../models/ciudad.dart';
+import '../models/ciudad_visitada.dart';
 import '../models/poi_sugerido.dart';
+import '../models/poi_visitado.dart';
 import '../services/auth_services.dart';
 import '../services/chat_services.dart';
-import '../services/ciudad_services.dart';
+import '../services/ciudad_visitada_service.dart';
 import '../services/ollama_service.dart';
 import '../services/poi_visitado_service.dart';
 
@@ -13,28 +14,29 @@ class LateralViewModel extends ChangeNotifier {
   final _auth = AuthService.instance;
 
   List<Chat> chats = [];
-  List<Ciudad> ciudades = [];
+  List<CiudadVisitada> ciudades = [];
   bool cargandoChats = true;
   bool cargandoCiudades = true;
   String? error;
 
-  Set<String> _visitados = {};
+  List<PoiVisitado> _visitados = [];
+  List<PoiVisitado> get visitados => List.unmodifiable(_visitados);
   List<PoiSugerido> todosLosPois = [];
   bool cargandoPois = false;
 
   StreamSubscription<List<Chat>>? _chatSub;
-  StreamSubscription<List<Ciudad>>? _ciudadSub;
-  StreamSubscription<Set<String>>? _visitadosSub;
+  StreamSubscription<List<CiudadVisitada>>? _ciudadSub;
+  StreamSubscription<List<PoiVisitado>>? _visitadosSub;
 
   LateralViewModel() {
     _suscribir();
-    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((ids) {
-      _visitados = ids;
+    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((lista) {
+      _visitados = lista;
       notifyListeners();
     });
   }
 
-  bool poiVisitado(String id) => _visitados.contains(id);
+  bool poiVisitado(String id) => _visitados.any((p) => p.id == id);
 
   Future<void> cargarPois(String ciudad) async {
     if (todosLosPois.isNotEmpty || cargandoPois) return;
@@ -75,7 +77,7 @@ class LateralViewModel extends ChangeNotifier {
         },
       );
 
-      _ciudadSub = CiudadServices.instance.ciudadesStream.listen(
+      _ciudadSub = CiudadVisitadaService.instance.ciudadesStream.listen(
         (data) {
           ciudades = data;
           cargandoCiudades = false;
@@ -97,6 +99,14 @@ class LateralViewModel extends ChangeNotifier {
 
   Future<void> eliminarChat(String id) async {
     await ChatService.instance.eliminarConversacion(id);
+  }
+
+  Future<void> eliminarCiudadVisitada(String id) async {
+    await CiudadVisitadaService.instance.eliminarCiudad(id);
+  }
+
+  Future<void> desmarcarPoi(String id) async {
+    await PoiVisitadoService.instance.desmarcarVisitado(id);
   }
 
   @override

@@ -21,7 +21,9 @@ class Chat {
       userId: map['userId'] ?? '',
       titulo: map['titulo'] ?? '',
       ciudad: map['ciudad'] ?? '',
-      fechaCreacion: (map['fechaCreacion'] as Timestamp).toDate(),
+      // serverTimestamp() puede ser null en el snapshot local hasta que el
+      // servidor lo confirma: en ese caso usamos la hora actual.
+      fechaCreacion: (map['fechaCreacion'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

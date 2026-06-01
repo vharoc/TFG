@@ -7,9 +7,10 @@ import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
 import '../models/poi_sugerido.dart';
+import '../models/poi_visitado.dart';
 import '../models/ruta_result.dart';
 import '../services/chat_services.dart';
-import '../services/ciudad_services.dart';
+import '../services/ciudad_visitada_service.dart';
 import '../services/ollama_service.dart';
 import '../services/poi_visitado_service.dart';
 import '../services/ubicacion_service.dart';
@@ -31,7 +32,10 @@ class HomeViewModel extends ChangeNotifier {
   String? get chatId => _chatId;
 
   bool _cargando = false;
-  bool get cargando => _cargando;
+  // Mientras no hay chat ni ciudad seleccionada estamos en la fase inicial
+  // (esperando GPS o selector). Tratarlo como "cargando" evita que asome
+  // el empty state durante ese intervalo.
+  bool get cargando => _cargando || (_chatId == null && _ciudadActual == null);
 
   String? _ciudadActual;
   String? get ciudadActual => _ciudadActual;
@@ -76,9 +80,9 @@ class HomeViewModel extends ChangeNotifier {
   String? _monumentoIdActual;
 
   // Monumentos fotografiados — sincronizado con Firestore.
-  final Set<String> _visitados = {};
-  Set<String> get visitados => Set.unmodifiable(_visitados);
-  StreamSubscription<Set<String>>? _visitadosSub;
+  List<PoiVisitado> _visitados = [];
+  List<PoiVisitado> get visitados => List.unmodifiable(_visitados);
+  StreamSubscription<List<PoiVisitado>>? _visitadosSub;
 
   RutaState? _rutaState;
   RutaState? get rutaState => _rutaState;
@@ -97,10 +101,8 @@ class HomeViewModel extends ChangeNotifier {
   bool _creandoChat = false;
 
   HomeViewModel({String? initialChatId}) {
-    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((ids) {
-      _visitados
-        ..clear()
-        ..addAll(ids);
+    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((lista) {
+      _visitados = lista;
       notifyListeners();
     });
     if (initialChatId != null) {
@@ -506,7 +508,7 @@ class HomeViewModel extends ChangeNotifier {
         lat: lat,
         lon: lon,
         filtro: filtro,
-        visitados: _visitados.toList(),
+        visitados: _visitados.map((p) => p.id).toList(),
         ciudad: _ciudadActual,
       );
       _rutaState = RutaState.resumen(resultado);
@@ -591,7 +593,7 @@ class HomeViewModel extends ChangeNotifier {
       _chatId = id;
       _suscribir();
       if (_ciudadActual != null) {
-        CiudadServices.instance.registrarCiudad(_ciudadActual!).catchError((_) {});
+        CiudadVisitadaService.instance.registrarCiudad(_ciudadActual!).catchError((_) {});
       }
     } catch (_) {
       // Si falla la creación, _chatId sigue null

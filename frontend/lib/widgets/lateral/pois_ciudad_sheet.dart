@@ -134,7 +134,7 @@ class _PoiRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final fila = Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
@@ -157,5 +157,34 @@ class _PoiRow extends StatelessWidget {
         ],
       ),
     );
+
+    // Solo los POIs visitados pueden desmarcarse — los pendientes no tienen estado que borrar.
+    if (!visitado) return fila;
+    return InkWell(
+      onLongPress: () => _confirmarDesmarcar(context),
+      child: fila,
+    );
+  }
+
+  Future<void> _confirmarDesmarcar(BuildContext context) async {
+    final vm = context.read<LateralViewModel>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Quitar de visitados'),
+        content: Text('¿Quitar "${poi.nombre}" de tus monumentos visitados?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Quitar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) vm.desmarcarPoi(poi.id);
   }
 }

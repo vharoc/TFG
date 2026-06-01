@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/ciudad.dart';
+import '../models/ciudad_visitada.dart';
 import 'auth_services.dart';
 
-class CiudadServices {
-  CiudadServices._();
+class CiudadVisitadaService {
+  CiudadVisitadaService._();
 
-  static final CiudadServices instance = CiudadServices._();
+  static final CiudadVisitadaService instance = CiudadVisitadaService._();
 
   final _db = FirebaseFirestore.instance;
 
@@ -19,19 +19,17 @@ class CiudadServices {
   CollectionReference<Map<String, dynamic>> get _ciudadesRef =>
       _db.collection('cities');
 
-  // -- Stream de ciudades del usuario --
   // Sin orderBy en el query (evita índice compuesto); se ordena en cliente.
-  Stream<List<Ciudad>> get ciudadesStream => _ciudadesRef
+  Stream<List<CiudadVisitada>> get ciudadesStream => _ciudadesRef
       .where('userId', isEqualTo: _uid)
       .snapshots()
       .map((snap) {
-        final lista = snap.docs.map(Ciudad.fromFirestore).toList();
+        final lista = snap.docs.map(CiudadVisitada.fromFirestore).toList();
         lista.sort((a, b) => b.visitadaEn.compareTo(a.visitadaEn));
         return lista;
       });
 
-  // -- Añadir ciudad visitada (solo si no existe ya para este usuario) --
-  // ID determinista → no necesita query compuesta ni índice, es idempotente
+  // ID determinista → idempotente y sin índices compuestos
   Future<void> registrarCiudad(String nombre) async {
     final docId = '${_uid}_${nombre.toLowerCase().replaceAll(' ', '_')}';
     await _ciudadesRef.doc(docId).set({
@@ -41,11 +39,6 @@ class CiudadServices {
     }, SetOptions(merge: true));
   }
 
-  Future<void> crearCiudad(Ciudad ciudad) async {
-    await _ciudadesRef.add(ciudad.toMap());
-  }
-
-  // -- Eliminar ciudad --
   Future<void> eliminarCiudad(String ciudadId) async {
     await _ciudadesRef.doc(ciudadId).delete();
   }

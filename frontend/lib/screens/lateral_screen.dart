@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/chat.dart';
-import '../models/ciudad.dart';
+import '../models/ciudad_visitada.dart';
 import '../viewmodels/lateral_view_model.dart';
 import '../widgets/lateral/chat_tile.dart';
 import '../widgets/lateral/city_tile.dart';
@@ -97,7 +97,7 @@ class _LateralBodyState extends State<_LateralBody> {
                         ),
                       )
                     : _panelExpandido == _PanelExpandido.ciudades
-                    ? LateralPanel<Ciudad>(
+                    ? LateralPanel<CiudadVisitada>(
                         header: 'Ciudades visitadas',
                         emptyMessage: 'Aún no has visitado ninguna ciudad',
                         collapseLabel: 'Ocultar ciudades',
@@ -110,6 +110,7 @@ class _LateralBodyState extends State<_LateralBody> {
                         itemBuilder: (ciudad) => LateralCityTile(
                           ciudad: ciudad,
                           onTap: () => context.pop(),
+                          onDelete: () => _confirmarEliminarCiudad(ciudad),
                         ),
                         onExpand: () {},
                         onCollapse: () => setState(
@@ -139,7 +140,7 @@ class _LateralBodyState extends State<_LateralBody> {
                             onCollapse: () {},
                           ),
                           SizedBox(height: innerSpacing),
-                          LateralPanel<Ciudad>(
+                          LateralPanel<CiudadVisitada>(
                             header: 'Ciudades visitadas',
                             emptyMessage: 'Aún no has visitado ninguna ciudad',
                             collapseLabel: 'Ocultar ciudades',
@@ -152,6 +153,7 @@ class _LateralBodyState extends State<_LateralBody> {
                             itemBuilder: (ciudad) => LateralCityTile(
                               ciudad: ciudad,
                               onTap: () => context.pop(),
+                              onDelete: () => _confirmarEliminarCiudad(ciudad),
                             ),
                             onExpand: () => setState(
                               () => _panelExpandido = _PanelExpandido.ciudades,
@@ -199,6 +201,32 @@ class _LateralBodyState extends State<_LateralBody> {
     );
     if (ok == true && mounted) {
       context.read<LateralViewModel>().eliminarChat(chat.id);
+    }
+  }
+
+  Future<void> _confirmarEliminarCiudad(CiudadVisitada ciudad) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar ciudad visitada'),
+        content: Text(
+          '¿Quitar "${ciudad.nombre}" de tus ciudades visitadas? '
+          'No borra las conversaciones ni los monumentos marcados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      context.read<LateralViewModel>().eliminarCiudadVisitada(ciudad.id);
     }
   }
 }
