@@ -47,15 +47,6 @@ class OllamaService {
     return [Uri.parse('$base/ruta'), Uri.parse('$base/api/ruta')];
   }
 
-  static List<Uri> _monumentosUris() {
-    final base = _normalizedBase;
-    if (base.endsWith('/api')) {
-      final rootBase = base.substring(0, base.length - 4);
-      return [Uri.parse('$base/monumentos'), Uri.parse('$rootBase/monumentos')];
-    }
-    return [Uri.parse('$base/monumentos'), Uri.parse('$base/api/monumentos')];
-  }
-
   static List<Uri> _ciudadesUris() {
     final base = _normalizedBase;
     if (base.endsWith('/api')) {
@@ -230,39 +221,6 @@ class OllamaService {
           return RutaResult.fromMap(jsonDecode(response.body) as Map<String, dynamic>);
         } on TimeoutException {
           throw Exception('El servidor tardó demasiado en responder.');
-        } catch (e) {
-          lastError = e is Exception ? e : Exception(e.toString());
-        }
-      }
-    } finally {
-      c.close();
-    }
-    throw lastError ?? Exception('No se pudo contactar con el servidor.');
-  }
-
-  static Future<List<PoiSugerido>> monumentos({String? ciudad}) async {
-    Exception? lastError;
-    final c = http.Client();
-    try {
-      for (final base in _monumentosUris()) {
-        try {
-          final uri = (ciudad != null && ciudad.isNotEmpty)
-              ? base.replace(queryParameters: {'ciudad': ciudad})
-              : base;
-          final response = await c.get(uri).timeout(const Duration(seconds: 15));
-          if (response.statusCode == 404) {
-            lastError = Exception('Endpoint no encontrado: $uri');
-            continue;
-          }
-          if (response.statusCode != 200) {
-            throw Exception('Error ${response.statusCode}');
-          }
-          final data = jsonDecode(response.body) as Map<String, dynamic>;
-          return (data['monumentos'] as List<dynamic>)
-              .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
-              .toList();
-        } on TimeoutException {
-          throw Exception('Timeout al cargar monumentos.');
         } catch (e) {
           lastError = e is Exception ? e : Exception(e.toString());
         }

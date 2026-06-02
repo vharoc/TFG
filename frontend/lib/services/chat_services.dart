@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat.dart';
 import '../models/mensaje.dart';
 import 'auth_services.dart';
+import 'imagen_local_service.dart';
 
 class ChatService {
   ChatService._();
@@ -93,6 +94,18 @@ class ChatService {
   // -- Eliminar conversación y sus mensajes --
   Future<void> eliminarConversacion(String chatId) async {
     final msgs = await _mensajesRef(chatId).get();
+
+    // Limpia los ficheros de imagen del disco antes de borrar los docs.
+    for (final m in msgs.docs) {
+      final data = m.data();
+      if (data['tipo'] == 'imagen') {
+        final url = data['imgUrl'] as String?;
+        if (url != null && !url.startsWith('http')) {
+          await ImagenLocalService.instance.borrar(url);
+        }
+      }
+    }
+
     final batch = _db.batch();
     for (final m in msgs.docs) {
       batch.delete(m.reference);

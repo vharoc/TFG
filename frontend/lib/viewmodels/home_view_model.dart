@@ -11,19 +11,15 @@ import '../models/poi_visitado.dart';
 import '../models/ruta_result.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_visitada_service.dart';
+import '../services/imagen_local_service.dart';
 import '../services/ollama_service.dart';
 import '../services/poi_visitado_service.dart';
 import '../services/ubicacion_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
-  List<Mensaje> _localImages = [];
 
-  List<Mensaje> get messages {
-    final combined = [..._messages, ..._localImages];
-    combined.sort((a, b) => a.fecha.compareTo(b.fecha));
-    return List.unmodifiable(combined);
-  }
+  List<Mensaje> get messages => List.unmodifiable(_messages);
 
   String _tituloChat = '';
   String get tituloChat => _tituloChat;
@@ -207,7 +203,6 @@ class HomeViewModel extends ChangeNotifier {
     _chatSub?.cancel();
     _chatId = nuevoChatId;
     _messages = [];
-    _localImages = [];
     _tituloChat = '';
     _monumentoIdActual = null;
     _rutaState = null;
@@ -325,15 +320,22 @@ class HomeViewModel extends ChangeNotifier {
     final chatIdActual = _chatId!;
     final ahora = DateTime.now();
 
-    final localId = 'local_${ahora.millisecondsSinceEpoch}';
-    _localImages.add(Mensaje.imagen(
-      id: localId,
+    // Copia la imagen al almacenamiento persistente de la app (no a la caché
+    // temporal de image_picker que Android puede limpiar).
+    final pathPersistente = await ImagenLocalService.instance.guardarPersistente(img);
+
+    // Guarda el mensaje de imagen en Firestore con el path persistente. El
+    // snapshot listener lo pinta inmediatamente; al recargar sigue ahí.
+    await ChatService.instance.guardarMensaje(
       chatId: chatIdActual,
-      imgUrl: img.path,
-      role: MensajeRole.usuario,
-      fecha: ahora,
-    ));
-    notifyListeners();
+      mensaje: Mensaje.imagen(
+        id: '',
+        chatId: chatIdActual,
+        imgUrl: pathPersistente,
+        role: MensajeRole.usuario,
+        fecha: ahora,
+      ),
+    );
 
     await _actualizarTituloSiVacio('[Imagen]');
 
@@ -357,7 +359,7 @@ class HomeViewModel extends ChangeNotifier {
           (_rutaState?.estado == EstadoRuta.activo) ? 'pensar' : _modo;
 
       final resultado = await OllamaService.classify(
-        File(img.path),
+        File(pathPersistente),
         modo: modoEfectivo,
         ciudad: _ciudadActual,
         client: client,
@@ -652,7 +654,6 @@ class HomeViewModel extends ChangeNotifier {
     _monumentoIdActual = null;
     _rutaState = null;
     _messages = [];
-    _localImages = [];
     _tituloChat = '';
     _cargando = false;
     notifyListeners();

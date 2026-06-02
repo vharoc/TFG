@@ -7,7 +7,7 @@ import '../models/poi_visitado.dart';
 import '../services/auth_services.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_visitada_service.dart';
-import '../services/ollama_service.dart';
+import '../services/monumento_service.dart';
 import '../services/poi_visitado_service.dart';
 
 class LateralViewModel extends ChangeNotifier {
@@ -43,7 +43,7 @@ class LateralViewModel extends ChangeNotifier {
     cargandoPois = true;
     notifyListeners();
     try {
-      todosLosPois = await OllamaService.monumentos(ciudad: ciudad);
+      todosLosPois = await MonumentoService.instance.porCiudad(ciudad);
     } catch (_) {
       todosLosPois = [];
     } finally {
