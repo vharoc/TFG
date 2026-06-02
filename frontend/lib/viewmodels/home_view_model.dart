@@ -207,6 +207,9 @@ class HomeViewModel extends ChangeNotifier {
       final nuevoTitulo = (chat?.titulo ?? '').trim();
       if (_tituloChat != nuevoTitulo) {
         _tituloChat = nuevoTitulo;
+        // Un chat ya guardado con título se considera consolidado (nivel 2)
+        // para que un nuevo mensaje no lo degrade.
+        if (nuevoTitulo.isNotEmpty && _nivelTitulo == 0) _nivelTitulo = 2;
         notifyListeners();
       }
     });
@@ -233,6 +236,7 @@ class HomeViewModel extends ChangeNotifier {
     _chatId = nuevoChatId;
     _messages = [];
     _tituloChat = '';
+    _nivelTitulo = 0;
     _monumentoIdActual = null;
     _rutaState = null;
     _cargando = false;
@@ -280,7 +284,7 @@ class HomeViewModel extends ChangeNotifier {
       role: MensajeRole.usuario,
     );
 
-    await _actualizarTituloSiVacio(textoTrimmed);
+    await _titularDesdeTexto(textoTrimmed);
 
     final client = http.Client();
     _clientActivo = client;
@@ -367,7 +371,8 @@ class HomeViewModel extends ChangeNotifier {
       ),
     );
 
-    await _actualizarTituloSiVacio('[Imagen]');
+    // Título provisional genérico; si la foto reconoce un monumento, se mejora abajo.
+    await _aplicarTitulo('Foto en ${_ciudadActual ?? 'la ciudad'}', 1);
 
     final client = http.Client();
     _clientActivo = client;
@@ -398,6 +403,8 @@ class HomeViewModel extends ChangeNotifier {
       if (resultado.id != null && _ciudadActual != null) {
         _monumentoIdActual = resultado.id;
         await _registrarVisitaPoi(_ciudadActual!, resultado.id!, resultado.nombre);
+        // Monumento reconocido → título significativo con su nombre.
+        await _aplicarTitulo(resultado.nombre, 2);
       }
 
       // Contexto de ruta ANTES de mutar el estado (la foto puede ser de inicio o de parada).
@@ -631,12 +638,44 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _actualizarTituloSiVacio(String textoBase) async {
-    if (_chatId == null || _tituloChat.trim().isNotEmpty) return;
-    final titulo = _construirTitulo(textoBase);
+  // Nivel de "calidad" del título actual: un título solo se sustituye por otro
+  // de nivel mayor. 0=sin título, 1=genérico, 2=significativo (tema concreto).
+  int _nivelTitulo = 0;
+
+  // Palabras vacías que no aportan al título (se filtran en títulos de texto).
+  static const _stopwords = {
+    'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al',
+    'a', 'ante', 'con', 'en', 'por', 'para', 'sin', 'sobre', 'tras', 'y', 'o',
+    'que', 'cual', 'cuales', 'cuál', 'cuáles', 'como', 'cómo', 'cuando',
+    'cuándo', 'donde', 'dónde', 'es', 'son', 'esta', 'está', 'este', 'esto',
+    'me', 'te', 'se', 'le', 'lo', 'su', 'mi', 'tu', 'hay', 'tiene', 'puedo',
+    'quiero', 'dime', 'cuentame', 'cuéntame', 'sabes', 'mas', 'más', 'muy',
+    // Saludos y cortesía: no deben generar título significativo.
+    'hola', 'tal', 'buenas', 'buenos', 'dias', 'días', 'tardes',
+    'noches', 'hey', 'holi', 'saludos', 'adios', 'adiós', 'gracias',
+    'porfa', 'porfavor', 'favor', 'vale', 'ok', 'oye', 'eh', 'aja', 'ajá',
+  };
+
+  // Título a partir de un mensaje de texto: quita stopwords y se queda con las
+  // 4 primeras palabras significativas. Devuelve null si no queda nada útil.
+  String? _tituloDesdeTexto(String texto) {
+    final palabras = texto
+        .toLowerCase()
+        .replaceAll(RegExp(r'[¿?¡!.,;:]'), '')
+        .split(RegExp(r'\s+'))
+        .where((p) => p.length > 2 && !_stopwords.contains(p))
+        .toList();
+    if (palabras.isEmpty) return null;
+    final titulo = palabras.take(4).join(' ');
+    return titulo[0].toUpperCase() + titulo.substring(1);
+  }
+
+  // Aplica un título solo si su nivel supera al actual.
+  Future<void> _aplicarTitulo(String titulo, int nivel) async {
+    if (_chatId == null || nivel <= _nivelTitulo) return;
+    _nivelTitulo = nivel;
     _tituloChat = titulo;
     notifyListeners();
-
     try {
       await ChatService.instance.actualizarTitulo(
         chatId: _chatId!,
@@ -647,10 +686,14 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  String _construirTitulo(String texto) {
-    final base = texto.trim();
-    if (base.length <= 40) return base;
-    return '${base.substring(0, 40)}...';
+  // Título para un mensaje de texto del usuario.
+  Future<void> _titularDesdeTexto(String texto) async {
+    final clave = _tituloDesdeTexto(texto);
+    if (clave != null) {
+      await _aplicarTitulo(clave, 2);
+    } else {
+      await _aplicarTitulo('Charla con Clicky', 1);
+    }
   }
 
   Future<void> _guardarMensajeTexto({
@@ -682,6 +725,7 @@ class HomeViewModel extends ChangeNotifier {
     _rutaState = null;
     _messages = [];
     _tituloChat = '';
+    _nivelTitulo = 0;
     _cargando = false;
     _visitadosSub?.cancel();
     _visitados = [];
