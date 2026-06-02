@@ -13,7 +13,6 @@ import '../services/chat_services.dart';
 import '../services/ciudad_visitada_service.dart';
 import '../services/imagen_local_service.dart';
 import '../services/ollama_service.dart';
-import '../services/poi_visitado_service.dart';
 import '../services/ubicacion_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
@@ -75,9 +74,10 @@ class HomeViewModel extends ChangeNotifier {
   // ID del último monumento clasificado por foto, persiste entre mensajes de texto.
   String? _monumentoIdActual;
 
-  // Monumentos fotografiados — sincronizado con Firestore.
+  // POIs visitados de la ciudad actual — sincronizado con Firestore.
   List<PoiVisitado> _visitados = [];
-  List<PoiVisitado> get visitados => List.unmodifiable(_visitados);
+  List<PoiVisitado> get visitados =>
+      List.unmodifiable(_visitados.where((p) => p.visitado));
   StreamSubscription<List<PoiVisitado>>? _visitadosSub;
 
   RutaState? _rutaState;
@@ -97,14 +97,41 @@ class HomeViewModel extends ChangeNotifier {
   bool _creandoChat = false;
 
   HomeViewModel({String? initialChatId}) {
-    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((lista) {
-      _visitados = lista;
-      notifyListeners();
-    });
     if (initialChatId != null) {
       _chatId = initialChatId;
       _suscribir();
     }
+  }
+
+  // (Re)suscribe al stream de POIs de la ciudad actual.
+  void _suscribirVisitados() {
+    _visitadosSub?.cancel();
+    if (_ciudadActual == null) {
+      _visitados = [];
+      return;
+    }
+    _visitadosSub = CiudadVisitadaService.instance
+        .poisStream(_ciudadActual!)
+        .listen((lista) {
+      _visitados = lista;
+      notifyListeners();
+    });
+  }
+
+  // Al fotografiar un monumento: siembra el catálogo de la ciudad la primera vez
+  // (idempotente, sin pisar flags) y marca este POI como visitado.
+  Future<void> _registrarVisitaPoi(String ciudad, String poiId, String nombrePoi) async {
+    try {
+      final catalogo = await OllamaService.monumentos(ciudad: ciudad);
+      if (catalogo.isNotEmpty) {
+        await CiudadVisitadaService.instance.sembrarCatalogo(ciudad, catalogo);
+      }
+    } catch (_) {
+      // Si el catálogo no carga, igualmente marcamos el POI visitado.
+    }
+    await CiudadVisitadaService.instance
+        .marcarVisitado(ciudad, poiId, nombrePoi)
+        .catchError((_) {});
   }
 
   Future<void> inicializarUbicacion() async {
@@ -116,6 +143,7 @@ class HomeViewModel extends ChangeNotifier {
 
   void seleccionarCiudad(String ciudad) {
     _ciudadActual = ciudad;
+    _suscribirVisitados();
     notifyListeners();
     // Carga los datos de la ciudad en segundo plano para validar fotos posteriores
     UbicacionService.instance.cargarCiudadesSoportadas().then((lista) {
@@ -138,6 +166,7 @@ class HomeViewModel extends ChangeNotifier {
       if (ciudad == null) return false;
       _ciudadActual = ciudad.nombre;
       _ciudadSoportada = ciudad;
+      _suscribirVisitados();
       notifyListeners();
       if (_chatId != null) {
         ChatService.instance
@@ -270,11 +299,12 @@ class HomeViewModel extends ChangeNotifier {
       if (resultado.monumentoId != null) {
         _monumentoIdActual = resultado.monumentoId;
       }
+      // Los chips de POIs cercanos solo aparecen tras una FOTO, no en respuestas
+      // de texto. (En modo ruta los chips de curiosidad los genera enviarImagen.)
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: resultado.response,
         role: MensajeRole.bot,
-        poisCercanos: resultado.poisCercanos,
       );
     } catch (_) {
       if (_clientActivo == null) return; // cancelado por el usuario
@@ -365,11 +395,9 @@ class HomeViewModel extends ChangeNotifier {
         client: client,
       );
 
-      if (resultado.id != null) {
+      if (resultado.id != null && _ciudadActual != null) {
         _monumentoIdActual = resultado.id;
-        PoiVisitadoService.instance
-            .marcarVisitado(resultado.id!, resultado.nombre)
-            .catchError((_) {});
+        await _registrarVisitaPoi(_ciudadActual!, resultado.id!, resultado.nombre);
       }
 
       // Contexto de ruta ANTES de mutar el estado (la foto puede ser de inicio o de parada).
@@ -510,7 +538,7 @@ class HomeViewModel extends ChangeNotifier {
         lat: lat,
         lon: lon,
         filtro: filtro,
-        visitados: _visitados.map((p) => p.id).toList(),
+        visitados: _visitados.where((p) => p.visitado).map((p) => p.id).toList(),
         ciudad: _ciudadActual,
       );
       _rutaState = RutaState.resumen(resultado);
@@ -594,9 +622,8 @@ class HomeViewModel extends ChangeNotifier {
       );
       _chatId = id;
       _suscribir();
-      if (_ciudadActual != null) {
-        CiudadVisitadaService.instance.registrarCiudad(_ciudadActual!).catchError((_) {});
-      }
+      // La ciudad se registra al fotografiar un monumento (ver enviarImagen),
+      // no al crear el chat: "ciudad visitada" = ciudad donde has visto algo.
     } catch (_) {
       // Si falla la creación, _chatId sigue null
     } finally {
@@ -656,6 +683,8 @@ class HomeViewModel extends ChangeNotifier {
     _messages = [];
     _tituloChat = '';
     _cargando = false;
+    _visitadosSub?.cancel();
+    _visitados = [];
     notifyListeners();
   }
 

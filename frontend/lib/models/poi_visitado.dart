@@ -3,21 +3,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class PoiVisitado {
   final String id;
   final String nombre;
-  final DateTime visitadoEn;
+  final bool visitado;
+  final DateTime? visitadoEn;
 
   PoiVisitado({
     required this.id,
     required this.nombre,
-    required this.visitadoEn,
+    required this.visitado,
+    this.visitadoEn,
   });
 
   factory PoiVisitado.fromMap(Map<String, dynamic> map, String id) {
     return PoiVisitado(
       id: id,
       nombre: map['nombre'] ?? '',
+      visitado: map['visitado'] as bool? ?? false,
       // serverTimestamp() puede ser null en el snapshot local hasta que el
-      // servidor lo confirma: en ese caso usamos la hora actual.
-      visitadoEn: (map['visitadoEn'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      // servidor lo confirma; los no visitados no tienen fecha.
+      visitadoEn: (map['visitadoEn'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -28,17 +31,16 @@ class PoiVisitado {
   Map<String, dynamic> toMap() {
     return {
       'nombre': nombre,
-      'visitadoEn': Timestamp.fromDate(visitadoEn),
+      'visitado': visitado,
+      if (visitadoEn != null) 'visitadoEn': Timestamp.fromDate(visitadoEn!),
     };
   }
 
-  PoiVisitado copyWith({
-    String? nombre,
-    DateTime? visitadoEn,
-  }) {
+  PoiVisitado copyWith({String? nombre, bool? visitado, DateTime? visitadoEn}) {
     return PoiVisitado(
       id: id,
       nombre: nombre ?? this.nombre,
+      visitado: visitado ?? this.visitado,
       visitadoEn: visitadoEn ?? this.visitadoEn,
     );
   }

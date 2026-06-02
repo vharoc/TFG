@@ -2,13 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/chat.dart';
 import '../models/ciudad_visitada.dart';
-import '../models/poi_sugerido.dart';
 import '../models/poi_visitado.dart';
 import '../services/auth_services.dart';
 import '../services/chat_services.dart';
 import '../services/ciudad_visitada_service.dart';
-import '../services/monumento_service.dart';
-import '../services/poi_visitado_service.dart';
 
 class LateralViewModel extends ChangeNotifier {
   final _auth = AuthService.instance;
@@ -19,37 +16,37 @@ class LateralViewModel extends ChangeNotifier {
   bool cargandoCiudades = true;
   String? error;
 
-  List<PoiVisitado> _visitados = [];
-  List<PoiVisitado> get visitados => List.unmodifiable(_visitados);
-  List<PoiSugerido> todosLosPois = [];
+  // POIs (con flag visitado) de la ciudad cuyo sheet está abierto.
+  List<PoiVisitado> _pois = [];
+  List<PoiVisitado> get pois => List.unmodifiable(_pois);
   bool cargandoPois = false;
+  String? _ciudadAbierta;
 
   StreamSubscription<List<Chat>>? _chatSub;
   StreamSubscription<List<CiudadVisitada>>? _ciudadSub;
-  StreamSubscription<List<PoiVisitado>>? _visitadosSub;
+  StreamSubscription<List<PoiVisitado>>? _poisSub;
 
   LateralViewModel() {
     _suscribir();
-    _visitadosSub = PoiVisitadoService.instance.visitadosStream().listen((lista) {
-      _visitados = lista;
-      notifyListeners();
-    });
   }
 
-  bool poiVisitado(String id) => _visitados.any((p) => p.id == id);
-
-  Future<void> cargarPois(String ciudad) async {
-    if (todosLosPois.isNotEmpty || cargandoPois) return;
+  // Suscribe al stream de POIs de la ciudad cuyo sheet se abre.
+  void cargarPois(String ciudad) {
+    if (_ciudadAbierta == ciudad) return;
+    _ciudadAbierta = ciudad;
+    _pois = [];
     cargandoPois = true;
     notifyListeners();
-    try {
-      todosLosPois = await MonumentoService.instance.porCiudad(ciudad);
-    } catch (_) {
-      todosLosPois = [];
-    } finally {
+
+    _poisSub?.cancel();
+    _poisSub = CiudadVisitadaService.instance.poisStream(ciudad).listen((lista) {
+      _pois = lista;
       cargandoPois = false;
       notifyListeners();
-    }
+    }, onError: (_) {
+      cargandoPois = false;
+      notifyListeners();
+    });
   }
 
   String get inicial {
@@ -105,15 +102,15 @@ class LateralViewModel extends ChangeNotifier {
     await CiudadVisitadaService.instance.eliminarCiudad(id);
   }
 
-  Future<void> desmarcarPoi(String id) async {
-    await PoiVisitadoService.instance.desmarcarVisitado(id);
+  Future<void> desmarcarPoi(String ciudad, String poiId) async {
+    await CiudadVisitadaService.instance.desmarcarVisitado(ciudad, poiId);
   }
 
   @override
   void dispose() {
     _chatSub?.cancel();
     _ciudadSub?.cancel();
-    _visitadosSub?.cancel();
+    _poisSub?.cancel();
     super.dispose();
   }
 }

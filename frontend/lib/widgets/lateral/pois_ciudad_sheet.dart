@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/poi_sugerido.dart';
+import '../../models/poi_visitado.dart';
 import '../../theme/theme.dart';
 import '../../viewmodels/lateral_view_model.dart';
 
@@ -26,8 +26,8 @@ class _PoisCiudadSheetState extends State<PoisCiudadSheet> {
   Widget build(BuildContext context) {
     final vm = context.watch<LateralViewModel>();
 
-    final visitados = vm.todosLosPois.where((p) => vm.poiVisitado(p.id)).toList();
-    final pendientes = vm.todosLosPois.where((p) => !vm.poiVisitado(p.id)).toList();
+    final visitados = vm.pois.where((p) => p.visitado).toList();
+    final pendientes = vm.pois.where((p) => !p.visitado).toList();
 
     return Container(
       decoration: const BoxDecoration(
@@ -84,7 +84,7 @@ class _PoisCiudadSheetState extends State<PoisCiudadSheet> {
                         texto: 'Visitados (${visitados.length})',
                       ),
                       const SizedBox(height: 8),
-                      ...visitados.map((p) => _PoiRow(poi: p, visitado: true)),
+                      ...visitados.map((p) => _PoiRow(poi: p, ciudad: widget.ciudad)),
                       const SizedBox(height: 16),
                     ],
                     _SeccionHeader(
@@ -93,7 +93,7 @@ class _PoisCiudadSheetState extends State<PoisCiudadSheet> {
                       texto: 'Por visitar (${pendientes.length})',
                     ),
                     const SizedBox(height: 8),
-                    ...pendientes.map((p) => _PoiRow(poi: p, visitado: false)),
+                    ...pendientes.map((p) => _PoiRow(poi: p, ciudad: widget.ciudad)),
                   ],
                 ),
               ),
@@ -127,13 +127,14 @@ class _SeccionHeader extends StatelessWidget {
 }
 
 class _PoiRow extends StatelessWidget {
-  final PoiSugerido poi;
-  final bool visitado;
+  final PoiVisitado poi;
+  final String ciudad;
 
-  const _PoiRow({required this.poi, required this.visitado});
+  const _PoiRow({required this.poi, required this.ciudad});
 
   @override
   Widget build(BuildContext context) {
+    final visitado = poi.visitado;
     final fila = Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -185,6 +186,6 @@ class _PoiRow extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) vm.desmarcarPoi(poi.id);
+    if (ok == true) vm.desmarcarPoi(ciudad, poi.id);
   }
 }
