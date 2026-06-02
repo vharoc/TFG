@@ -74,13 +74,34 @@ class UbicacionService {
     ),
   ];
 
+  // Caché en memoria: las ciudades soportadas no cambian durante la sesión.
+  List<CiudadSoportada>? _ciudadesCache;
+  Future<List<CiudadSoportada>>? _ciudadesEnCurso;
+
   // Fuente de verdad: el backend (/ciudades). Fallback local si no responde.
+  // Cachea el resultado y comparte la petición en vuelo para evitar llamadas
+  // redundantes cuando varios sitios la piden casi a la vez al arrancar.
   Future<List<CiudadSoportada>> cargarCiudadesSoportadas() async {
+    if (_ciudadesCache != null) return _ciudadesCache!;
+    if (_ciudadesEnCurso != null) return _ciudadesEnCurso!;
+
+    _ciudadesEnCurso = _cargarDesdeBackend();
+    try {
+      return await _ciudadesEnCurso!;
+    } finally {
+      _ciudadesEnCurso = null;
+    }
+  }
+
+  Future<List<CiudadSoportada>> _cargarDesdeBackend() async {
     try {
       final ciudades = await OllamaService.ciudades();
-      if (ciudades.isNotEmpty) return ciudades;
+      if (ciudades.isNotEmpty) {
+        _ciudadesCache = ciudades; // solo cacheamos resultados válidos
+        return ciudades;
+      }
     } catch (_) {
-      // backend no disponible → fallback
+      // backend no disponible → fallback (no se cachea, se reintenta luego)
     }
     return _ciudadesFallback;
   }

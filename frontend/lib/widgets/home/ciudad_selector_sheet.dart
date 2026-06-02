@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../constants/ciudades_permitidas.dart';
 import '../../services/ubicacion_service.dart';
 
 class CiudadSelectorSheet extends StatefulWidget {
@@ -20,13 +19,10 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
   }
 
   Future<void> _cargar() async {
-    try {
-      final lista = await UbicacionService.instance.cargarCiudadesSoportadas();
-      _ciudades = lista.map((c) => c.nombre).toList();
-    } catch (_) {
-      _ciudades = ciudadesPermitidas; // fallback local
-    }
-    if (_ciudades.isEmpty) _ciudades = ciudadesPermitidas;
+    // cargarCiudadesSoportadas ya cae a un fallback local si el backend falla,
+    // así que esta lista nunca llega vacía.
+    final lista = await UbicacionService.instance.cargarCiudadesSoportadas();
+    _ciudades = lista.map((c) => c.nombre).toList();
     if (mounted) setState(() => _cargando = false);
   }
 
