@@ -4,6 +4,7 @@ import '../services/auth_services.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/login_screen.dart';
 import '../screens/ajustes_screen.dart';
+import '../screens/estadisticas_screen.dart';
 import '../screens/perfil_screen.dart';
 import '../screens/register_screen.dart';
 
@@ -25,6 +26,7 @@ final appRouter = GoRouter(
     GoRoute(path: '/home', builder: (_, state) => const HomeScreen()),
     GoRoute(path: '/lateral', builder: (_, state) => const LateralScreen()),
     GoRoute(path: '/ajustes', builder: (_, state) => const AjustesScreen()),
+    GoRoute(path: '/estadisticas', builder: (_, state) => const EstadisticasScreen()),
     GoRoute(path: '/perfil', builder: (_, state) => const PerfilScreen()),
   ],
 );

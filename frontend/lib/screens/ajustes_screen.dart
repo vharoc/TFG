@@ -53,6 +53,7 @@ class _AjustesBodyState extends State<_AjustesBody> with WidgetsBindingObserver 
       appBar: const BackTitleAppBar(title: 'Ajustes'),
       body: SettingsSections(
         onProfileTap: () => context.push('/perfil'),
+        onEstadisticasTap: () => context.push('/estadisticas'),
         onUbicacionToggle: (value) => _toggleUbicacion(context, value),
         onCamaraToggle: (value) => _toggleCamara(context, value),
         onAlbumToggle: (value) => _toggleAlbum(context, value),

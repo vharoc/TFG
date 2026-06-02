@@ -8,6 +8,7 @@ import 'section_card.dart';
 
 class SettingsSections extends StatelessWidget {
   final VoidCallback onProfileTap;
+  final VoidCallback onEstadisticasTap;
   final void Function(bool) onUbicacionToggle;
   final void Function(bool) onCamaraToggle;
   final void Function(bool) onAlbumToggle;
@@ -16,6 +17,7 @@ class SettingsSections extends StatelessWidget {
   const SettingsSections({
     super.key,
     required this.onProfileTap,
+    required this.onEstadisticasTap,
     required this.onUbicacionToggle,
     required this.onCamaraToggle,
     required this.onAlbumToggle,
@@ -35,6 +37,12 @@ class SettingsSections extends StatelessWidget {
               icon: Icons.person_outline_rounded,
               label: 'Perfil',
               onTap: onProfileTap,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ActionTile(
+              icon: Icons.insights_rounded,
+              label: 'Estadísticas',
+              onTap: onEstadisticasTap,
             ),
           ],
         ),
