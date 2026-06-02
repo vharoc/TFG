@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import '../../models/mensaje.dart';
 import '../../models/poi_sugerido.dart';
 import '../../theme/theme.dart';
@@ -28,13 +29,16 @@ class ChatBubble extends StatelessWidget {
       child: switch (mensaje.tipo) {
         MensajeTipo.texto => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Text(
-            mensaje.contenido!,
-            style: TextStyle(
-              color: esUsuario ? Colors.white : Colors.black,
-              fontSize: 15,
-            ),
-          ),
+          // El usuario escribe texto plano; el bot puede devolver Markdown.
+          child: esUsuario
+              ? Text(
+                  mensaje.contenido!,
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                )
+              : GptMarkdown(
+                  mensaje.contenido!,
+                  style: const TextStyle(color: Colors.black, fontSize: 15),
+                ),
         ),
         MensajeTipo.imagen => mensaje.imgUrl!.startsWith('http')
             ? Image.network(

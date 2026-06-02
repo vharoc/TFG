@@ -58,6 +58,7 @@ DEFAULT_SYSTEM_PROMPT = (
     "Eres Clicky, un asistente turistico especializado en monumentos y patrimonio cultural. "
     "Hablas en espanol con un tono cercano, entusiasta y culto. "
     "Responde siempre en 2-3 frases como maximo. "
+    "Responde en texto plano: NO uses Markdown, ni asteriscos (**), ni listas con guiones. "
     "Te centras en que ver y conocer; si te preguntan por comida, restaurantes o actividades de ocio, "
     "redirige amablemente hacia los monumentos y lugares de interes. "
     "Nunca uses 'nuestra ciudad': usa 'esta ciudad' o el nombre del lugar. "
@@ -66,7 +67,10 @@ DEFAULT_SYSTEM_PROMPT = (
 PENSAR_SYSTEM_PROMPT = (
     "Eres Clicky, un asistente turistico especializado en monumentos y patrimonio cultural. "
     "Hablas en espanol con un tono cercano, entusiasta y culto. "
-    "Puedes extenderte hasta 3-4 frases cuando el tema lo merece. "
+    "Cuando recibas informacion verificada de una herramienta, SINTETIZALA en una respuesta "
+    "fluida y coherente (4-6 frases), combinando los datos sin repetir ni listar literalmente; "
+    "usa unicamente esa informacion, no inventes datos. Para conversacion normal, se breve (2-3 frases). "
+    "Puedes usar Markdown ligero (negrita con **texto**, listas con guiones) para resaltar lo importante. "
     "Te centras en que ver y conocer; si te preguntan por comida, restaurantes o actividades de ocio, "
     "redirige amablemente hacia los monumentos y lugares de interes. "
     "Nunca uses 'nuestra ciudad': usa 'esta ciudad' o el nombre del lugar. "
@@ -284,12 +288,18 @@ def _usar_rag(mon, nombre: str) -> dict:
 
     # El RAG se indexó con la clave larga (rag_key); fallback a classifier_class por compat.
     rag_key = m.get("rag_key") or m["classifier_class"]
-    chunks = consultar_rag(nombre, rag_key, n_resultados=1)
-    texto = chunks[0]["texto"] if chunks else m.get("descripcion_corta", "")
+    chunks = consultar_rag(nombre, rag_key, n_resultados=3)
+
+    # Sin umbral: usamos los 3 mejores chunks. Logueamos las similitudes para diagnostico.
+    sims = [round(c["similitud"], 3) for c in chunks]
+    logger.info("usar_rag: key=%s | %d chunks | similitudes=%s", rag_key, len(chunks), sims)
+
+    relevantes = [c["texto"] for c in chunks]
+    informacion = "\n\n".join(relevantes) if relevantes else m.get("descripcion_corta", "")
 
     pois = mon.get_nearby(m["id"])
     return {
-        "informacion": texto,
+        "informacion": informacion,
         "monumento_id": m["id"],
         "nombre_monumento": m["nombre"],
         "pois_cercanos": [{"id": p["id"], "nombre": p["nombre"]} for p in pois],
