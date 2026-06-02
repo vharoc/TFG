@@ -34,7 +34,7 @@ registry = CiudadRegistry("data/ciudades", clasificador, default="salamanca")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        inicializar_rag(chroma_path="./chroma_db/chroma_db")
+        inicializar_rag(chroma_path="./chroma_db")
     except Exception as e:
         logger.warning("RAG no disponible: %s", e)
     yield
@@ -282,8 +282,9 @@ def _usar_rag(mon, nombre: str) -> dict:
     if m is None:
         return {"informacion": f"No tengo información verificada sobre '{nombre}'.", "monumento_id": None, "pois_cercanos": []}
 
-    clase_rag = m["classifier_class"].strip().upper()
-    chunks = consultar_rag(nombre, clase_rag, n_resultados=1)
+    # El RAG se indexó con la clave larga (rag_key); fallback a classifier_class por compat.
+    rag_key = m.get("rag_key") or m["classifier_class"]
+    chunks = consultar_rag(nombre, rag_key, n_resultados=1)
     texto = chunks[0]["texto"] if chunks else m.get("descripcion_corta", "")
 
     pois = mon.get_nearby(m["id"])
@@ -421,8 +422,9 @@ async def query(q: Query):
         clase_rag = m_mencionado["classifier_class"].strip().upper()
 
     if clase_rag and monumento_rag:
-        chunks = consultar_rag(q.prompt, clase_rag, n_resultados=1)
-        logger.info("RAG rapido: clase=%s chunks=%d", clase_rag, len(chunks))
+        rag_key = monumento_rag.get("rag_key") or monumento_rag["classifier_class"]
+        chunks = consultar_rag(q.prompt, rag_key, n_resultados=1)
+        logger.info("RAG rapido: key=%s chunks=%d", rag_key, len(chunks))
         texto = chunks[0]["texto"] if chunks else monumento_rag.get("descripcion_corta", "")
         if texto:
             mid = monumento_rag["id"]
