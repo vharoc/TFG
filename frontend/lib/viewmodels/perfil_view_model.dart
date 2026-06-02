@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_services.dart';
 import '../services/chat_services.dart';
+import '../services/ciudad_visitada_service.dart';
 import '../services/user_services.dart';
 
 class PerfilViewModel extends ChangeNotifier {
@@ -30,6 +31,24 @@ class PerfilViewModel extends ChangeNotifier {
 
   String? _error;
   String? get error => _error;
+
+  /// Borra todos los chats y el progreso de ciudades sin eliminar la cuenta.
+  Future<bool> borrarDatos() async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await ChatService.instance.eliminarTodosLosChats();
+      await CiudadVisitadaService.instance.eliminarTodosDatos();
+      return true;
+    } catch (_) {
+      _error = 'No se pudieron borrar los datos. Inténtalo de nuevo.';
+      return false;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
 
   /// Reautentica y elimina la cuenta junto con todos sus chats.
   Future<bool> eliminarCuenta(String passwd) async {

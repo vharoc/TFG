@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/perfil_view_model.dart';
+import '../widgets/perfil/clear_data_card.dart';
 import '../widgets/perfil/delete_account_card.dart';
 import '../widgets/perfil/delete_account_dialog.dart';
 import '../widgets/common/back_title_app_bar.dart';
@@ -104,12 +105,53 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
 
           const SizedBox(height: 16),
 
+          PerfilClearDataCard(
+            onTap: () => _mostrarDialogoBorrarDatos(vm),
+          ),
+
+          const SizedBox(height: 16),
+
           PerfilDeleteAccountCard(
             onTap: () => _mostrarDialogoEliminarCuenta(vm),
           ),
         ],
       ),
     );
+  }
+
+  // ── Diálogo borrar datos ─────────────────────────────────────────────────
+  Future<void> _mostrarDialogoBorrarDatos(PerfilViewModel vm) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Borrar datos'),
+        content: const Text(
+          'Se eliminarán todos tus chats y el progreso de ciudades visitadas. '
+          'Tu cuenta no se eliminará.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || ok != true) return;
+
+    final exito = await vm.borrarDatos();
+    if (!mounted) return;
+
+    if (exito) {
+      _showSuccessSnackBar('Datos eliminados correctamente.');
+    } else if (vm.error != null) {
+      _showErrorSnackBar(vm.error!);
+    }
   }
 
   // ── Diálogo eliminar cuenta ──────────────────────────────────────────────

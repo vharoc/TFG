@@ -98,4 +98,11 @@ class CiudadVisitadaService {
     batch.delete(_ciudadesRef.doc(ciudadId));
     await batch.commit();
   }
+
+  Future<void> eliminarTodosDatos() async {
+    final ciudades = await _ciudadesRef.get();
+    for (final ciudad in ciudades.docs) {
+      await eliminarCiudad(ciudad.id);
+    }
+  }
 }

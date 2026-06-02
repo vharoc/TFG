@@ -7,11 +7,13 @@ import 'auth_services.dart';
 /// Progreso de capturas en una ciudad concreta.
 class ProgresoCiudad {
   final String nombre;
+  final String ciudadId;
   final int capturados;
   final int total;
 
   const ProgresoCiudad({
     required this.nombre,
+    required this.ciudadId,
     required this.capturados,
     required this.total,
   });
@@ -87,6 +89,7 @@ class EstadisticasService {
       pois += capturados;
       progreso.add(ProgresoCiudad(
         nombre: (ciudad.data()['nombre'] as String?) ?? ciudad.id,
+        ciudadId: ciudad.id,
         capturados: capturados,
         total: total,
       ));

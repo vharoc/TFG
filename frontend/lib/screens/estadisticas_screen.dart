@@ -121,7 +121,11 @@ class _EstadisticasBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Column(
                 children: [
-                  for (final p in s.progresoPorCiudad) _ProgresoTile(progreso: p),
+                  for (final p in s.progresoPorCiudad)
+                    _ProgresoTile(
+                      progreso: p,
+                      onTap: () => _confirmarBorrarCiudad(context, vm, p),
+                    ),
                 ],
               ),
             ),
@@ -130,6 +134,35 @@ class _EstadisticasBody extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _confirmarBorrarCiudad(
+  BuildContext context,
+  EstadisticasViewModel vm,
+  ProgresoCiudad p,
+) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text('Restablecer ${p.nombre}'),
+      content: const Text(
+        'Se borrarán todos los monumentos identificados en esta ciudad. '
+        'Tu cuenta no se elimina.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('Restablecer'),
+        ),
+      ],
+    ),
+  );
+  if (ok == true) await vm.eliminarCiudad(p.ciudadId);
 }
 
 class _StatCard extends StatelessWidget {
@@ -221,50 +254,57 @@ class _FilaDetalle extends StatelessWidget {
 
 class _ProgresoTile extends StatelessWidget {
   final ProgresoCiudad progreso;
+  final VoidCallback onTap;
 
-  const _ProgresoTile({required this.progreso});
+  const _ProgresoTile({required this.progreso, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final pct = (progreso.fraccion * 100).round();
     final completa = progreso.total > 0 && progreso.capturados >= progreso.total;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  progreso.nombre,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    progreso.nombre,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ),
-              if (completa)
-                const Padding(
-                  padding: EdgeInsets.only(right: 6),
-                  child: Icon(Icons.emoji_events_rounded, size: 18, color: AppTheme.ocre),
+                if (completa)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: Icon(Icons.emoji_events_rounded, size: 18, color: AppTheme.ocre),
+                  ),
+                Text(
+                  '${progreso.capturados}/${progreso.total}  ·  $pct%',
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
                 ),
-              Text(
-                '${progreso.capturados}/${progreso.total}  ·  $pct%',
-                style: const TextStyle(fontSize: 13, color: Colors.black54),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progreso.fraccion,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFEDE7E0),
-              valueColor: AlwaysStoppedAnimation(
-                completa ? AppTheme.ocre : AppTheme.usal,
+                const SizedBox(width: 8),
+                const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.black26),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progreso.fraccion,
+                minHeight: 8,
+                backgroundColor: const Color(0xFFEDE7E0),
+                valueColor: AlwaysStoppedAnimation(
+                  completa ? AppTheme.ocre : AppTheme.usal,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

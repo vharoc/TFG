@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/ciudad_visitada_service.dart';
 import '../services/estadisticas_service.dart';
 
 class EstadisticasViewModel extends ChangeNotifier {
@@ -27,5 +28,10 @@ class EstadisticasViewModel extends ChangeNotifier {
       _cargando = false;
       notifyListeners();
     }
+  }
+
+  Future<void> eliminarCiudad(String ciudadId) async {
+    await CiudadVisitadaService.instance.eliminarCiudad(ciudadId);
+    await cargar();
   }
 }
