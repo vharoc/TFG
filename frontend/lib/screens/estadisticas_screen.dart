@@ -211,3 +211,54 @@ class _FilaDetalle extends StatelessWidget {
     );
   }
 }
+
+class _ProgresoTile extends StatelessWidget {
+  final ProgresoCiudad progreso;
+
+  const _ProgresoTile({required this.progreso});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (progreso.fraccion * 100).round();
+    final completa = progreso.total > 0 && progreso.capturados >= progreso.total;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  progreso.nombre,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (completa)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Icon(Icons.emoji_events_rounded, size: 18, color: AppTheme.ocre),
+                ),
+              Text(
+                '${progreso.capturados}/${progreso.total}  ·  $pct%',
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progreso.fraccion,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFEDE7E0),
+              valueColor: AlwaysStoppedAnimation(
+                completa ? AppTheme.ocre : AppTheme.usal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
