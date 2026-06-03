@@ -261,8 +261,8 @@ class HomeViewModel extends ChangeNotifier {
 
     final chatIdActual = _chatId!;
 
-    // En modo ruta todas las respuestas pasan por el modelo (pensar) para dar formato.
-    final modoEfectivo = (_rutaState?.estado == EstadoRuta.activo) ? 'pensar' : _modo;
+    // En cualquier estado de ruta las respuestas pasan por pensar para dar formato.
+    final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
 
     // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
     final List<Mensaje> historialReciente;
@@ -389,9 +389,8 @@ class HomeViewModel extends ChangeNotifier {
         } catch (_) {}
       }
 
-      // En modo ruta activa siempre se usa pensar para dar formato a la respuesta
-      final modoEfectivo =
-          (_rutaState?.estado == EstadoRuta.activo) ? 'pensar' : _modo;
+      // En cualquier estado de ruta las fotos usan pensar para dar formato.
+      final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
 
       final resultado = await OllamaService.classify(
         File(pathPersistente),
