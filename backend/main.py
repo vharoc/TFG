@@ -1,3 +1,4 @@
+import contextvars
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,6 +106,18 @@ _MAX_PROMPT = 1500
 _MAX_HISTORY = 20
 _MAX_IMAGEN_BYTES = 5 * 1024 * 1024  # 5 MB
 
+# Acumulador de tokens consumidos en la petición actual. _llamar_llm suma aquí
+# el total_tokens de cada respuesta de Groq; los endpoints lo resetean al
+# empezar y lo devuelven en el campo "tokens" para que el cliente lleve la
+# cuenta diaria por usuario.
+_tokens_request: contextvars.ContextVar[int] = contextvars.ContextVar("tokens_request", default=0)
+
+
+def _con_tokens(content: dict) -> JSONResponse:
+    """Añade el total de tokens consumidos en la petición a la respuesta."""
+    content["tokens"] = _tokens_request.get()
+    return JSONResponse(content=content)
+
 class Message(BaseModel):
     role: str
     content: str
@@ -185,7 +198,11 @@ async def _llamar_llm(messages: list, tools: list | None = None, timeout: float 
     async with httpx.AsyncClient(timeout=timeout) as client:
         res = await client.post(GROQ_URL, headers=headers, json=payload)
         res.raise_for_status()
-        return res.json()
+        data = res.json()
+        # Acumula los tokens de esta llamada en el contador de la petición.
+        usage = data.get("usage") or {}
+        _tokens_request.set(_tokens_request.get() + int(usage.get("total_tokens", 0) or 0))
+        return data
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -399,7 +416,7 @@ async def _query_pensar_agente(q: "Query", mon, monumento_activo: dict | None) -
     else:
         respuesta = choice["message"]["content"]
 
-    return JSONResponse(content={
+    return _con_tokens({
         "response": respuesta,
         "modo": "pensar",
         "monumento_id": monumento_id,
@@ -432,6 +449,7 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 @app.post("/api/query")
 @limiter.limit("15/minute")
 async def query(request: Request, q: Query):
+    _tokens_request.set(0)
     if q.modo not in _MODOS_VALIDOS:
         raise HTTPException(status_code=422, detail=f"modo no válido: usa 'rapido' o 'pensar'")
     if len(q.prompt) > _MAX_PROMPT:
@@ -476,7 +494,7 @@ async def query(request: Request, q: Query):
             mid = monumento_rag["id"]
             pois = mon.get_nearby(mid) if mon else []
             pois_data = [{"id": p["id"], "nombre": p["nombre"]} for p in pois]
-            return JSONResponse(content={"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
+            return _con_tokens({"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
 
     # Sin RAG: LLM con contexto de monumento activo si lo hay
     system = DEFAULT_SYSTEM_PROMPT
@@ -496,7 +514,7 @@ async def query(request: Request, q: Query):
     ]
     try:
         data = await _llamar_llm(messages)
-        return JSONResponse(content={"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": []})
+        return _con_tokens({"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": []})
     except Exception as e:
         logger.error("Error en modo rapido: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -506,14 +524,15 @@ async def query(request: Request, q: Query):
 @app.post("/api/ruta")
 @limiter.limit("10/minute")
 async def ruta(request: Request, req: RutaRequest):
+    _tokens_request.set(0)
     mon = registry.monumentos(req.ciudad)
     if mon is None:
         raise HTTPException(status_code=503, detail="Servicio de monumentos no disponible")
     resultado = _ejecutar_generar_ruta(mon, req.filtro, req.lat, req.lon, req.visitados)
     if "error" in resultado:
-        return JSONResponse(content={"paradas": [], "tiempo_total_min": 0, "resumen": resultado["error"]})
+        return _con_tokens({"paradas": [], "tiempo_total_min": 0, "resumen": resultado["error"]})
     resumen = await _narrar_resumen_ruta(resultado["paradas"])
-    return JSONResponse(content={
+    return _con_tokens({
         "paradas": resultado["paradas"],
         "tiempo_total_min": resultado["tiempo_total_min"],
         "resumen": resumen,
@@ -547,6 +566,7 @@ async def health():
 @app.post("/api/classify")
 @limiter.limit("10/minute")
 async def classify(request: Request, imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
+    _tokens_request.set(0)
     data = await imagen.read()
     if len(data) > _MAX_IMAGEN_BYTES:
         raise HTTPException(status_code=413, detail="Imagen demasiado grande (máx. 5 MB)")
@@ -557,11 +577,11 @@ async def classify(request: Request, imagen: UploadFile = File(...), modo: str =
     mon = registry.monumentos(ciudad)
 
     if mon is None:
-        return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
+        return _con_tokens({"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
 
     monumento = mon.lookup_by_class(clase)
     if monumento is None:
-        return JSONResponse(content={"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
+        return _con_tokens({"clase": clase, "nombre": clase, "descripcion_corta": None, "pois_cercanos": []})
 
     pois = mon.get_nearby(monumento["id"])
     descripcion = monumento["descripcion_corta"]
@@ -572,7 +592,7 @@ async def classify(request: Request, imagen: UploadFile = File(...), modo: str =
         except Exception as e:
             logger.warning("Reformateo en classify fallo: %s", e)
 
-    return JSONResponse(content={
+    return _con_tokens({
         "clase": clase,
         "id": monumento["id"],
         "nombre": monumento["nombre"],

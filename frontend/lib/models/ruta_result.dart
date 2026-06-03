@@ -32,11 +32,13 @@ class RutaResult {
   final List<Parada> paradas;
   final int tiempoTotalMin;
   final String resumen;
+  final int tokens;
 
   const RutaResult({
     required this.paradas,
     required this.tiempoTotalMin,
     required this.resumen,
+    this.tokens = 0,
   });
 
   factory RutaResult.fromMap(Map<String, dynamic> map) => RutaResult(
@@ -45,6 +47,7 @@ class RutaResult {
             .toList(),
         tiempoTotalMin: (map['tiempo_total_min'] as num).toInt(),
         resumen: (map['resumen'] as String?) ?? '',
+        tokens: (map['tokens'] as num?)?.toInt() ?? 0,
       );
 }
 

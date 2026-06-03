@@ -75,7 +75,7 @@ class OllamaService {
         .toList();
   }
 
-  static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos})> query(
+  static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos, int tokens})> query(
     String prompt, {
     String system = '',
     String ciudad = '',
@@ -125,8 +125,9 @@ class OllamaService {
           final pois = (data['pois_cercanos'] as List<dynamic>? ?? [])
               .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
               .toList();
+          final tokens = (data['tokens'] as num?)?.toInt() ?? 0;
 
-          return (response: respuesta, monumentoId: mId, poisCercanos: pois);
+          return (response: respuesta, monumentoId: mId, poisCercanos: pois, tokens: tokens);
         } on TimeoutException {
           throw Exception('El servidor tardo demasiado en responder.');
         } on FormatException {

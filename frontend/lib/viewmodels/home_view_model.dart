@@ -14,6 +14,7 @@ import '../services/ciudad_visitada_service.dart';
 import '../services/imagen_local_service.dart';
 import '../services/ollama_service.dart';
 import '../services/ubicacion_service.dart';
+import '../services/uso_tokens_service.dart';
 
 class HomeViewModel extends ChangeNotifier {
   List<Mensaje> _messages = [];
@@ -247,6 +248,36 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  // ── Límite diario de tokens ─────────────────────────────────────────────
+
+  /// Si el usuario agotó su cupo diario de IA, deja constancia en el chat y
+  /// devuelve true para que el llamante aborte sin gastar más tokens.
+  Future<bool> _bloqueadoPorLimite(String chatId) async {
+    bool alcanzado;
+    try {
+      alcanzado = await UsoTokensService.instance.limiteAlcanzado();
+    } catch (_) {
+      return false; // ante un fallo de lectura, no bloqueamos al usuario
+    }
+    if (!alcanzado) return false;
+    await _guardarMensajeTexto(
+      chatId: chatId,
+      contenido:
+          '⛔ Has alcanzado tu límite diario de IA (${UsoTokensService.limiteDiario} tokens). '
+          'Se restablece a medianoche.',
+      role: MensajeRole.bot,
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Suma a la cuenta diaria los tokens consumidos por una respuesta (sin
+  /// bloquear: la escritura es en segundo plano).
+  void _registrarTokens(int tokens) {
+    if (tokens <= 0) return;
+    UsoTokensService.instance.registrar(tokens);
+  }
+
   Future<void> enviarTexto(String texto) async {
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
@@ -286,6 +317,8 @@ class HomeViewModel extends ChangeNotifier {
 
     await _titularDesdeTexto(textoTrimmed);
 
+    if (await _bloqueadoPorLimite(chatIdActual)) return;
+
     final client = http.Client();
     _clientActivo = client;
     _generando = true;
@@ -300,6 +333,7 @@ class HomeViewModel extends ChangeNotifier {
         modo: modoEfectivo,
         client: client,
       );
+      _registrarTokens(resultado.tokens);
       if (resultado.monumentoId != null) {
         _monumentoIdActual = resultado.monumentoId;
       }
@@ -374,6 +408,8 @@ class HomeViewModel extends ChangeNotifier {
     // Título provisional genérico; si la foto reconoce un monumento, se mejora abajo.
     await _aplicarTitulo('Foto en ${_ciudadActual ?? 'la ciudad'}', 1);
 
+    if (await _bloqueadoPorLimite(chatIdActual)) return;
+
     final client = http.Client();
     _clientActivo = client;
     _generando = true;
@@ -398,6 +434,7 @@ class HomeViewModel extends ChangeNotifier {
         ciudad: _ciudadActual,
         client: client,
       );
+      _registrarTokens(resultado.tokens);
 
       if (resultado.id != null && _ciudadActual != null) {
         _monumentoIdActual = resultado.id;
@@ -410,6 +447,8 @@ class HomeViewModel extends ChangeNotifier {
       final esFotoDeRuta = _rutaState?.estado == EstadoRuta.esperandoFoto ||
           _rutaState?.estado == EstadoRuta.activo;
       final eraRutaActiva = _rutaState?.estado == EstadoRuta.activo;
+      // Id del monumento de la parada actual, capturado antes de mutar el estado.
+      final paradaActualId = eraRutaActiva ? _rutaState?.paradaActualObj?.id : null;
       final iniciaRuta =
           _rutaState?.estado == EstadoRuta.esperandoFoto && resultado.id != null;
 
@@ -464,8 +503,9 @@ class HomeViewModel extends ChangeNotifier {
         );
       }
 
-      // Auto-avanzar solo si la foto era de una parada de ruta activa
-      if (eraRutaActiva) {
+      // Auto-avanzar solo si la foto reconoce el monumento de la parada actual.
+      // Una foto que no clasifica (o de otro monumento) NO avanza la ruta.
+      if (eraRutaActiva && resultado.id != null && resultado.id == paradaActualId) {
         await siguienteParada();
       }
     } catch (_) {
@@ -525,6 +565,13 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> seleccionarFiltroRuta(String filtro) async {
+    // Si el cupo está agotado, no generamos la ruta y cancelamos el flujo.
+    if (_chatId != null && await _bloqueadoPorLimite(_chatId!)) {
+      _rutaState = null;
+      notifyListeners();
+      return;
+    }
+
     _rutaState = RutaState.cargando();
     notifyListeners();
 
@@ -547,6 +594,7 @@ class HomeViewModel extends ChangeNotifier {
         visitados: _visitados.where((p) => p.visitado).map((p) => p.id).toList(),
         ciudad: _ciudadActual,
       );
+      _registrarTokens(resultado.tokens);
       _rutaState = RutaState.resumen(resultado);
     } catch (_) {
       _rutaState = null;

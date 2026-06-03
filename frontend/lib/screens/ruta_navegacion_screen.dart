@@ -111,13 +111,17 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
     }
   }
 
-  List<PoiSugerido> _extractPoiChips(HomeViewModel vm) {
-    for (final msg in vm.messages.reversed) {
-      if (msg.role == MensajeRole.bot && msg.poisCercanos.isNotEmpty) {
-        return msg.poisCercanos;
-      }
-    }
-    return const [];
+  /// Chips de curiosidad sobre la parada ACTUAL. Se construyen a partir del id
+  /// de la parada en curso (no de mensajes antiguos), para que siempre
+  /// pregunten por el monumento donde estás ahora.
+  List<PoiSugerido> _chipsParadaActual(RutaState rs) {
+    final parada = rs.paradaActualObj;
+    if (parada == null) return const [];
+    return [
+      PoiSugerido(id: parada.id, nombre: '¿Cuál es su historia?', esPregunta: true),
+      PoiSugerido(id: parada.id, nombre: '¿Qué tiene de especial?', esPregunta: true),
+      PoiSugerido(id: parada.id, nombre: 'Cuéntame una curiosidad', esPregunta: true),
+    ];
   }
 
   List<Marker> _buildMarkers(RutaState rs) {
@@ -288,7 +292,7 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
                     parada: parada,
                     paradaActual: rs.paradaActual,
                     totalParadas: rs.totalParadas,
-                    poisCercanos: _extractPoiChips(vm),
+                    poisCercanos: _chipsParadaActual(rs),
                     generando: vm.generando,
                     onCamera: _openCamera,
                     onSiguiente: vm.siguienteParada,

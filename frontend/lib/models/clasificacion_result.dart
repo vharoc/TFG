@@ -8,6 +8,7 @@ class ClasificacionResult {
   final List<PoiSugerido> poisCercanos;
   final double? lat;
   final double? lon;
+  final int tokens;
 
   const ClasificacionResult({
     required this.clase,
@@ -17,6 +18,7 @@ class ClasificacionResult {
     required this.poisCercanos,
     this.lat,
     this.lon,
+    this.tokens = 0,
   });
 
   factory ClasificacionResult.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,7 @@ class ClasificacionResult {
           .toList(),
       lat: (json['lat'] as num?)?.toDouble(),
       lon: (json['lon'] as num?)?.toDouble(),
+      tokens: (json['tokens'] as num?)?.toInt() ?? 0,
     );
   }
 }

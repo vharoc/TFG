@@ -77,10 +77,12 @@ class _EstadisticasBody extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               _StatCard(
-                icono: Icons.forum_outlined,
-                valor: '${s.totalMensajes}',
-                etiqueta: 'Mensajes enviados',
-                color: const Color(0xFF4C9A6B),
+                icono: Icons.bolt_rounded,
+                valor: '${vm.uso.porcentaje}%',
+                etiqueta: 'IA usada hoy',
+                color: vm.uso.limiteAlcanzado
+                    ? AppTheme.usal
+                    : const Color(0xFF4C9A6B),
               ),
             ],
           ),
@@ -99,6 +101,12 @@ class _EstadisticasBody extends StatelessWidget {
                   icono: Icons.bar_chart_rounded,
                   etiqueta: 'Media de mensajes por chat',
                   valor: s.mediaMensajesPorChat.toStringAsFixed(1),
+                ),
+                const Divider(height: 1, color: Color(0xFFEDE7E0)),
+                _FilaDetalle(
+                  icono: Icons.bolt_rounded,
+                  etiqueta: 'Tokens de IA usados hoy',
+                  valor: '${vm.uso.tokensUsados} / ${vm.uso.limite}',
                 ),
               ],
             ),
