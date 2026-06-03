@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:go_router/go_router.dart';
 import '../models/chat.dart';
 import '../models/poi_visitado.dart';
 import '../services/estadisticas_service.dart';
@@ -51,29 +52,33 @@ class _EstadisticasBody extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Cuadrícula 2x2
-          Row(
-            children: [
-              _StatCard(
-                icono: Icons.photo_camera_rounded,
-                valor: '${s.poisCapturados}',
-                etiqueta: 'Monumentos capturados',
-                color: AppTheme.usal,
-                onTap: () => _mostrarPois(context, s),
-              ),
-              const SizedBox(width: 12),
-              _StatCard(
-                icono: Icons.location_city_rounded,
-                valor: '${s.ciudadesVisitadas}',
-                etiqueta: 'Ciudades visitadas',
-                color: AppTheme.ocre,
-                onTap: () => _mostrarCiudades(context, s, vm),
-              ),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _StatCard(
+                  icono: Icons.photo_camera_rounded,
+                  valor: '${s.poisCapturados}',
+                  etiqueta: 'Monumentos capturados',
+                  color: AppTheme.usal,
+                  onTap: () => _mostrarPois(context, s),
+                ),
+                const SizedBox(width: 12),
+                _StatCard(
+                  icono: Icons.location_city_rounded,
+                  valor: '${s.ciudadesVisitadas}',
+                  etiqueta: 'Ciudades visitadas',
+                  color: AppTheme.ocre,
+                  onTap: () => _mostrarCiudades(context, s, vm),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               _StatCard(
                 icono: Icons.chat_bubble_outline_rounded,
                 valor: '${s.totalChats}',
@@ -92,9 +97,8 @@ class _EstadisticasBody extends StatelessWidget {
               ),
             ],
           ),
+        ),
           const SizedBox(height: 20),
-
-          // Detalle
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -117,14 +121,10 @@ class _EstadisticasBody extends StatelessWidget {
               ],
             ),
           ),
-
-          // Progreso por ciudad
           if (s.progresoPorCiudad.isNotEmpty) ...[
             const SizedBox(height: 24),
-            const Text(
-              'Progreso por ciudad',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
+            const Text('Progreso por ciudad',
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -139,7 +139,8 @@ class _EstadisticasBody extends StatelessWidget {
                   for (final p in s.progresoPorCiudad)
                     _ProgresoTile(
                       progreso: p,
-                      onTap: () => _confirmarBorrarCiudad(context, vm, p),
+                      onDelete: () =>
+                          _confirmarBorrarCiudad(context, vm, p),
                     ),
                 ],
               ),
@@ -150,102 +151,118 @@ class _EstadisticasBody extends StatelessWidget {
     );
   }
 
-  // ── Sheets ───────────────────────────────────────────────────────────────
+  // ── Sheets ────────────────────────────────────────────────────────────────
 
   void _mostrarChats(BuildContext context, Estadisticas s) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _Sheet(
-        titulo: 'Conversaciones',
-        icono: Icons.chat_bubble_outline_rounded,
-        color: const Color(0xFF5B6FA6),
-        child: s.chats.isEmpty
-            ? const _Vacio(mensaje: 'Aún no tienes conversaciones.')
-            : ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: s.chats.length,
-                separatorBuilder: (_, _) =>
+    _abrirSheet(
+      context,
+      titulo: 'Conversaciones',
+      icono: Icons.chat_bubble_outline_rounded,
+      color: const Color(0xFF5B6FA6),
+      child: s.chats.isEmpty
+          ? const _Vacio(mensaje: 'Aún no tienes conversaciones.')
+          : Column(
+              children: [
+                for (int i = 0; i < s.chats.length; i++) ...[
+                  _ChatTile(
+                    chat: s.chats[i],
+                    onTap: () {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      context.go('/home?chatId=${s.chats[i].id}');
+                    },
+                  ),
+                  if (i < s.chats.length - 1)
                     const Divider(height: 1, color: Color(0xFFEDE7E0)),
-                itemBuilder: (_, i) => _ChatTile(chat: s.chats[i]),
-              ),
-      ),
+                ],
+              ],
+            ),
     );
   }
 
   void _mostrarCiudades(
       BuildContext context, Estadisticas s, EstadisticasViewModel vm) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _Sheet(
-        titulo: 'Ciudades visitadas',
-        icono: Icons.location_city_rounded,
-        color: AppTheme.ocre,
-        child: s.progresoPorCiudad.isEmpty
-            ? const _Vacio(mensaje: 'Aún no has visitado ninguna ciudad.')
-            : Column(
-                children: [
-                  for (final p in s.progresoPorCiudad) ...[
-                    _ProgresoTile(
-                      progreso: p,
-                      onTap: () => _confirmarBorrarCiudad(context, vm, p),
-                    ),
-                    if (p.pois.isNotEmpty)
-                      _PoisCiudadExpanded(pois: p.pois),
-                    if (p != s.progresoPorCiudad.last)
-                      const Divider(
-                          height: 1, color: Color(0xFFEDE7E0)),
-                  ],
+    _abrirSheet(
+      context,
+      titulo: 'Ciudades visitadas',
+      icono: Icons.location_city_rounded,
+      color: AppTheme.ocre,
+      child: s.progresoPorCiudad.isEmpty
+          ? const _Vacio(mensaje: 'Aún no has visitado ninguna ciudad.')
+          : Column(
+              children: [
+                for (int i = 0; i < s.progresoPorCiudad.length; i++) ...[
+                  _CiudadExpandibleTile(
+                    progreso: s.progresoPorCiudad[i],
+                    onDelete: () => _confirmarBorrarCiudad(
+                        context, vm, s.progresoPorCiudad[i]),
+                  ),
+                  if (i < s.progresoPorCiudad.length - 1)
+                    const Divider(height: 1, color: Color(0xFFEDE7E0)),
                 ],
-              ),
-      ),
+              ],
+            ),
     );
   }
 
   void _mostrarPois(BuildContext context, Estadisticas s) {
-    final todasCiudades = s.progresoPorCiudad;
-    final totalPois =
-        todasCiudades.fold(0, (sum, c) => sum + c.total);
+    final ciudades = s.progresoPorCiudad;
+    final totalPois = ciudades.fold(0, (sum, c) => sum + c.total);
     final totalCapturados =
-        todasCiudades.fold(0, (sum, c) => sum + c.capturados);
+        ciudades.fold(0, (sum, c) => sum + c.capturados);
 
+    _abrirSheet(
+      context,
+      titulo: 'Puntos de interés',
+      icono: Icons.photo_camera_rounded,
+      color: AppTheme.usal,
+      subtitulo: '$totalCapturados / $totalPois',
+      child: ciudades.isEmpty
+          ? const _Vacio(mensaje: 'Aún no has capturado ningún monumento.')
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < ciudades.length; i++) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 12, 0, 6),
+                    child: Text(
+                      ciudades[i].nombre,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black45,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  ...ciudades[i].pois.map((poi) => _PoiTile(poi: poi)),
+                  if (i < ciudades.length - 1)
+                    const Divider(height: 20, color: Color(0xFFEDE7E0)),
+                ],
+              ],
+            ),
+    );
+  }
+
+  void _abrirSheet(
+    BuildContext context, {
+    required String titulo,
+    required IconData icono,
+    required Color color,
+    String? subtitulo,
+    required Widget child,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _Sheet(
-        titulo: 'Puntos de interés',
-        icono: Icons.photo_camera_rounded,
-        color: AppTheme.usal,
-        subtitulo: '$totalCapturados / $totalPois capturados',
-        child: todasCiudades.isEmpty
-            ? const _Vacio(mensaje: 'Aún no has capturado ningún monumento.')
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final ciudad in todasCiudades) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 12, 0, 6),
-                      child: Text(
-                        ciudad.nombre,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black54,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                    ...ciudad.pois.map((poi) => _PoiTile(poi: poi)),
-                    if (ciudad != todasCiudades.last)
-                      const Divider(height: 16, color: Color(0xFFEDE7E0)),
-                  ],
-                ],
-              ),
+        titulo: titulo,
+        icono: icono,
+        color: color,
+        subtitulo: subtitulo,
+        child: child,
       ),
     );
   }
@@ -282,7 +299,7 @@ Future<void> _confirmarBorrarCiudad(
   if (ok == true) await vm.eliminarCiudad(p.ciudadId);
 }
 
-// ── Widgets ───────────────────────────────────────────────────────────────
+// ── StatCard ──────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final IconData icono;
@@ -309,42 +326,41 @@ class _StatCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            height: 140,
-            padding:
-                const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+            // Sin height fija — la tarjeta crece con el contenido.
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFE0DAD4)),
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icono, size: 26, color: color),
+                Icon(icono, size: 24, color: color),
                 const SizedBox(height: 8),
                 Text(
                   valor,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: color,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Flexible(
-                  child: Text(
-                    etiqueta,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.black54, height: 1.2),
-                  ),
+                Text(
+                  etiqueta,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 11.5, color: Colors.black54, height: 1.3),
                 ),
                 if (onTap != null) ...[
-                  const SizedBox(height: 4),
-                  Icon(Icons.expand_more_rounded,
-                      size: 14, color: color.withValues(alpha: 0.5)),
+                  const SizedBox(height: 6),
+                  Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 14, color: color.withValues(alpha: 0.4)),
                 ],
               ],
             ),
@@ -354,6 +370,8 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+// ── FilaDetalle ───────────────────────────────────────────────────────────
 
 class _FilaDetalle extends StatelessWidget {
   final IconData icono;
@@ -372,15 +390,19 @@ class _FilaDetalle extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icono, size: 22, color: Colors.black54),
+          Icon(icono, size: 20, color: Colors.black45),
           const SizedBox(width: 12),
           Expanded(
-              child: Text(etiqueta,
-                  style: const TextStyle(fontSize: 15))),
+            child: Text(etiqueta,
+                style: const TextStyle(fontSize: 14),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
           Text(
             valor,
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700),
+                fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -388,63 +410,66 @@ class _FilaDetalle extends StatelessWidget {
   }
 }
 
+// ── ProgresoTile (pantalla principal) ─────────────────────────────────────
+
 class _ProgresoTile extends StatelessWidget {
   final ProgresoCiudad progreso;
-  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _ProgresoTile({required this.progreso, required this.onTap});
+  const _ProgresoTile({required this.progreso, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     final pct = (progreso.fraccion * 100).round();
-    final completa = progreso.total > 0 &&
-        progreso.capturados >= progreso.total;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    progreso.nombre,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                if (completa)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: Icon(Icons.emoji_events_rounded,
-                        size: 18, color: AppTheme.ocre),
-                  ),
-                Text(
-                  '${progreso.capturados}/${progreso.total}  ·  $pct%',
+    final completa =
+        progreso.total > 0 && progreso.capturados >= progreso.total;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  progreso.nombre,
                   style: const TextStyle(
-                      fontSize: 13, color: Colors.black54),
+                      fontSize: 15, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.delete_outline_rounded,
-                    size: 18, color: Colors.black26),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: progreso.fraccion,
-                minHeight: 8,
-                backgroundColor: const Color(0xFFEDE7E0),
-                valueColor: AlwaysStoppedAnimation(
-                    completa ? AppTheme.ocre : AppTheme.usal),
               ),
+              if (completa)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Icon(Icons.emoji_events_rounded,
+                      size: 18, color: AppTheme.ocre),
+                ),
+              Text(
+                '${progreso.capturados}/${progreso.total}  ·  $pct%',
+                style:
+                    const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onDelete,
+                child: const Icon(Icons.delete_outline_rounded,
+                    size: 18, color: Colors.black26),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progreso.fraccion,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFEDE7E0),
+              valueColor: AlwaysStoppedAnimation(
+                  completa ? AppTheme.ocre : AppTheme.usal),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -472,7 +497,7 @@ class _Sheet extends StatelessWidget {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
-      minChildSize: 0.4,
+      minChildSize: 0.35,
       maxChildSize: 0.92,
       expand: false,
       builder: (_, controller) => Container(
@@ -482,7 +507,6 @@ class _Sheet extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Handle
             const SizedBox(height: 12),
             Center(
               child: Container(
@@ -495,38 +519,38 @@ class _Sheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            // Cabecera
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Icon(icono, size: 20, color: color),
                   const SizedBox(width: 8),
-                  Text(
-                    titulo,
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700),
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  if (subtitulo != null) ...[
-                    const Spacer(),
+                  if (subtitulo != null)
                     Text(
                       subtitulo!,
                       style: const TextStyle(
                           fontSize: 13, color: Colors.black45),
                     ),
-                  ],
                 ],
               ),
             ),
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFEDE7E0)),
-            // Contenido scrollable
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 controller: controller,
                 padding: EdgeInsets.fromLTRB(
                     20, 12, 20, 20 + bottomPadding),
-                child: child,
+                children: [child],
               ),
             ),
           ],
@@ -536,68 +560,175 @@ class _Sheet extends StatelessWidget {
   }
 }
 
-// ── Tiles de contenido ────────────────────────────────────────────────────
+// ── Tile ciudad expandible (sheet de ciudades) ────────────────────────────
 
-class _ChatTile extends StatelessWidget {
-  final Chat chat;
+class _CiudadExpandibleTile extends StatelessWidget {
+  final ProgresoCiudad progreso;
+  final VoidCallback onDelete;
 
-  const _ChatTile({required this.chat});
+  const _CiudadExpandibleTile({
+    required this.progreso,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final fecha = chat.fechaCreacion;
-    final hoy = DateTime.now();
-    final esHoy = fecha.year == hoy.year &&
-        fecha.month == hoy.month &&
-        fecha.day == hoy.day;
-    final fechaStr = esHoy
-        ? '${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}'
-        : '${fecha.day}/${fecha.month}/${fecha.year}';
+    final pct = (progreso.fraccion * 100).round();
+    final completa =
+        progreso.total > 0 && progreso.capturados >= progreso.total;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      childrenPadding:
+          const EdgeInsets.only(left: 4, bottom: 12, top: 4),
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      title: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFF5B6FA6).withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.chat_bubble_outline_rounded,
-                size: 18, color: Color(0xFF5B6FA6)),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  chat.titulo.isEmpty ? 'Sin título' : chat.titulo,
+                  progreso.nombre,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600),
+                      fontSize: 15, fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (chat.ciudad.isNotEmpty)
-                  Text(
-                    chat.ciudad,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.black45),
-                  ),
+                const SizedBox(height: 2),
+                Text(
+                  '${progreso.capturados}/${progreso.total} · $pct%',
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.black45),
+                ),
               ],
             ),
           ),
-          Text(
-            fechaStr,
-            style: const TextStyle(fontSize: 12, color: Colors.black38),
+          if (completa)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.emoji_events_rounded,
+                  size: 16, color: AppTheme.ocre),
+            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded,
+                size: 18, color: Colors.black26),
+            onPressed: onDelete,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            splashRadius: 18,
           ),
+          const SizedBox(width: 4),
         ],
+      ),
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: progreso.fraccion,
+            minHeight: 6,
+            backgroundColor: const Color(0xFFEDE7E0),
+            valueColor: AlwaysStoppedAnimation(
+                completa ? AppTheme.ocre : AppTheme.usal),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (progreso.pois.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('Sin monumentos registrados',
+                style: TextStyle(fontSize: 13, color: Colors.black38)),
+          )
+        else
+          ...progreso.pois.map((poi) => _PoiTile(poi: poi)),
+      ],
+    );
+  }
+}
+
+// ── Tile chat ─────────────────────────────────────────────────────────────
+
+class _ChatTile extends StatelessWidget {
+  final Chat chat;
+  final VoidCallback? onTap;
+
+  const _ChatTile({required this.chat, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final f = chat.fechaCreacion;
+    final hoy = DateTime.now();
+    final esHoy = f.year == hoy.year &&
+        f.month == hoy.month &&
+        f.day == hoy.day;
+    final fechaStr = esHoy
+        ? '${f.hour.toString().padLeft(2, '0')}:${f.minute.toString().padLeft(2, '0')}'
+        : '${f.day}/${f.month}/${f.year}';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF5B6FA6).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.chat_bubble_outline_rounded,
+                  size: 17, color: Color(0xFF5B6FA6)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    chat.titulo.isEmpty ? 'Sin título' : chat.titulo,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (chat.ciudad.isNotEmpty)
+                    Text(
+                      chat.ciudad,
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black45),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fechaStr,
+                  style: const TextStyle(
+                      fontSize: 11, color: Colors.black38),
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded,
+                      size: 16, color: Colors.black26),
+                ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+// ── Tile POI ──────────────────────────────────────────────────────────────
 
 class _PoiTile extends StatelessWidget {
   final PoiVisitado poi;
@@ -607,56 +738,51 @@ class _PoiTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            poi.visitado
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            size: 20,
-            color: poi.visitado ? AppTheme.usal : Colors.black26,
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              poi.visitado
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 18,
+              color: poi.visitado ? AppTheme.usal : Colors.black26,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               poi.nombre,
               style: TextStyle(
-                fontSize: 14,
-                color: poi.visitado ? Colors.black87 : Colors.black45,
+                fontSize: 13.5,
+                color:
+                    poi.visitado ? Colors.black87 : Colors.black38,
                 fontWeight: poi.visitado
                     ? FontWeight.w500
                     : FontWeight.normal,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (poi.visitadoEn != null)
+          if (poi.visitadoEn != null) ...[
+            const SizedBox(width: 8),
             Text(
               '${poi.visitadoEn!.day}/${poi.visitadoEn!.month}',
-              style:
-                  const TextStyle(fontSize: 11, color: Colors.black38),
+              style: const TextStyle(
+                  fontSize: 11, color: Colors.black38),
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _PoisCiudadExpanded extends StatelessWidget {
-  final List<PoiVisitado> pois;
-
-  const _PoisCiudadExpanded({required this.pois});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 4),
-      child: Column(
-        children: pois.map((poi) => _PoiTile(poi: poi)).toList(),
-      ),
-    );
-  }
-}
+// ── Vacío ─────────────────────────────────────────────────────────────────
 
 class _Vacio extends StatelessWidget {
   final String mensaje;
@@ -666,12 +792,11 @@ class _Vacio extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
+      padding: const EdgeInsets.symmetric(vertical: 48),
       child: Center(
         child: Text(
           mensaje,
-          style:
-              const TextStyle(fontSize: 14, color: Colors.black45),
+          style: const TextStyle(fontSize: 14, color: Colors.black45),
           textAlign: TextAlign.center,
         ),
       ),

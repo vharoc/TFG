@@ -183,8 +183,72 @@ TOOLS = [
                 "required": ["filtro"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "como_llegar",
+            "description": (
+                "Proporciona indicaciones de cómo llegar a un monumento desde la posición actual del usuario. "
+                "Úsala cuando el usuario pregunte cómo llegar, cómo ir, dónde está, qué camino tomar "
+                "o pida indicaciones para desplazarse a un lugar concreto."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "description": "Nombre del monumento o lugar al que el usuario quiere ir"
+                    }
+                },
+                "required": ["nombre"]
+            }
+        }
     }
 ]
+
+# Palabras clave para detectar intención de navegación en modo rápido
+_KEYWORDS_NAVEGACION = [
+    "cómo llegar", "como llegar", "cómo ir", "como ir",
+    "dónde está", "donde está", "dónde queda", "donde queda",
+    "llegar a", "ir a", "cómo se va", "como se va",
+    "indicaciones", "cómo puedo ir", "como puedo ir",
+]
+
+def _es_consulta_navegacion(prompt: str) -> bool:
+    p = prompt.lower()
+    return any(k in p for k in _KEYWORDS_NAVEGACION)
+
+def _buscar_monumento_por_nombre(mon, nombre: str) -> dict | None:
+    """Busca un monumento por detección de alias o coincidencia parcial de nombre."""
+    if mon is None:
+        return None
+    resultado = mon.detectar_en_texto(nombre)
+    if resultado:
+        return resultado
+    nombre_lower = nombre.lower()
+    for m in mon._data:
+        if nombre_lower in m["nombre"].lower() or m["nombre"].lower() in nombre_lower:
+            return m
+    return None
+
+def _info_navegacion(mon, nombre: str, lat: float | None, lon: float | None) -> dict | None:
+    """Devuelve datos de navegación hacia un monumento si se encuentra."""
+    monumento = _buscar_monumento_por_nombre(mon, nombre)
+    if monumento is None:
+        return None
+    distancia_m = None
+    tiempo_min = None
+    if lat is not None and lon is not None:
+        distancia_m = round(_haversine_km(lat, lon, monumento["lat"], monumento["lon"]) * 1000)
+        tiempo_min = max(1, round(distancia_m / 80))
+    return {
+        "nombre": monumento["nombre"],
+        "lat": monumento["lat"],
+        "lon": monumento["lon"],
+        "distancia_m": distancia_m,
+        "tiempo_min": tiempo_min,
+    }
 
 
 async def _llamar_llm(messages: list, tools: list | None = None, timeout: float = 60.0) -> dict:
@@ -370,8 +434,8 @@ async def _query_pensar_agente(q: "Query", mon, monumento_activo: dict | None) -
 
     monumento_id = None
     pois_data = []
-
     ruta_data = None
+    navegacion_data = None
 
     if choice.get("finish_reason") == "tool_calls":
         tool_call = choice["message"]["tool_calls"][0]
@@ -402,6 +466,17 @@ async def _query_pensar_agente(q: "Query", mon, monumento_activo: dict | None) -
                 "tiempo_total_min": ejecutado.get("tiempo_total_min", 0),
             }, ensure_ascii=False)
 
+        elif tool_name == "como_llegar":
+            info = _info_navegacion(mon, args["nombre"], q.lat, q.lon)
+            if info is None:
+                tool_content = json.dumps({"error": f"No encontré '{args['nombre']}' en la ciudad."}, ensure_ascii=False)
+            else:
+                navegacion_data = {"nombre": info["nombre"], "lat": info["lat"], "lon": info["lon"]}
+                desc = f"{info['nombre']}"
+                if info["distancia_m"] is not None:
+                    desc += f" está a {info['distancia_m']} metros (~{info['tiempo_min']} min a pie)"
+                tool_content = json.dumps({"destino": desc, **info}, ensure_ascii=False)
+
         else:
             tool_content = json.dumps({"error": f"Herramienta '{tool_name}' no reconocida"})
 
@@ -422,6 +497,7 @@ async def _query_pensar_agente(q: "Query", mon, monumento_activo: dict | None) -
         "monumento_id": monumento_id,
         "pois_cercanos": pois_data,
         "ruta": ruta_data,
+        "navegacion": navegacion_data,
     })
 
 
@@ -485,6 +561,28 @@ async def query(request: Request, q: Query):
         monumento_rag = m_mencionado
         clase_rag = m_mencionado["classifier_class"].strip().upper()
 
+    # Navegación en modo rápido: si el usuario pide indicaciones, responder directo
+    if _es_consulta_navegacion(q.prompt):
+        destino_nombre = (m_mencionado or monumento_rag or {}).get("nombre", "")
+        if not destino_nombre:
+            destino_nombre = q.prompt  # intentar con el prompt completo como nombre
+        info = _info_navegacion(mon, destino_nombre, q.lat, q.lon)
+        if info:
+            nav_data = {"nombre": info["nombre"], "lat": info["lat"], "lon": info["lon"]}
+            partes = [f"📍 {info['nombre']}"]
+            if info["distancia_m"] is not None:
+                partes.append(f"Está a {info['distancia_m']} metros desde donde estás, aproximadamente {info['tiempo_min']} minutos a pie.")
+            else:
+                partes.append("Pulsa 'Cómo llegar' para abrir la navegación.")
+            partes.append("¡Pulsa el botón 'Cómo llegar' para abrir Google Maps con la ruta a pie!")
+            return _con_tokens({
+                "response": " ".join(partes),
+                "modo": "rapido",
+                "monumento_id": info.get("id"),
+                "pois_cercanos": [],
+                "navegacion": nav_data,
+            })
+
     if clase_rag and monumento_rag:
         rag_key = monumento_rag.get("rag_key") or monumento_rag["classifier_class"]
         chunks = consultar_rag(q.prompt, rag_key, n_resultados=1)
@@ -494,7 +592,7 @@ async def query(request: Request, q: Query):
             mid = monumento_rag["id"]
             pois = mon.get_nearby(mid) if mon else []
             pois_data = [{"id": p["id"], "nombre": p["nombre"]} for p in pois]
-            return _con_tokens({"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data})
+            return _con_tokens({"response": texto, "modo": "rapido", "monumento_id": mid, "pois_cercanos": pois_data, "navegacion": None})
 
     # Sin RAG: LLM con contexto de monumento activo si lo hay
     system = DEFAULT_SYSTEM_PROMPT
@@ -514,7 +612,7 @@ async def query(request: Request, q: Query):
     ]
     try:
         data = await _llamar_llm(messages)
-        return _con_tokens({"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": []})
+        return _con_tokens({"response": data["choices"][0]["message"]["content"], "monumento_id": None, "pois_cercanos": [], "navegacion": None})
     except Exception as e:
         logger.error("Error en modo rapido: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/mensaje.dart';
 import '../../models/poi_sugerido.dart';
 import '../../theme/theme.dart';
@@ -11,9 +12,22 @@ class ChatBubble extends StatelessWidget {
 
   const ChatBubble({super.key, required this.mensaje, this.onPoiTap});
 
+  Future<void> _abrirMaps() async {
+    final nav = mensaje.navegacion!;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1'
+      '&destination=${nav.lat},${nav.lon}'
+      '&travelmode=walking',
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final esUsuario = mensaje.role == MensajeRole.usuario;
+    final tieneNavegacion = !esUsuario && mensaje.navegacion != null;
     final mostrarChips = !esUsuario && mensaje.poisCercanos.isNotEmpty;
 
     final burbuja = Container(
@@ -61,7 +75,7 @@ class ChatBubble extends StatelessWidget {
       child: burbuja,
     );
 
-    if (!mostrarChips) return burbujaAligned;
+    if (!mostrarChips && !tieneNavegacion) return burbujaAligned;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -72,27 +86,50 @@ class ChatBubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ...mensaje.poisCercanos.map((poi) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: FilledButton(
-                      onPressed: () => onPoiTap?.call(poi),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppTheme.ocre,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+              if (mostrarChips)
+                ...mensaje.poisCercanos.map((poi) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: FilledButton(
+                        onPressed: () => onPoiTap?.call(poi),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.ocre,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 16),
+                        child: Text(
+                          poi.nombre,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      child: Text(
-                        poi.nombre,
-                        style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500),
-                        textAlign: TextAlign.center,
-                      ),
+                    )),
+              if (tieneNavegacion)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 6),
+                  child: OutlinedButton.icon(
+                    onPressed: _abrirMaps,
+                    icon: const Icon(Icons.directions_walk_rounded, size: 18),
+                    label: Text(
+                      'Cómo llegar a ${mensaje.navegacion!.nombre}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  )),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.usal,
+                      side: const BorderSide(color: AppTheme.usal),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 16),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 4),
             ],
           ),

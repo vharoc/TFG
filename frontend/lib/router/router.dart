@@ -37,7 +37,11 @@ final appRouter = GoRouter(
     GoRoute(path: '/login', builder: (_, state) => const LoginScreen()),
     GoRoute(path: '/register', builder: (_, state) => const RegisterScreen()),
     GoRoute(path: '/verify-email', builder: (_, state) => const VerifyEmailScreen()),
-    GoRoute(path: '/home', builder: (_, state) => const HomeScreen()),
+    GoRoute(
+      path: '/home',
+      builder: (_, state) =>
+          HomeScreen(chatId: state.uri.queryParameters['chatId']),
+    ),
     GoRoute(path: '/lateral', builder: (_, state) => const LateralScreen()),
     GoRoute(path: '/ajustes', builder: (_, state) => const AjustesScreen()),
     GoRoute(path: '/estadisticas', builder: (_, state) => const EstadisticasScreen()),

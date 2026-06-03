@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/chat.dart';
 import '../models/ciudad_soportada.dart';
 import '../models/mensaje.dart';
+import '../models/navegacion.dart';
 import '../models/poi_sugerido.dart';
 import '../models/poi_visitado.dart';
 import '../models/ruta_result.dart';
@@ -319,6 +320,17 @@ class HomeViewModel extends ChangeNotifier {
 
     if (await _bloqueadoPorLimite(chatIdActual)) return;
 
+    // Obtener posición para la tool como_llegar (si GPS disponible)
+    double? lat, lon;
+    if (_gpsDisponible) {
+      try {
+        final pos = await UbicacionService.instance.obtenerPosicion()
+            .timeout(const Duration(seconds: 3));
+        lat = pos.latitude;
+        lon = pos.longitude;
+      } catch (_) {}
+    }
+
     final client = http.Client();
     _clientActivo = client;
     _generando = true;
@@ -331,18 +343,19 @@ class HomeViewModel extends ChangeNotifier {
         history: historialReciente,
         monumentoId: _monumentoIdActual,
         modo: modoEfectivo,
+        lat: lat,
+        lon: lon,
         client: client,
       );
       _registrarTokens(resultado.tokens);
       if (resultado.monumentoId != null) {
         _monumentoIdActual = resultado.monumentoId;
       }
-      // Los chips de POIs cercanos solo aparecen tras una FOTO, no en respuestas
-      // de texto. (En modo ruta los chips de curiosidad los genera enviarImagen.)
       await _guardarMensajeTexto(
         chatId: chatIdActual,
         contenido: resultado.response,
         role: MensajeRole.bot,
+        navegacion: resultado.navegacion,
       );
     } catch (_) {
       if (_clientActivo == null) return; // cancelado por el usuario
@@ -544,12 +557,27 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> iniciarFlujoRuta() async {
     if (_generando) return;
+
+    // El modo ruta necesita la ubicación para posicionar el punto de inicio y
+    // mostrar el mapa de navegación. Si no está disponible, se solicita.
+    if (!_gpsDisponible) {
+      final estado = await UbicacionService.instance.solicitarPermiso();
+      if (estado == EstadoPermiso.concedido) {
+        _gpsDisponible = true;
+      } else {
+        _mensajeErrorFoto =
+            'El modo ruta necesita acceso a tu ubicación. '
+            'Actívala en los ajustes del móvil e inténtalo de nuevo.';
+        notifyListeners();
+        return;
+      }
+    }
+
     _rutaLat = null;
     _rutaLon = null;
     _rutaState = RutaState.esperandoFoto();
     notifyListeners();
 
-    // Mensaje explicativo en el chat (si ya hay ciudad para poder crear el chat)
     if (_ciudadActual != null) {
       await _crearChatSiNecesario();
       if (_chatId != null) {
@@ -748,16 +776,19 @@ class HomeViewModel extends ChangeNotifier {
     required String contenido,
     required MensajeRole role,
     List<PoiSugerido> poisCercanos = const [],
+    Navegacion? navegacion,
   }) {
     return ChatService.instance.guardarMensaje(
       chatId: chatId,
-      mensaje: Mensaje.texto(
+      mensaje: Mensaje(
         id: '',
         chatId: chatId,
         contenido: contenido,
+        tipo: MensajeTipo.texto,
         role: role,
         fecha: DateTime.now(),
         poisCercanos: poisCercanos,
+        navegacion: navegacion,
       ),
     );
   }

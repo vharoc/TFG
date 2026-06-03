@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../models/ciudad_soportada.dart';
 import '../models/clasificacion_result.dart';
 import '../models/mensaje.dart';
+import '../models/navegacion.dart';
 import '../models/poi_sugerido.dart';
 import '../models/ruta_result.dart';
 
@@ -75,13 +76,15 @@ class OllamaService {
         .toList();
   }
 
-  static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos, int tokens})> query(
+  static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos, int tokens, Navegacion? navegacion})> query(
     String prompt, {
     String system = '',
     String ciudad = '',
     List<Mensaje> history = const [],
     String? monumentoId,
     String modo = 'rapido',
+    double? lat,
+    double? lon,
     http.Client? client,
   }) async {
     Exception? lastError;
@@ -102,6 +105,8 @@ class OllamaService {
                   'history': _convertirHistorial(history),
                   'monumento_id': monumentoId,
                   'modo': modo,
+                  'lat': lat,
+                  'lon': lon,
                 }),
               )
               .timeout(const Duration(seconds: 270));
@@ -126,8 +131,10 @@ class OllamaService {
               .map((e) => PoiSugerido.fromMap(e as Map<String, dynamic>))
               .toList();
           final tokens = (data['tokens'] as num?)?.toInt() ?? 0;
+          final navJson = data['navegacion'] as Map<String, dynamic>?;
+          final navegacion = navJson != null ? Navegacion.fromJson(navJson) : null;
 
-          return (response: respuesta, monumentoId: mId, poisCercanos: pois, tokens: tokens);
+          return (response: respuesta, monumentoId: mId, poisCercanos: pois, tokens: tokens, navegacion: navegacion);
         } on TimeoutException {
           throw Exception('El servidor tardo demasiado en responder.');
         } on FormatException {
