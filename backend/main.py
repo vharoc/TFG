@@ -100,6 +100,12 @@ PENSAR_SYSTEM_PROMPT = (
     + SEGURIDAD_PROMPT
 )
 
+_MODOS_VALIDOS = {"rapido", "pensar"}
+_MAX_PROMPT = 1500
+_MAX_HISTORY = 20
+_MAX_IMAGEN_BYTES = 5 * 1024 * 1024  # 5 MB
+_TIPOS_IMAGEN = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
 class Message(BaseModel):
     role: str
     content: str
@@ -427,6 +433,13 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 @app.post("/api/query")
 @limiter.limit("15/minute")
 async def query(request: Request, q: Query):
+    if q.modo not in _MODOS_VALIDOS:
+        raise HTTPException(status_code=422, detail=f"modo no válido: usa 'rapido' o 'pensar'")
+    if len(q.prompt) > _MAX_PROMPT:
+        raise HTTPException(status_code=422, detail=f"prompt demasiado largo (máx. {_MAX_PROMPT} caracteres)")
+    if len(q.history) > _MAX_HISTORY:
+        raise HTTPException(status_code=422, detail=f"historial demasiado largo (máx. {_MAX_HISTORY} mensajes)")
+
     mon = registry.monumentos(q.ciudad)
 
     # Modo pensar: agente con tool calling
@@ -535,7 +548,11 @@ async def health():
 @app.post("/api/classify")
 @limiter.limit("10/minute")
 async def classify(request: Request, imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
+    if imagen.content_type not in _TIPOS_IMAGEN:
+        raise HTTPException(status_code=415, detail="Tipo de archivo no permitido. Usa JPEG, PNG, WEBP o GIF")
     data = await imagen.read()
+    if len(data) > _MAX_IMAGEN_BYTES:
+        raise HTTPException(status_code=413, detail="Imagen demasiado grande (máx. 5 MB)")
     clase = registry.clasificar(data, ciudad)
     mon = registry.monumentos(ciudad)
 
