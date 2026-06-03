@@ -1,21 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/chat.dart';
+import '../models/poi_visitado.dart';
 import 'auth_services.dart';
 
-/// Estadísticas agregadas del usuario, calculadas directamente sobre Firestore
-/// con aggregate queries (count) — no descargan los documentos, solo cuentan.
-/// No dependen del backend: funcionan con solo tener conexión a Firebase.
-/// Progreso de capturas en una ciudad concreta.
 class ProgresoCiudad {
   final String nombre;
   final String ciudadId;
   final int capturados;
   final int total;
+  final List<PoiVisitado> pois;
 
   const ProgresoCiudad({
     required this.nombre,
     required this.ciudadId,
     required this.capturados,
     required this.total,
+    this.pois = const [],
   });
 
   double get fraccion => total == 0 ? 0 : capturados / total;
@@ -28,6 +28,7 @@ class Estadisticas {
   final int ciudadesVisitadas;
   final int poisCapturados;
   final List<ProgresoCiudad> progresoPorCiudad;
+  final List<Chat> chats;
 
   const Estadisticas({
     required this.totalChats,
@@ -36,6 +37,7 @@ class Estadisticas {
     required this.ciudadesVisitadas,
     required this.poisCapturados,
     required this.progresoPorCiudad,
+    this.chats = const [],
   });
 
   const Estadisticas.vacias()
@@ -44,7 +46,8 @@ class Estadisticas {
         mediaMensajesPorChat = 0,
         ciudadesVisitadas = 0,
         poisCapturados = 0,
-        progresoPorCiudad = const [];
+        progresoPorCiudad = const [],
+        chats = const [];
 }
 
 class EstadisticasService {
@@ -70,39 +73,49 @@ class EstadisticasService {
   Future<Estadisticas> calcular() async {
     final chatsRef = _userRef.collection('chats');
     final chatsSnap = await chatsRef.get();
-    final totalChats = chatsSnap.docs.length;
 
-    // Mensajes: sumamos el count() de la subcolección de cada chat.
+    final chats = chatsSnap.docs
+        .map((d) => Chat.fromFirestore(d))
+        .toList()
+      ..sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+
+    // Mensajes: count por chat (evita descargar todos los mensajes)
     int totalMensajes = 0;
     for (final chat in chatsSnap.docs) {
       totalMensajes += await _contar(chat.reference.collection('mensajes'));
     }
 
-    // POIs capturados y progreso por ciudad en una sola pasada.
+    // POIs y progreso por ciudad — descargamos los docs para mostrarlos
     int pois = 0;
     final progreso = <ProgresoCiudad>[];
     final ciudadesSnap = await _userRef.collection('ciudades_visitadas').get();
     for (final ciudad in ciudadesSnap.docs) {
-      final poisRef = ciudad.reference.collection('pois');
-      final capturados = await _contar(poisRef.where('visitado', isEqualTo: true));
-      final total = await _contar(poisRef);
+      final poisSnap = await ciudad.reference.collection('pois').get();
+      final poisList = poisSnap.docs
+          .map((d) => PoiVisitado.fromFirestore(d))
+          .toList()
+        ..sort((a, b) => a.nombre.compareTo(b.nombre));
+      final capturados = poisList.where((p) => p.visitado).length;
       pois += capturados;
       progreso.add(ProgresoCiudad(
         nombre: (ciudad.data()['nombre'] as String?) ?? ciudad.id,
         ciudadId: ciudad.id,
         capturados: capturados,
-        total: total,
+        total: poisList.length,
+        pois: poisList,
       ));
     }
     progreso.sort((a, b) => b.fraccion.compareTo(a.fraccion));
 
     return Estadisticas(
-      totalChats: totalChats,
+      totalChats: chats.length,
       totalMensajes: totalMensajes,
-      mediaMensajesPorChat: totalChats == 0 ? 0 : totalMensajes / totalChats,
+      mediaMensajesPorChat:
+          chats.isEmpty ? 0 : totalMensajes / chats.length,
       ciudadesVisitadas: ciudadesSnap.docs.length,
       poisCapturados: pois,
       progresoPorCiudad: progreso,
+      chats: chats,
     );
   }
 }
