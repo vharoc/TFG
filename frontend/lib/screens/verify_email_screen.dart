@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_services.dart';
 import '../theme/theme.dart';
 import '../widgets/auth/auth_page_layout.dart';
@@ -61,9 +62,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     setState(() => _checking = true);
     try {
       await AuthService.instance.reloadUser();
-      // El router reacciona automáticamente al cambio de authState;
-      // si emailVerified ya es true redirigirá a /home.
-      if (mounted && !AuthService.instance.isEmailVerified) {
+      if (!mounted) return;
+      if (AuthService.instance.isEmailVerified) {
+        context.go('/home');
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Aún no hemos recibido la verificación. Revisa tu correo.')),
         );
@@ -75,6 +77,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   Future<void> _salir() async {
     await AuthService.instance.signOut();
+    if (mounted) context.go('/login');
   }
 
   @override
