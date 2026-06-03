@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from typing import Optional
 import httpx
 import json
@@ -40,7 +43,11 @@ async def lifespan(app: FastAPI):
     yield
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="TourClick API", version="1.0.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -418,7 +425,8 @@ async def _reformatear(texto: str, pregunta: str) -> str:
 
 @app.post("/query")
 @app.post("/api/query")
-async def query(q: Query):
+@limiter.limit("15/minute")
+async def query(request: Request, q: Query):
     mon = registry.monumentos(q.ciudad)
 
     # Modo pensar: agente con tool calling
@@ -484,7 +492,8 @@ async def query(q: Query):
 
 @app.post("/ruta")
 @app.post("/api/ruta")
-async def ruta(req: RutaRequest):
+@limiter.limit("10/minute")
+async def ruta(request: Request, req: RutaRequest):
     mon = registry.monumentos(req.ciudad)
     if mon is None:
         raise HTTPException(status_code=503, detail="Servicio de monumentos no disponible")
@@ -524,7 +533,8 @@ async def health():
 
 @app.post("/classify")
 @app.post("/api/classify")
-async def classify(imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
+@limiter.limit("10/minute")
+async def classify(request: Request, imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
     data = await imagen.read()
     clase = registry.clasificar(data, ciudad)
     mon = registry.monumentos(ciudad)

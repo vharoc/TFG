@@ -15,12 +15,25 @@ class RegisterViewModel extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
-  String? validar(String email, String pswd, String nombre){
+  static final _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+  );
+
+  String? validar(String email, String pswd, String nombre) {
     if (email.isEmpty || pswd.isEmpty || nombre.isEmpty) {
       return 'Rellena todos los campos';
     }
+    if (!_emailRegex.hasMatch(email)) {
+      return 'Introduce un correo electrónico válido';
+    }
     if (pswd.length < 8) {
       return 'La contraseña debe tener al menos 8 caracteres';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(pswd)) {
+      return 'La contraseña debe incluir al menos una mayúscula';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(pswd)) {
+      return 'La contraseña debe incluir al menos un número';
     }
     return null;
   }

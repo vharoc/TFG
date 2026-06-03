@@ -69,7 +69,7 @@ class _RegisterBodyState extends State<_RegisterBody> {
           const SizedBox(height: 16),
           AuthLabeledTextField(
             label: 'Contraseña',
-            hintText: 'Mínimo 8 caracteres',
+            hintText: 'Mín. 8 caracteres, 1 mayúscula y 1 número',
             icon: Icons.lock_outline,
             controller: _passwd,
             isPassword: true,
