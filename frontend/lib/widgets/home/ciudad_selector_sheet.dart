@@ -39,9 +39,9 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
           ),
           const SizedBox(height: 16),
           if (_cargando)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Image.asset('assets/images/logo_only.png', width: 56, height: 56),
             )
           else
             ..._ciudades.map(

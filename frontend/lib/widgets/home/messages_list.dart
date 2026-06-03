@@ -22,7 +22,9 @@ class HomeMessagesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (cargando) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Image.asset('assets/images/logo_only.png', width: 72, height: 72),
+      );
     }
 
     if (messages.isEmpty) {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/ruta_result.dart';
+import '../services/ubicacion_service.dart';
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
 import '../widgets/home/ciudad_selector_sheet.dart';
@@ -130,7 +131,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _inicializar() async {
-    await _vm.inicializarUbicacion();
+    // GPS y caché de ciudades en paralelo: cuando abra el selector ya estará listo.
+    await Future.wait([
+      _vm.inicializarUbicacion(),
+      UbicacionService.instance.cargarCiudadesSoportadas(),
+    ]);
     if (mounted) _mostrarSelectorSiNecesario();
   }
 
