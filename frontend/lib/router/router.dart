@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/auth_services.dart';
 import '../screens/ajustes_screen.dart';
@@ -14,25 +11,8 @@ import '../screens/verify_email_screen.dart';
 
 const _publicRoutes = ["/login", "/register", "/"];
 
-// Notifica al router cada vez que cambia el estado de auth (login, logout,
-// borrado de cuenta, cambio de emailVerified tras reloadUser).
-class _AuthNotifier extends ChangeNotifier {
-  _AuthNotifier() {
-    _sub = FirebaseAuth.instance.userChanges().listen((_) => notifyListeners());
-  }
-
-  late final StreamSubscription<User?> _sub;
-
-  @override
-  void dispose() {
-    _sub.cancel();
-    super.dispose();
-  }
-}
-
 final appRouter = GoRouter(
   initialLocation: '/',
-  refreshListenable: _AuthNotifier(),
   redirect: (context, state) {
     final auth = AuthService.instance;
     final user = auth.currentUser;

@@ -52,7 +52,7 @@ class _LoginBodyState extends State<_LoginBody> {
         children: [
           AuthLabeledTextField(
             label: 'Email o usuario',
-            hintText: 'Introduce tu email o usuario',
+            hintText: 'Introduce tu email',
             icon: Icons.person_outline,
             controller: _email,
           ),

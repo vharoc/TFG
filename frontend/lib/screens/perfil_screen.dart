@@ -159,18 +159,9 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
     final passwd = await showDeleteAccountDialog(context);
     if (!mounted || passwd == null) return;
 
-    // Overlay de carga: tapa cualquier reconstrucción de la pantalla mientras
-    // se borran chats y se elimina la cuenta, evitando el flash antes del login.
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
     final ok = await vm.eliminarCuenta(passwd);
 
     if (!mounted) return;
-    Navigator.of(context).pop(); // cierra el overlay
 
     if (ok) {
       context.go('/login');

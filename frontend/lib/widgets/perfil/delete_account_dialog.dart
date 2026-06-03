@@ -1,17 +1,44 @@
 import 'package:flutter/material.dart';
 
-Future<String?> showDeleteAccountDialog(BuildContext context) async {
-  final passwdCtrl = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+Future<String?> showDeleteAccountDialog(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const _DeleteAccountDialog(),
+  );
+}
 
-  try {
-    final confirm = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar cuenta'),
-        content: Form(
-          key: formKey,
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _ctrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _confirmar() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(_ctrl.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Eliminar cuenta'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,41 +50,34 @@ Future<String?> showDeleteAccountDialog(BuildContext context) async {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: passwdCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(
+                controller: _ctrl,
+                obscureText: _obscure,
+                decoration: InputDecoration(
                   labelText: 'Contraseña actual',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
                 ),
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Introduce tu contraseña' : null,
+                onFieldSubmitted: (_) => _confirmar(),
               ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(context, true);
-              }
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: _confirmar,
+          child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+        ),
+      ],
     );
-
-    if (confirm == true) {
-      return passwdCtrl.text.trim();
-    }
-
-    return null;
-  } finally {
-    passwdCtrl.dispose();
   }
 }
