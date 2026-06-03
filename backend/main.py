@@ -553,7 +553,10 @@ async def classify(request: Request, imagen: UploadFile = File(...), modo: str =
     data = await imagen.read()
     if len(data) > _MAX_IMAGEN_BYTES:
         raise HTTPException(status_code=413, detail="Imagen demasiado grande (máx. 5 MB)")
-    clase = registry.clasificar(data, ciudad)
+    try:
+        clase = registry.clasificar(data, ciudad)
+    except OSError:
+        raise HTTPException(status_code=400, detail="Imagen corrupta o formato no soportado")
     mon = registry.monumentos(ciudad)
 
     if mon is None:
