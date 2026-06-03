@@ -79,4 +79,14 @@ class AuthService {
     await reauthenticate(email: email, passwd: currentPasswd);
     await _requiredUser.updatePassword(newPasswd);
   }
+
+  Future<void> sendEmailVerification() async {
+    await _requiredUser.sendEmailVerification();
+  }
+
+  Future<void> reloadUser() async {
+    await _requiredUser.reload();
+  }
+
+  bool get isEmailVerified => currentUser?.emailVerified ?? false;
 }

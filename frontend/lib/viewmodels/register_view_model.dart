@@ -47,14 +47,15 @@ class RegisterViewModel extends ChangeNotifier {
         passwd: passwd,
       );
       await _authService.updateUsername(username: nombre);
- 
+      await _authService.sendEmailVerification();
+
       final usuario = Usuario(
         id: credenciales.user!.uid,
         nombre: nombre,
         email: email,
       );
       await _userService.crearUsuario(usuario);
- 
+
       return true;
     } on FirebaseAuthException catch (e) {
       _error = _parseError(e);
