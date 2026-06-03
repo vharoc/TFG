@@ -591,7 +591,7 @@ class HomeViewModel extends ChangeNotifier {
       notifyListeners();
       await _guardarMensajeTexto(
         chatId: _chatId!,
-        contenido: '🎉 ¡Ruta completada! Has visitado ${rs.resultado!.paradas.length} monumentos.',
+        contenido: ' ¡Ruta completada! Has visitado ${rs.resultado!.paradas.length} monumentos.',
         role: MensajeRole.bot,
       );
       return;

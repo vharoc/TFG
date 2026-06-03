@@ -95,7 +95,6 @@ class _ChatInputState extends State<ChatInput> {
       if (rs.estado == EstadoRuta.esperandoFoto) return _buildEsperandoFoto();
       if (rs.estado == EstadoRuta.seleccionandoFiltro) return _buildFiltroRuta();
       if (rs.estado == EstadoRuta.cargando) return _buildCargandoRuta();
-      if (rs.estado == EstadoRuta.activo) return _buildRutaActiva();
     }
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,59 +323,6 @@ class _ChatInputState extends State<ChatInput> {
           ),
           SizedBox(width: 12),
           Text('Calculando tu ruta...', style: TextStyle(color: Colors.black54, fontSize: 14)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRutaActiva() {
-    final rs = widget.rutaState!;
-    final parada = rs.paradaActualObj;
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          const Icon(Icons.route_rounded, size: 16, color: AppTheme.usal),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              parada != null
-                  ? '${rs.paradaActual + 1}/${rs.totalParadas}: ${parada.nombre}'
-                  : 'Ruta activa',
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 6),
-          // Cámara — toma foto y auto-avanza tras la respuesta
-          GestureDetector(
-            onTap: _openCamera,
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.ocre,
-              ),
-              child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 6),
-          // Saltar — avanza sin foto
-          GestureDetector(
-            onTap: widget.onSiguienteParada,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.usal,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Saltar →',
-                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
         ],
       ),
     );

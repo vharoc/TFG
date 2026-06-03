@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/ruta_result.dart';
+import 'ruta_navegacion_screen.dart';
 import '../services/ubicacion_service.dart';
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   bool _mostrandoSelectorCiudad = false;
   bool _mostrandoResumenRuta = false;
+  bool _navegacionAbierta = false;
   int _previousMessageCount = 0;
 
   @override
@@ -68,6 +70,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_vm.rutaState?.estado == EstadoRuta.mostrandoResumen) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarResumenRutaSiNecesario());
     }
+    // comenzarRuta() es async (espera a crear el chat) antes de poner el estado
+    // en activo, por eso lo detectamos aquí y no justo tras cerrar el modal.
+    if (_vm.rutaState?.estado == EstadoRuta.activo && !_navegacionAbierta) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _abrirNavegacion());
+    }
     if (_vm.mensajeErrorFoto != null) {
       final mensaje = _vm.mensajeErrorFoto!;
       _vm.limpiarErrorFoto();
@@ -107,6 +114,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     _mostrandoResumenRuta = false;
+  }
+
+  Future<void> _abrirNavegacion() async {
+    if (_navegacionAbierta || !mounted) return;
+    _navegacionAbierta = true;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: _vm,
+          child: const RutaNavegacionScreen(),
+        ),
+      ),
+    );
+
+    _navegacionAbierta = false;
   }
 
   void _scrollToBottomIfNeeded() {

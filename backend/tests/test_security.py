@@ -65,16 +65,17 @@ def test_historial_demasiado_largo():
     print("  [OK] /query rechaza historial > 20 mensajes")
 
 
-def test_classify_tipo_invalido():
-    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+def test_classify_contenido_invalido():
+    # Un PDF con content-type image/jpeg debe ser rechazado por Pillow → 400
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content here")
     r = httpx.post(
         url("/api/classify"),
-        files={"imagen": ("doc.pdf", fake_pdf, "application/pdf")},
+        files={"imagen": ("doc.pdf", fake_pdf, "image/jpeg")},
         data={"ciudad": "salamanca"},
         timeout=10,
     )
-    assert r.status_code == 415, f"Esperaba 415, obtuvo {r.status_code}"
-    print("  [OK] /classify rechaza tipos no imagen")
+    assert r.status_code == 400, f"Esperaba 400, obtuvo {r.status_code}"
+    print("  [OK] /classify rechaza contenido no-imagen aunque el content-type sea image/jpeg")
 
 
 def test_classify_imagen_grande():
@@ -144,7 +145,7 @@ TESTS = [
     test_prompt_demasiado_largo,
     test_modo_invalido,
     test_historial_demasiado_largo,
-    test_classify_tipo_invalido,
+    test_classify_contenido_invalido,
     test_classify_imagen_grande,
     test_classify_imagen_corrupta,
     test_rate_limit_query,
