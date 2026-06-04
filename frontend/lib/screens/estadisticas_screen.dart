@@ -205,17 +205,15 @@ class _EstadisticasBody extends StatelessWidget {
   }
 
   void _mostrarPois(BuildContext context, Estadisticas s) {
-    final ciudades = s.progresoPorCiudad;
-    final totalPois = ciudades.fold(0, (sum, c) => sum + c.total);
-    final totalCapturados =
-        ciudades.fold(0, (sum, c) => sum + c.capturados);
+    final ciudades = s.progresoPorCiudad
+        .where((c) => c.capturados > 0)
+        .toList();
 
     _abrirSheet(
       context,
       titulo: 'Puntos de interés',
       icono: Icons.photo_camera_rounded,
       color: AppTheme.usal,
-      subtitulo: '$totalCapturados / $totalPois',
       child: ciudades.isEmpty
           ? const _Vacio(mensaje: 'Aún no has capturado ningún monumento.')
           : Column(
@@ -236,7 +234,9 @@ class _EstadisticasBody extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  ...ciudades[i].pois.map((poi) => _PoiTile(poi: poi)),
+                  ...ciudades[i].pois
+                      .where((p) => p.visitado)
+                      .map((poi) => _PoiTile(poi: poi)),
                   if (i < ciudades.length - 1)
                     const Divider(height: 20, color: Color(0xFFEDE7E0)),
                 ],
@@ -420,7 +420,6 @@ class _ProgresoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (progreso.fraccion * 100).round();
     final completa =
         progreso.total > 0 && progreso.capturados >= progreso.total;
     return Padding(
@@ -446,7 +445,7 @@ class _ProgresoTile extends StatelessWidget {
                       size: 18, color: AppTheme.ocre),
                 ),
               Text(
-                '${progreso.capturados}/${progreso.total}  ·  $pct%',
+                '${progreso.capturados} capturados',
                 style:
                     const TextStyle(fontSize: 12, color: Colors.black54),
               ),
@@ -457,17 +456,6 @@ class _ProgresoTile extends StatelessWidget {
                     size: 18, color: Colors.black26),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: progreso.fraccion,
-              minHeight: 8,
-              backgroundColor: const Color(0xFFEDE7E0),
-              valueColor: AlwaysStoppedAnimation(
-                  completa ? AppTheme.ocre : AppTheme.usal),
-            ),
           ),
         ],
       ),
@@ -573,9 +561,9 @@ class _CiudadExpandibleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (progreso.fraccion * 100).round();
     final completa =
         progreso.total > 0 && progreso.capturados >= progreso.total;
+    final visitados = progreso.pois.where((p) => p.visitado).toList();
 
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
@@ -597,7 +585,7 @@ class _CiudadExpandibleTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${progreso.capturados}/${progreso.total} · $pct%',
+                  '${progreso.capturados} capturados',
                   style: const TextStyle(
                       fontSize: 12, color: Colors.black45),
                 ),
@@ -622,25 +610,14 @@ class _CiudadExpandibleTile extends StatelessWidget {
         ],
       ),
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: progreso.fraccion,
-            minHeight: 6,
-            backgroundColor: const Color(0xFFEDE7E0),
-            valueColor: AlwaysStoppedAnimation(
-                completa ? AppTheme.ocre : AppTheme.usal),
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (progreso.pois.isEmpty)
+        if (visitados.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Sin monumentos registrados',
+            child: Text('Aún no has capturado ningún monumento aquí.',
                 style: TextStyle(fontSize: 13, color: Colors.black38)),
           )
         else
-          ...progreso.pois.map((poi) => _PoiTile(poi: poi)),
+          ...visitados.map((poi) => _PoiTile(poi: poi)),
       ],
     );
   }

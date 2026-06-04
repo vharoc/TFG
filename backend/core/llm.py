@@ -17,9 +17,25 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "nombre": {"type": "string", "description": "Nombre o descripción del monumento a buscar"}
+                    "nombre": {
+                        "type": "string",
+                        "description": "Nombre exacto del monumento a buscar"
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "Descripción semántica del contenido que se busca, en términos del tema "
+                            "real (no de la intención del usuario). Debe ser descriptiva y rica para "
+                            "maximizar la relevancia de los resultados. "
+                            "Ejemplos: 'leyendas y mitos de la Catedral de Salamanca', "
+                            "'curiosidades y datos sorprendentes de la Casa de las Conchas', "
+                            "'historia de construcción y arquitectura de la Plaza Mayor'. "
+                            "Si el usuario pide más información sobre un tema ya tratado en el historial, "
+                            "construye la query con el mismo tema para recuperar fragmentos distintos."
+                        )
+                    }
                 },
-                "required": ["nombre"]
+                "required": ["nombre", "query"]
             }
         }
     },

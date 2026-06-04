@@ -105,7 +105,8 @@ async def _query_pensar_agente(q: Query, mon, monumento_activo: dict | None) -> 
         logger.info("Tool call: %s(%s)", tool_name, args)
 
         if tool_name == "usar_rag":
-            resultado = _usar_rag(mon, args["nombre"], query=q.prompt)
+            query = args.get("query") or q.prompt
+            resultado = _usar_rag(mon, args["nombre"], query=query)
             monumento_id = resultado["monumento_id"]
             pois_data = resultado["pois_cercanos"]
             tool_content = json.dumps({"informacion": resultado["informacion"]}, ensure_ascii=False)
