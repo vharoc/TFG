@@ -34,8 +34,11 @@ class HomeMessagesList extends StatelessWidget {
     return ListView.builder(
       controller: controller,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      cacheExtent: 600,
       itemCount: messages.length,
-      itemBuilder: (_, i) => ChatBubble(mensaje: messages[i], onPoiTap: onPoiTap),
+      itemBuilder: (_, i) => RepaintBoundary(
+        child: ChatBubble(mensaje: messages[i], onPoiTap: onPoiTap),
+      ),
     );
   }
 }
