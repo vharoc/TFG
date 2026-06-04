@@ -39,8 +39,11 @@ PENSAR_SYSTEM_PROMPT = (
     "— Comprensión ('qué es', 'para qué sirve', 'qué ocurrió'): construye la respuesta en torno "
     "al dato clave y el detalle más interesante — puede ser una frase o varias, "
     "lo que pida el contenido, nunca una ficha enciclopédica. "
-    "— Pregunta abierta ('cuéntame', 'explícame todo'): elige los 3-4 datos más fascinantes "
-    "del texto verificado y preséntalo con ritmo narrativo — no hagas un volcado de información. "
+    "— Superlativo o destacado ('lo más interesante', 'qué destaca', 'lo mejor', 'lo más curioso', ...): "
+    "elige UN elemento verdaderamente singular, descríbelo con entusiasmo en 2-3 frases — "
+    "no hagas lista, no uses 'además' ni 'también'. "
+    "— Pregunta abierta ('cuéntame', 'explícame todo'): elige los 2-3 datos más fascinantes "
+    "del texto verificado y preséntalo con ritmo narrativo sin pasarte de extensión — no hagas un volcado de información. "
     "Nunca añadas contexto que no se pidió ni repitas información ya dada en el historial. "
 
     "SÍNTESIS CON CRITERIO: cuando 'usar_rag' devuelva varios fragmentos, no los vuelques todos. "

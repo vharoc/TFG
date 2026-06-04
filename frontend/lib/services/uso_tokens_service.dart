@@ -33,7 +33,7 @@ class UsoTokensService {
 
   /// Límite diario de tokens por usuario. Empieza bajo para validar el bloqueo;
   /// subir este valor cuando el comportamiento esté comprobado.
-  static const int limiteDiario = 20000;
+  static const int limiteDiario = 50000;
 
   final _db = FirebaseFirestore.instance;
 
