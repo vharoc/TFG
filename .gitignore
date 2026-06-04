@@ -72,6 +72,8 @@ instance/
 docs/_build/
 docs/anexos/
 docs/
+tests/
+frontend/test/
 
 # PyBuilder
 .pybuilder/
