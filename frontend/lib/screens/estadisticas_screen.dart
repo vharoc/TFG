@@ -748,9 +748,10 @@ class _PoiTile extends StatelessWidget {
           if (poi.visitadoEn != null) ...[
             const SizedBox(width: 8),
             Text(
-              '${poi.visitadoEn!.day}/${poi.visitadoEn!.month}',
-              style: const TextStyle(
-                  fontSize: 11, color: Colors.black38),
+              '${poi.visitadoEn!.day.toString().padLeft(2, '0')}/'
+              '${poi.visitadoEn!.month.toString().padLeft(2, '0')}/'
+              '${(poi.visitadoEn!.year % 100).toString().padLeft(2, '0')}',
+              style: const TextStyle(fontSize: 11, color: Colors.black38),
             ),
           ],
         ],
