@@ -28,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _mostrandoSelectorCiudad = false;
   bool _mostrandoResumenRuta = false;
   bool _navegacionAbierta = false;
+  // true cuando el usuario sale del mapa con atrás pero sin cancelar la ruta
+  bool _navegacionMinimizada = false;
   int _previousMessageCount = 0;
 
   @override
@@ -72,8 +74,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
     // comenzarRuta() es async (espera a crear el chat) antes de poner el estado
     // en activo, por eso lo detectamos aquí y no justo tras cerrar el modal.
-    if (_vm.rutaState?.estado == EstadoRuta.activo && !_navegacionAbierta) {
+    // No re-abrimos si el usuario salió del mapa con el botón atrás (minimizada).
+    if (_vm.rutaState?.estado == EstadoRuta.activo &&
+        !_navegacionAbierta &&
+        !_navegacionMinimizada) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _abrirNavegacion());
+    }
+    // Cuando la ruta termina o se cancela, limpiamos el flag de minimizada.
+    if (_vm.rutaState == null && _navegacionMinimizada) {
+      _navegacionMinimizada = false;
     }
     if (_vm.mensajeErrorFoto != null) {
       final mensaje = _vm.mensajeErrorFoto!;
@@ -119,6 +128,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _abrirNavegacion() async {
     if (_navegacionAbierta || !mounted) return;
     _navegacionAbierta = true;
+    // Si venía minimizada, la des-minimizamos al volver a abrir
+    if (_navegacionMinimizada) setState(() => _navegacionMinimizada = false);
 
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -130,6 +141,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     _navegacionAbierta = false;
+    // Si la ruta sigue activa tras salir, el usuario usó el botón atrás:
+    // marcamos como minimizada para no re-abrir automáticamente.
+    if (_vm.rutaState?.estado == EstadoRuta.activo && mounted) {
+      setState(() => _navegacionMinimizada = true);
+    }
   }
 
   void _scrollToBottomIfNeeded() {
@@ -222,8 +238,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 HamburgerButton(onTap: _abrirLateral),
 
-                if (vm.rutaState != null)
-                  RutaExitButton(onTap: vm.cancelarRuta),
+                if (vm.rutaState?.estado == EstadoRuta.activo &&
+                    _navegacionMinimizada)
+                  // El usuario volvió al chat con atrás: ofrecer volver al mapa
+                  RutaExitButton(
+                    icon: Icons.map_rounded,
+                    label: 'Volver al mapa',
+                    onTap: _abrirNavegacion,
+                  )
+                else if (vm.rutaState != null)
+                  // Estados previos (esperandoFoto, filtro, cargando): salir
+                  RutaExitButton(
+                    onTap: () {
+                      setState(() => _navegacionMinimizada = false);
+                      _vm.cancelarRuta();
+                    },
+                  ),
               ],
             ),
           ),

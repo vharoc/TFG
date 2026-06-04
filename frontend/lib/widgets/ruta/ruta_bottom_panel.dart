@@ -101,19 +101,10 @@ class RutaBottomPanel extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Chips distancia + tiempo
-          Row(
-            children: [
-              _InfoChip(
-                icon: Icons.directions_walk_rounded,
-                label: '${parada.distanciaM} m',
-              ),
-              const SizedBox(width: 8),
-              _InfoChip(
-                icon: Icons.access_time_rounded,
-                label: '~${parada.tiempoMin} min',
-              ),
-            ],
+          // Tiempo estimado a pie
+          _InfoChip(
+            icon: Icons.access_time_rounded,
+            label: '~${parada.tiempoMin} min caminando',
           ),
 
           // Chips POI

@@ -70,7 +70,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docs/anexos/ºº
+docs/anexos/
+docs/
 
 # PyBuilder
 .pybuilder/

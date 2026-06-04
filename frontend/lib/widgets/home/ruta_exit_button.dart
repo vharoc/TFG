@@ -3,8 +3,15 @@ import '../../theme/theme.dart';
 
 class RutaExitButton extends StatelessWidget {
   final VoidCallback onTap;
+  final IconData icon;
+  final String label;
 
-  const RutaExitButton({super.key, required this.onTap});
+  const RutaExitButton({
+    super.key,
+    required this.onTap,
+    this.icon = Icons.close_rounded,
+    this.label = 'Salir de ruta',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,14 +37,14 @@ class RutaExitButton extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.close_rounded, size: 16, color: AppTheme.usal),
-                SizedBox(width: 4),
+                Icon(icon, size: 16, color: AppTheme.usal),
+                const SizedBox(width: 4),
                 Text(
-                  'Salir de ruta',
-                  style: TextStyle(
+                  label,
+                  style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.usal,

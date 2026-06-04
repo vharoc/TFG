@@ -209,8 +209,9 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
-            // cancelarRuta() pone rutaState=null → el Consumer llama _cerrar()
-            if (!didPop) vm.cancelarRuta();
+            // Atrás sin cancelar: la ruta sigue activa, HomeScreen muestra
+            // "Volver al mapa". Solo "Salir de ruta" en HomeScreen cancela.
+            if (!didPop) Navigator.of(context).pop();
           },
           child: Scaffold(
             body: Stack(
@@ -253,8 +254,8 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
                 _TopBar(
                   paradaActual: rs.paradaActual + 1,
                   totalParadas: rs.totalParadas,
-                  // cancelarRuta() → rutaState null → el Consumer cierra la pantalla
-                  onBack: vm.cancelarRuta,
+                  // Solo hace pop: la ruta queda activa, se puede volver
+                  onBack: () => Navigator.of(context).pop(),
                   onRecenter: () {
                     setState(() => _followUser = true);
                     if (_userPosition != null) {
