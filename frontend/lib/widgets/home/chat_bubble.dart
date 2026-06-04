@@ -49,9 +49,38 @@ class ChatBubble extends StatelessWidget {
                   mensaje.contenido!,
                   style: const TextStyle(color: Colors.white, fontSize: 15),
                 )
-              : GptMarkdown(
-                  mensaje.contenido!,
-                  style: const TextStyle(color: Colors.black, fontSize: 15),
+              : GptMarkdownTheme(
+                  gptThemeData: GptMarkdownThemeData(
+                    brightness: Brightness.light,
+                    h1: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold),
+                    h2: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                    h3: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600),
+                    h4: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600),
+                    h5: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500),
+                    h6: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500),
+                  ),
+                  child: GptMarkdown(
+                    mensaje.contenido!,
+                    style: const TextStyle(color: Colors.black, fontSize: 15),
+                  ),
                 ),
         ),
         MensajeTipo.imagen => mensaje.imgUrl!.startsWith('http')

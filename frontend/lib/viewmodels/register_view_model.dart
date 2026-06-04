@@ -1,13 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../models/usuario.dart';
 import '../services/auth_services.dart';
-import '../services/user_services.dart';
 
 class RegisterViewModel extends ChangeNotifier {
 
   final _authService = AuthService.instance;
-  final _userService = UserServices.instance;
 
   bool _loading = false;
   String? _error;
@@ -55,19 +52,12 @@ class RegisterViewModel extends ChangeNotifier {
     notifyListeners();
  
     try {
-      final credenciales = await _authService.createAccount(
+      await _authService.createAccount(
         email: email,
         passwd: passwd,
       );
       await _authService.updateUsername(username: nombre);
       await _authService.sendEmailVerification();
-
-      final usuario = Usuario(
-        id: credenciales.user!.uid,
-        nombre: nombre,
-        email: email,
-      );
-      await _userService.crearUsuario(usuario);
 
       return true;
     } on FirebaseAuthException catch (e) {

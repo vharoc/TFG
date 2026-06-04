@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../models/ruta_result.dart';
 import 'ruta_navegacion_screen.dart';
+import '../services/auth_services.dart';
 import '../services/ubicacion_service.dart';
+import '../services/user_services.dart';
 import '../viewmodels/home_view_model.dart';
 import '../widgets/home/chat_body.dart';
 import '../widgets/home/ciudad_selector_sheet.dart';
@@ -170,6 +172,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _inicializar() async {
+    final user = AuthService.instance.currentUser;
+    if (user != null) {
+      await UserServices.instance.ensureUsuario(user);
+    }
     // GPS y caché de ciudades en paralelo: cuando abra el selector ya estará listo.
     await Future.wait([
       _vm.inicializarUbicacion(),

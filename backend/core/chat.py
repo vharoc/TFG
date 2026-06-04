@@ -42,6 +42,7 @@ def _info_navegacion(mon, nombre: str, lat: float | None, lon: float | None) -> 
         distancia_m = round(_haversine_km(lat, lon, monumento["lat"], monumento["lon"]) * 1000)
         tiempo_min = max(1, round(distancia_m / 80))
     return {
+        "id": monumento["id"],
         "nombre": monumento["nombre"],
         "lat": monumento["lat"],
         "lon": monumento["lon"],

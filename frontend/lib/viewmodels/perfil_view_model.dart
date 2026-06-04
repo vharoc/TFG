@@ -59,10 +59,15 @@ class PerfilViewModel extends ChangeNotifier {
     try {
       await _auth.reauthenticate(email: email, passwd: passwd);
 
-      try {
-        await ChatService.instance.eliminarTodosLosChats();
-      } on Exception {
-        // Si falla al borrar chats, continuamos igual con el borrado de cuenta.
+      final uid = user?.uid;
+      if (uid != null) {
+        try {
+          await ChatService.instance.eliminarTodosLosChats();
+          await CiudadVisitadaService.instance.eliminarTodosDatos();
+          await _users.eliminarUsuario(uid);
+        } on Exception {
+          // Si falla el borrado de datos, continuamos con el borrado de cuenta.
+        }
       }
 
       await _auth.deleteCurrentUser();
