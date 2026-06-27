@@ -46,14 +46,6 @@ class AuthService {
     await _requiredUser.updateDisplayName(username);
   }
 
-  Future<void> deleteAccount({
-    required String email,
-    required String passwd,
-  }) async {
-    await reauthenticate(email: email, passwd: passwd);
-    await deleteCurrentUser();
-  }
-
   Future<void> reauthenticate({
     required String email,
     required String passwd,

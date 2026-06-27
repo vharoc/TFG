@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/usuario.dart';
 
 class UserServices {
   UserServices._();
@@ -8,15 +7,9 @@ class UserServices {
 
   final _firestore = FirebaseFirestore.instance;
 
-  Future<void> crearUsuario(Usuario usuario) async {
-    await _firestore
-        .collection('users')
-        .doc(usuario.id)
-        .set(usuario.toMap(), SetOptions(merge: true));
-  }
-
   /// Crea el documento Firestore del usuario solo si todavía no existe.
-  /// Llamar tras verificación de email (en HomeViewModel.init).
+  /// Se invoca tras la verificación de email, al entrar en HomeScreen
+  /// (ver home_screen.dart -> ensureUsuario).
   Future<void> ensureUsuario(User authUser) async {
     final ref = _firestore.collection('users').doc(authUser.uid);
     final snap = await ref.get();
@@ -26,12 +19,6 @@ class UserServices {
         'email': authUser.email ?? '',
       });
     }
-  }
-
-  Future<Usuario?> obtenerUsuario(String id) async {
-    final doc = await _firestore.collection('users').doc(id).get();
-    if(!doc.exists) return null;
-    return Usuario.fromFirestore(doc);
   }
 
   Future<void> actualizarNombre({

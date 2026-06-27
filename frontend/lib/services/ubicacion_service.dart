@@ -53,8 +53,6 @@ class UbicacionService {
     return EstadoPermiso.denegado;
   }
 
-  Future<void> abrirAjustes() => Geolocator.openAppSettings();
-
   // Obtiene la posición actual del dispositivo.
   // `timeLimit` evita que la llamada se quede colgada indefinidamente cuando el
   // GPS no consigue fix (interiores, primer arranque): pasado ese tiempo lanza

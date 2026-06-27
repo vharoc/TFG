@@ -9,7 +9,6 @@ class Message(BaseModel):
 
 class Query(BaseModel):
     prompt: str
-    system: Optional[str] = None
     ciudad: Optional[str] = None
     history: list[Message] = []
     monumento_id: Optional[str] = None

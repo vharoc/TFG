@@ -78,7 +78,6 @@ class OllamaService {
 
   static Future<({String response, String? monumentoId, List<PoiSugerido> poisCercanos, int tokens, Navegacion? navegacion})> query(
     String prompt, {
-    String system = '',
     String ciudad = '',
     List<Mensaje> history = const [],
     String? monumentoId,
@@ -100,7 +99,6 @@ class OllamaService {
                 headers: {'Content-Type': 'application/json'},
                 body: jsonEncode({
                   'prompt': prompt,
-                  'system': system,
                   'ciudad': ciudad,
                   'history': _convertirHistorial(history),
                   'monumento_id': monumentoId,
