@@ -1,6 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from fastapi.concurrency import run_in_threadpool
 from .config import (
     _MODOS_VALIDOS, _MAX_PROMPT, _MAX_HISTORY, _MAX_IMAGEN_BYTES,
     _tokens_request, _con_tokens, limiter,
@@ -35,8 +36,8 @@ async def query(request: Request, q: Query):
         try:
             return await _query_pensar_agente(q, mon, monumento_activo)
         except Exception as e:
-            logger.error("Error en modo pensar: %s", e)
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error("Error en modo pensar: %s", e, exc_info=True)
+            raise HTTPException(status_code=502, detail="No se pudo generar la respuesta. Intentalo de nuevo.")
 
     return await _query_rapido(q, mon)
 
@@ -65,11 +66,17 @@ async def ruta(request: Request, req: RutaRequest):
 @limiter.limit("10/minute")
 async def classify(request: Request, imagen: UploadFile = File(...), modo: str = Form("rapido"), ciudad: str = Form(None)):
     _tokens_request.set(0)
+    if modo not in _MODOS_VALIDOS:
+        raise HTTPException(status_code=422, detail="modo no válido: usa 'rapido' o 'pensar'")
     data = await imagen.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Imagen vacía")
     if len(data) > _MAX_IMAGEN_BYTES:
         raise HTTPException(status_code=413, detail="Imagen demasiado grande (máx. 5 MB)")
     try:
-        clase = registry.clasificar(data, ciudad)
+        # El clasificador es CPU-bound (~1 s): fuera del event loop para no
+        # bloquear el resto de peticiones mientras procesa la imagen.
+        clase = await run_in_threadpool(registry.clasificar, data, ciudad)
     except OSError:
         raise HTTPException(status_code=400, detail="Imagen corrupta o formato no soportado")
     mon = registry.monumentos(ciudad)

@@ -9,8 +9,19 @@ import '../../theme/theme.dart';
 class ChatBubble extends StatelessWidget {
   final Mensaje mensaje;
   final void Function(PoiSugerido)? onPoiTap;
+  // Mientras hay una petición en curso, todos los chips de sugerencia se
+  // desactivan. `poiCargandoKey` identifica el chip pulsado para mostrar en él
+  // un spinner (formato: "${poi.id}::${poi.nombre}", ver HomeViewModel.poiKey).
+  final bool bloqueado;
+  final String? poiCargandoKey;
 
-  const ChatBubble({super.key, required this.mensaje, this.onPoiTap});
+  const ChatBubble({
+    super.key,
+    required this.mensaje,
+    this.onPoiTap,
+    this.bloqueado = false,
+    this.poiCargandoKey,
+  });
 
   Future<void> _abrirMaps() async {
     final nav = mensaje.navegacion!;
@@ -95,7 +106,13 @@ class ChatBubble extends StatelessWidget {
                   );
                 },
               )
-            : Image.file(File(mensaje.imgUrl!), fit: BoxFit.cover),
+            // cacheWidth acota el decodificado en memoria: las fotos de cámara
+            // son enormes (~4000px) y aquí se ven a < 1 columna de chat.
+            : Image.file(
+                File(mensaje.imgUrl!),
+                fit: BoxFit.cover,
+                cacheWidth: 1080,
+              ),
       },
     );
 
@@ -116,27 +133,46 @@ class ChatBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (mostrarChips)
-                ...mensaje.poisCercanos.map((poi) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: FilledButton(
-                        onPressed: () => onPoiTap?.call(poi),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.ocre,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 16),
+                ...mensaje.poisCercanos.map((poi) {
+                  final esteCargando =
+                      poiCargandoKey == '${poi.id}::${poi.nombre}';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: FilledButton(
+                      // Desactivado mientras hay cualquier petición en curso:
+                      // null en onPressed bloquea el tap y aplica estilo disabled.
+                      onPressed: bloqueado ? null : () => onPoiTap?.call(poi),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.ocre,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            AppTheme.ocre.withValues(alpha: 0.45),
+                        disabledForegroundColor:
+                            Colors.white.withValues(alpha: 0.9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          poi.nombre,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w500),
-                          textAlign: TextAlign.center,
-                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
                       ),
-                    )),
+                      child: esteCargando
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              poi.nombre,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
+                            ),
+                    ),
+                  );
+                }),
               if (tieneNavegacion)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 6),

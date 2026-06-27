@@ -242,5 +242,5 @@ async def _query_rapido(q: Query, mon) -> JSONResponse:
             "navegacion": None,
         })
     except Exception as e:
-        logger.error("Error en modo rapido: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error en modo rapido: %s", e, exc_info=True)
+        raise HTTPException(status_code=502, detail="No se pudo generar la respuesta. Intentalo de nuevo.")

@@ -74,6 +74,7 @@ docs/anexos/
 docs/
 tests/
 frontend/test/
+latex/
 
 # PyBuilder
 .pybuilder/

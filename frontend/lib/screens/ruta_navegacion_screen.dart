@@ -102,12 +102,23 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
   }
 
   Future<void> _openCamera() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
-    if (photo != null && mounted) {
-      context.read<HomeViewModel>().enviarImagen(photo);
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (photo != null && mounted) {
+        context.read<HomeViewModel>().enviarImagen(photo);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo abrir la cámara. Revisa el permiso de cámara en los ajustes del móvil.',
+          ),
+        ),
+      );
     }
   }
 

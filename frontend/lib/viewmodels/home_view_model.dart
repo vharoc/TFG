@@ -59,6 +59,14 @@ class HomeViewModel extends ChangeNotifier {
   bool get generando => _generando;
   http.Client? _clientActivo;
 
+  // Firma del chip de sugerencia que está esperando respuesta (para pintar el
+  // spinner solo en ese chip). null = ningún chip en carga.
+  String? _poiCargandoKey;
+  String? get poiCargandoKey => _poiCargandoKey;
+
+  // Firma estable de un chip: mientras coincida, ese chip muestra el spinner.
+  static String poiKey(PoiSugerido poi) => '${poi.id}::${poi.nombre}';
+
   String _modo = 'rapido'; // 'rapido' | 'pensar'
   String get modo => _modo;
 
@@ -91,6 +99,7 @@ class HomeViewModel extends ChangeNotifier {
     _clientActivo?.close();
     _clientActivo = null;
     _generando = false;
+    _poiCargandoKey = null;
     notifyListeners();
   }
 
@@ -137,9 +146,17 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> inicializarUbicacion() async {
-    final estado = await UbicacionService.instance.verificarPermiso();
-    _gpsDisponible = estado == EstadoPermiso.concedido;
-    _gpsPermanentementeDenegado = estado == EstadoPermiso.permanentementeDenegado;
+    try {
+      final estado = await UbicacionService.instance.verificarPermiso();
+      _gpsDisponible = estado == EstadoPermiso.concedido;
+      _gpsPermanentementeDenegado =
+          estado == EstadoPermiso.permanentementeDenegado;
+    } catch (_) {
+      // Si el plugin de ubicación falla, seguimos sin GPS (queda el selector
+      // manual). Nunca debe propagarse y dejar la pantalla en loading.
+      _gpsDisponible = false;
+      _gpsPermanentementeDenegado = false;
+    }
     notifyListeners();
   }
 
@@ -182,11 +199,20 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   // Comprueba si las coordenadas actuales del dispositivo están dentro del
-  // radio de la ciudad en curso. Devuelve true si no puede validar (fail open).
+  // radio de la ciudad en curso. Es un filtro ANTI-falsos-rechazos: solo
+  // rechaza una foto cuando tiene una lectura GPS fresca y PRECISA que cae
+  // claramente fuera del radio. Ante GPS lento, impreciso o error, deja pasar
+  // la foto (fail open) — más vale clasificar de más que rechazar un monumento
+  // válido por un fix de GPS malo.
   Future<bool> _fotoEnRangoDeCiudad() async {
     if (!_gpsDisponible || _ciudadSoportada == null) return true;
     try {
-      final pos = await UbicacionService.instance.obtenerPosicion();
+      final pos = await UbicacionService.instance
+          .obtenerPosicion()
+          .timeout(const Duration(seconds: 4));
+      // accuracy = radio de error estimado en metros. Si es pobre (>150 m) no
+      // nos fiamos para rechazar; clasificamos igualmente.
+      if (pos.accuracy > 150) return true;
       return UbicacionService.instance
           .dentroDeRadio(pos.latitude, pos.longitude, _ciudadSoportada!);
     } catch (_) {
@@ -280,98 +306,110 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> enviarTexto(String texto) async {
+    // Debounce + flag: si ya hay una petición en curso, ignoramos el tap. Esto
+    // cubre dobles taps en el botón de enviar y en los chips de sugerencia.
+    if (_generando) return;
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
 
-    if (_ciudadActual == null) {
-      if (_gpsDisponible) await _detectarCiudadDesdeGps();
-      if (_ciudadActual == null) return;
-    }
-
-    await _crearChatSiNecesario();
-    if (_chatId == null) return;
-
-    final chatIdActual = _chatId!;
-
-    // En cualquier estado de ruta las respuestas pasan por pensar para dar formato.
-    final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
-
-    // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
-    final List<Mensaje> historialReciente;
-    if (_monumentoIdActual != null && modoEfectivo == 'rapido') {
-      historialReciente = const [];
-    } else {
-      final historial = _messages
-          .where((m) => m.tipo == MensajeTipo.texto)
-          .toList()
-        ..sort((a, b) => a.fecha.compareTo(b.fecha));
-      historialReciente = historial.length > 10
-          ? historial.sublist(historial.length - 10)
-          : historial;
-    }
-
-    await _guardarMensajeTexto(
-      chatId: chatIdActual,
-      contenido: textoTrimmed,
-      role: MensajeRole.usuario,
-    );
-
-    await _titularDesdeTexto(textoTrimmed);
-
-    if (await _bloqueadoPorLimite(chatIdActual)) return;
-
-    // Obtener posición para la tool como_llegar (si GPS disponible)
-    double? lat, lon;
-    if (_gpsDisponible) {
-      try {
-        final pos = await UbicacionService.instance.obtenerPosicion()
-            .timeout(const Duration(seconds: 3));
-        lat = pos.latitude;
-        lon = pos.longitude;
-      } catch (_) {}
-    }
-
-    final client = http.Client();
-    _clientActivo = client;
+    // Marcamos "generando" de forma SÍNCRONA (antes de cualquier await) para que
+    // la UI desactive de inmediato chips y botones de sugerencia al primer tap.
     _generando = true;
     notifyListeners();
 
     try {
-      final resultado = await OllamaService.query(
-        textoTrimmed,
-        ciudad: _ciudadActual!,
-        history: historialReciente,
-        monumentoId: _monumentoIdActual,
-        modo: modoEfectivo,
-        lat: lat,
-        lon: lon,
-        client: client,
-      );
-      _registrarTokens(resultado.tokens);
-      if (resultado.monumentoId != null) {
-        _monumentoIdActual = resultado.monumentoId;
+      if (_ciudadActual == null) {
+        if (_gpsDisponible) await _detectarCiudadDesdeGps();
+        if (_ciudadActual == null) return;
       }
+
+      await _crearChatSiNecesario();
+      if (_chatId == null) return;
+
+      final chatIdActual = _chatId!;
+
+      // En cualquier estado de ruta las respuestas pasan por pensar para dar formato.
+      final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
+
+      // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
+      final List<Mensaje> historialReciente;
+      if (_monumentoIdActual != null && modoEfectivo == 'rapido') {
+        historialReciente = const [];
+      } else {
+        final historial = _messages
+            .where((m) => m.tipo == MensajeTipo.texto)
+            .toList()
+          ..sort((a, b) => a.fecha.compareTo(b.fecha));
+        historialReciente = historial.length > 10
+            ? historial.sublist(historial.length - 10)
+            : historial;
+      }
+
       await _guardarMensajeTexto(
         chatId: chatIdActual,
-        contenido: resultado.response,
-        role: MensajeRole.bot,
-        navegacion: resultado.navegacion,
+        contenido: textoTrimmed,
+        role: MensajeRole.usuario,
       );
-    } catch (_) {
-      if (_clientActivo == null) return; // cancelado por el usuario
-      await _guardarMensajeTexto(
-        chatId: chatIdActual,
-        contenido: 'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
-        role: MensajeRole.bot,
-      );
+
+      await _titularDesdeTexto(textoTrimmed);
+
+      if (await _bloqueadoPorLimite(chatIdActual)) return;
+
+      // Obtener posición para la tool como_llegar (si GPS disponible)
+      double? lat, lon;
+      if (_gpsDisponible) {
+        try {
+          final pos = await UbicacionService.instance.obtenerPosicion()
+              .timeout(const Duration(seconds: 3));
+          lat = pos.latitude;
+          lon = pos.longitude;
+        } catch (_) {}
+      }
+
+      final client = http.Client();
+      _clientActivo = client;
+      notifyListeners();
+
+      try {
+        final resultado = await OllamaService.query(
+          textoTrimmed,
+          ciudad: _ciudadActual!,
+          history: historialReciente,
+          monumentoId: _monumentoIdActual,
+          modo: modoEfectivo,
+          lat: lat,
+          lon: lon,
+          client: client,
+        );
+        _registrarTokens(resultado.tokens);
+        if (resultado.monumentoId != null) {
+          _monumentoIdActual = resultado.monumentoId;
+        }
+        await _guardarMensajeTexto(
+          chatId: chatIdActual,
+          contenido: resultado.response,
+          role: MensajeRole.bot,
+          navegacion: resultado.navegacion,
+        );
+      } catch (_) {
+        if (_clientActivo == null) return; // cancelado por el usuario
+        await _guardarMensajeTexto(
+          chatId: chatIdActual,
+          contenido: 'No he podido conectarme al servidor en este momento. Intentalo de nuevo en unos segundos.',
+          role: MensajeRole.bot,
+        );
+      }
     } finally {
       _clientActivo = null;
       _generando = false;
+      _poiCargandoKey = null;
       notifyListeners();
     }
   }
 
   Future<void> enviarImagen(XFile img) async {
+    // Evita procesar dos fotos a la vez o solapar foto con una consulta en curso.
+    if (_generando) return;
     if (_ciudadActual == null) {
       // Primera foto: detectar ciudad desde GPS
       if (_gpsDisponible) {
@@ -536,7 +574,14 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> preguntarSobrePoi(PoiSugerido poi) async {
+    // Si ya hay una petición en curso, ignoramos el tap (no se debe poder
+    // disparar otra consulta desde un chip mientras Clicky responde).
+    if (_generando) return;
     _monumentoIdActual = poi.id;
+    // Marca este chip como "en carga" para pintar su spinner. enviarTexto pondrá
+    // _generando=true de forma síncrona acto seguido, así que el resto de chips
+    // se desactivan en el mismo frame.
+    _poiCargandoKey = poiKey(poi);
     if (poi.esPregunta) {
       // Chip de curiosidad: el texto del chip ya es la pregunta
       await enviarTexto(poi.nombre);
@@ -593,6 +638,11 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> seleccionarFiltroRuta(String filtro) async {
+    // Anti doble-tap: el filtro solo se procesa desde el estado de selección.
+    // Tras el primer tap pasamos a 'cargando', así que taps posteriores (o muy
+    // rápidos) se ignoran y no se lanzan dos rutas a la vez.
+    if (_rutaState?.estado != EstadoRuta.seleccionandoFiltro) return;
+
     // Si el cupo está agotado, no generamos la ruta y cancelamos el flujo.
     if (_chatId != null && await _bloqueadoPorLimite(_chatId!)) {
       _rutaState = null;

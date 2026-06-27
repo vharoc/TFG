@@ -172,16 +172,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _inicializar() async {
-    final user = AuthService.instance.currentUser;
-    if (user != null) {
-      await UserServices.instance.ensureUsuario(user);
+    try {
+      final user = AuthService.instance.currentUser;
+      if (user != null) {
+        await UserServices.instance.ensureUsuario(user);
+      }
+      // GPS y caché de ciudades en paralelo: cuando abra el selector ya estará listo.
+      await Future.wait([
+        _vm.inicializarUbicacion(),
+        UbicacionService.instance.cargarCiudadesSoportadas(),
+      ]);
+    } catch (_) {
+      // Un fallo de Firebase o del plugin de ubicación no debe dejar la
+      // pantalla colgada en loading: igualmente intentamos abrir el selector.
+    } finally {
+      if (mounted) _mostrarSelectorSiNecesario();
     }
-    // GPS y caché de ciudades en paralelo: cuando abra el selector ya estará listo.
-    await Future.wait([
-      _vm.inicializarUbicacion(),
-      UbicacionService.instance.cargarCiudadesSoportadas(),
-    ]);
-    if (mounted) _mostrarSelectorSiNecesario();
   }
 
   Future<void> _mostrarSelectorSiNecesario() async {
@@ -229,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onImagePicked: vm.enviarImagen,
                         onPoiTap: vm.preguntarSobrePoi,
                         generando: vm.generando,
+                        poiCargandoKey: vm.poiCargandoKey,
                         onCancelar: vm.cancelarRespuesta,
                         modo: vm.modo,
                         onModoChanged: vm.setModo,

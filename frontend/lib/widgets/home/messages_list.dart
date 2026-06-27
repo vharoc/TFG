@@ -10,6 +10,8 @@ class HomeMessagesList extends StatelessWidget {
   final List<Mensaje> messages;
   final ScrollController controller;
   final void Function(PoiSugerido)? onPoiTap;
+  final bool bloqueado;
+  final String? poiCargandoKey;
 
   const HomeMessagesList({
     super.key,
@@ -17,6 +19,8 @@ class HomeMessagesList extends StatelessWidget {
     required this.messages,
     required this.controller,
     this.onPoiTap,
+    this.bloqueado = false,
+    this.poiCargandoKey,
   });
 
   @override
@@ -37,7 +41,12 @@ class HomeMessagesList extends StatelessWidget {
       cacheExtent: 600,
       itemCount: messages.length,
       itemBuilder: (_, i) => RepaintBoundary(
-        child: ChatBubble(mensaje: messages[i], onPoiTap: onPoiTap),
+        child: ChatBubble(
+          mensaje: messages[i],
+          onPoiTap: onPoiTap,
+          bloqueado: bloqueado,
+          poiCargandoKey: poiCargandoKey,
+        ),
       ),
     );
   }

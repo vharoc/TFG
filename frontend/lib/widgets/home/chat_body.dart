@@ -15,6 +15,7 @@ class HomeChatBody extends StatelessWidget {
   final Future<void> Function(XFile image) onImagePicked;
   final void Function(PoiSugerido)? onPoiTap;
   final bool generando;
+  final String? poiCargandoKey;
   final VoidCallback? onCancelar;
   final String modo;
   final void Function(String modo)? onModoChanged;
@@ -33,6 +34,7 @@ class HomeChatBody extends StatelessWidget {
     required this.onImagePicked,
     this.onPoiTap,
     this.generando = false,
+    this.poiCargandoKey,
     this.onCancelar,
     this.modo = 'rapido',
     this.onModoChanged,
@@ -53,6 +55,8 @@ class HomeChatBody extends StatelessWidget {
             messages: messages,
             controller: scrollController,
             onPoiTap: onPoiTap,
+            bloqueado: generando,
+            poiCargandoKey: poiCargandoKey,
           ),
         ),
         ChatInput(

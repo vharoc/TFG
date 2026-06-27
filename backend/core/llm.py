@@ -84,6 +84,26 @@ TOOLS = [
 ]
 
 
+# Cliente httpx compartido: reutiliza conexiones (keep-alive) hacia Groq en vez
+# de abrir y cerrar una nueva por cada petición. Se cierra en el shutdown de la
+# app (ver lifespan en main.py -> cerrar_cliente).
+_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None or _client.is_closed:
+        _client = httpx.AsyncClient(timeout=60.0)
+    return _client
+
+
+async def cerrar_cliente() -> None:
+    global _client
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+    _client = None
+
+
 async def _llamar_llm(messages: list, tools: list | None = None, timeout: float = 60.0) -> dict:
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -92,13 +112,12 @@ async def _llamar_llm(messages: list, tools: list | None = None, timeout: float 
     payload = {"model": MODEL, "messages": messages, "stream": False}
     if tools:
         payload["tools"] = tools
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        res = await client.post(GROQ_URL, headers=headers, json=payload)
-        res.raise_for_status()
-        data = res.json()
-        usage = data.get("usage") or {}
-        _tokens_request.set(_tokens_request.get() + int(usage.get("total_tokens", 0) or 0))
-        return data
+    res = await _get_client().post(GROQ_URL, headers=headers, json=payload, timeout=timeout)
+    res.raise_for_status()
+    data = res.json()
+    usage = data.get("usage") or {}
+    _tokens_request.set(_tokens_request.get() + int(usage.get("total_tokens", 0) or 0))
+    return data
 
 
 async def _reformatear(texto: str, pregunta: str) -> str:

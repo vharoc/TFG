@@ -55,11 +55,15 @@ class UbicacionService {
 
   Future<void> abrirAjustes() => Geolocator.openAppSettings();
 
-  // Obtiene la posición actual del dispositivo
+  // Obtiene la posición actual del dispositivo.
+  // `timeLimit` evita que la llamada se quede colgada indefinidamente cuando el
+  // GPS no consigue fix (interiores, primer arranque): pasado ese tiempo lanza
+  // TimeoutException y el llamante decide (normalmente, continuar sin bloquear).
   Future<Position> obtenerPosicion() {
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 8),
       ),
     );
   }

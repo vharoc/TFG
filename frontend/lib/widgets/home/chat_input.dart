@@ -46,26 +46,34 @@ class _ChatInputState extends State<ChatInput> {
     super.dispose();
   }
 
-  Future<void> _openCamera() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
-    if (photo != null) {
-      widget.onImagePicked?.call(photo);
+  Future<void> _abrirSelector(ImageSource source, String permisoMsg) async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (photo != null) {
+        widget.onImagePicked?.call(photo);
+      }
+    } catch (_) {
+      // image_picker lanza PlatformException si se deniega el permiso de cámara
+      // o galería. Damos feedback en vez de fallar en silencio.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(permisoMsg)),
+      );
     }
   }
 
-  Future<void> _openGallery() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+  Future<void> _openCamera() => _abrirSelector(
+        ImageSource.camera,
+        'No se pudo abrir la cámara. Revisa el permiso de cámara en los ajustes del móvil.',
+      );
 
-    if (photo != null) {
-      widget.onImagePicked?.call(photo);
-    }
-  }
+  Future<void> _openGallery() => _abrirSelector(
+        ImageSource.gallery,
+        'No se pudo abrir la galería. Revisa el permiso de fotos en los ajustes del móvil.',
+      );
 
   @override
   Widget build(BuildContext context) {
