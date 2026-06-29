@@ -16,7 +16,6 @@ class LateralViewModel extends ChangeNotifier {
   bool cargandoCiudades = true;
   String? error;
 
-  // POIs (con flag visitado) de la ciudad cuyo sheet está abierto.
   List<PoiVisitado> _pois = [];
   List<PoiVisitado> get pois => List.unmodifiable(_pois);
   bool cargandoPois = false;
@@ -30,7 +29,6 @@ class LateralViewModel extends ChangeNotifier {
     _suscribir();
   }
 
-  // Suscribe al stream de POIs de la ciudad cuyo sheet se abre.
   void cargarPois(String ciudad) {
     if (_ciudadAbierta == ciudad) return;
     _ciudadAbierta = ciudad;

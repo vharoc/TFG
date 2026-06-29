@@ -107,7 +107,6 @@ class _ChatInputState extends State<ChatInput> {
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Campo de texto ───────────────────
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 120),
             child: Scrollbar(
@@ -138,7 +137,6 @@ class _ChatInputState extends State<ChatInput> {
 
           Row(
             children: [
-              // ── Botón "+" ────────────────────────────────
               Builder(
                 builder: (ctx) => GestureDetector(
                   onTap: () => _showAttachMenu(ctx),
@@ -157,7 +155,6 @@ class _ChatInputState extends State<ChatInput> {
 
               const SizedBox(width: 6),
 
-              // ── Selector de modo (estilo Gemini) ─────────
               Builder(
                 builder: (ctx) => GestureDetector(
                   onTap: () => _showModoMenu(ctx),
@@ -167,7 +164,6 @@ class _ChatInputState extends State<ChatInput> {
 
               const SizedBox(width: 6),
 
-              // ── Botón ruta ────────────────────────────────
               GestureDetector(
                 onTap: widget.onIniciarRuta,
                 child: Container(
@@ -184,7 +180,6 @@ class _ChatInputState extends State<ChatInput> {
 
               const Spacer(),
 
-              // ── Botón enviar ─────────────────────────────
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 transitionBuilder: (child, anim) =>

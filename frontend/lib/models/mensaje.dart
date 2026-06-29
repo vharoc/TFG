@@ -33,7 +33,6 @@ class Mensaje {
     this.poisCercanos = const [],
     this.navegacion,
   }): assert(
-    // si es un texto o imagen no pueden ser null
     (tipo == MensajeTipo.texto && contenido != null) ||
         (tipo == MensajeTipo.imagen && imgUrl != null),
   );
@@ -104,7 +103,6 @@ class Mensaje {
     );
   }
 
-  // contructores para hacer Mensaje.texto o Mensaje.imagen
   factory Mensaje.texto({
     required String id,
     required String chatId,

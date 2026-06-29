@@ -29,7 +29,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
   bool _followUser = false;
   bool _cerrando = false;
 
-  // Estado del overlay POI
   bool _showPoiOverlay = false;
   bool _poiQueryPending = false;
   String? _poiOverlayText;
@@ -179,7 +178,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
   Widget build(BuildContext context) {
     return Consumer<HomeViewModel>(
       builder: (context, vm, _) {
-        // La ruta terminó o fue cancelada: cerrar pantalla (una sola vez)
         if (vm.rutaState == null || vm.rutaState!.estado != EstadoRuta.activo) {
           _cerrar();
           return const SizedBox.shrink();
@@ -187,7 +185,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
 
         final rs = vm.rutaState!;
 
-        // Avance de parada: recentrar mapa y cerrar overlay
         if (rs.paradaActual != _lastParadaActual) {
           _lastParadaActual = rs.paradaActual;
           _showPoiOverlay = false;
@@ -197,7 +194,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
           });
         }
 
-        // Nueva respuesta del bot a un POI
         final botMessages = vm.messages
             .where((m) =>
                 m.role == MensajeRole.bot && m.tipo == MensajeTipo.texto)
@@ -220,14 +216,12 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
         return PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
-            // Atrás sin cancelar: la ruta sigue activa, HomeScreen muestra
-            // "Volver al mapa". Solo "Salir de ruta" en HomeScreen cancela.
             if (!didPop) Navigator.of(context).pop();
           },
           child: Scaffold(
             body: Stack(
               children: [
-                // Mapa a pantalla completa — Positioned.fill garantiza constraints tight
+                // Positioned.fill garantiza constraints tight.
                 Positioned.fill(
                   child: FlutterMap(
                     mapController: _mapController,
@@ -261,11 +255,9 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
                   ),
                 ),
 
-                // Barra superior
                 _TopBar(
                   paradaActual: rs.paradaActual + 1,
                   totalParadas: rs.totalParadas,
-                  // Solo hace pop: la ruta queda activa, se puede volver
                   onBack: () => Navigator.of(context).pop(),
                   onRecenter: () {
                     setState(() => _followUser = true);
@@ -283,7 +275,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
                   },
                 ),
 
-                // Overlay respuesta POI (slide sobre el panel)
                 if (_showPoiOverlay)
                   PoiResponseOverlay(
                     texto: _poiOverlayText,
@@ -295,7 +286,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
                     bottomOffset: 240,
                   ),
 
-                // Panel inferior con controles
                 Positioned(
                   left: 0,
                   right: 0,

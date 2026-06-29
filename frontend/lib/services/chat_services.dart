@@ -36,16 +36,11 @@ class ChatService {
       .snapshots()
       .map((snap) => snap.docs.map(Chat.fromFirestore).toList());
 
-  // -- Stream de mensajes en tiempo real --
   Stream<List<Mensaje>> mensajesStream(String chatId) => _mensajesRef(chatId)
       .orderBy('fecha', descending: false)
       .snapshots()
       .map((snap) => snap.docs.map(Mensaje.fromFirestore).toList());
 
-  // -- Crear conversación --
-  // ID con prefijo timestamp UTC (YYYYMMDDTHHmmss) + sufijo aleatorio: la
-  // Firestore Console ordena por ID por defecto, así que los chats aparecen
-  // cronológicamente sin necesidad de aplicar filtros en la consola.
   Future<String> crearConversacion({
     required String titulo,
     required String ciudad,
@@ -67,7 +62,6 @@ class ChatService {
         'T${p(now.hour)}${p(now.minute)}${p(now.second)}';
   }
 
-  // -- Guardar mensaje --
   Future<void> guardarMensaje({
     required String chatId,
     required Mensaje mensaje,
@@ -75,7 +69,6 @@ class ChatService {
     await _mensajesRef(chatId).add(mensaje.toMap());
   }
 
-  // -- Actualizar título --
   Future<void> actualizarTitulo({
     required String chatId,
     required String nuevoTitulo,
@@ -83,7 +76,7 @@ class ChatService {
     await _chatsRef.doc(chatId).update({'titulo': nuevoTitulo});
   }
 
-  // -- Actualizar ciudad (cuando GPS la detecta tras crear el chat) --
+  // GPS la detecta tras crear el chat.
   Future<void> actualizarCiudad({
     required String chatId,
     required String ciudad,
@@ -91,11 +84,9 @@ class ChatService {
     await _chatsRef.doc(chatId).update({'ciudad': ciudad});
   }
 
-  // -- Eliminar conversación y sus mensajes --
   Future<void> eliminarConversacion(String chatId) async {
     final msgs = await _mensajesRef(chatId).get();
 
-    // Limpia los ficheros de imagen del disco antes de borrar los docs.
     for (final m in msgs.docs) {
       final data = m.data();
       if (data['tipo'] == 'imagen') {
@@ -114,7 +105,6 @@ class ChatService {
     await batch.commit();
   }
 
-  // -- Eliminar todos los chats (borrar cuenta) --
   Future<void> eliminarTodosLosChats() async {
     final snap = await _chatsRef.get();
     for (final doc in snap.docs) {

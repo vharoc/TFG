@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_services.dart';
 
-/// Uso de tokens del día para un usuario.
 class UsoTokens {
   final int tokensUsados;
   final int limite;
@@ -12,7 +11,6 @@ class UsoTokens {
       : tokensUsados = 0,
         limite = UsoTokensService.limiteDiario;
 
-  /// Fracción gastada (0.0 – 1.0), recortada a 1.0 como máximo.
   double get fraccion =>
       limite <= 0 ? 0 : (tokensUsados / limite).clamp(0.0, 1.0);
 
@@ -31,8 +29,6 @@ class UsoTokensService {
   UsoTokensService._();
   static final UsoTokensService instance = UsoTokensService._();
 
-  /// Límite diario de tokens por usuario. Empieza bajo para validar el bloqueo;
-  /// subir este valor cuando el comportamiento esté comprobado.
   static const int limiteDiario = 50000;
 
   final _db = FirebaseFirestore.instance;
@@ -49,7 +45,6 @@ class UsoTokensService {
       .collection('uso')
       .doc('diario');
 
-  /// Clave de día natural local en formato YYYY-MM-DD.
   static String _hoy() {
     final n = DateTime.now();
     final mm = n.month.toString().padLeft(2, '0');
@@ -57,7 +52,6 @@ class UsoTokensService {
     return '${n.year}-$mm-$dd';
   }
 
-  /// Estado de uso del día actual. Si el documento es de otro día, cuenta 0.
   Future<UsoTokens> estado() async {
     final snap = await _docRef.get();
     final data = snap.data();
@@ -67,14 +61,12 @@ class UsoTokensService {
     return UsoTokens(tokensUsados: usados, limite: limiteDiario);
   }
 
-  /// True si el usuario ya agotó su cupo de hoy (no debería poder enviar más).
   Future<bool> limiteAlcanzado() async {
     final e = await estado();
     return e.limiteAlcanzado;
   }
 
-  /// Suma [tokens] al gasto de hoy. Si el documento es de un día anterior,
-  /// arranca de cero. Atómico mediante transacción para no perder cuenta.
+  /// Atómico mediante transacción para no perder cuenta.
   Future<void> registrar(int tokens) async {
     if (tokens <= 0) return;
     final hoy = _hoy();

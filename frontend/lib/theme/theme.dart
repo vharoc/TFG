@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // COLORES
   static const Color ocre = Color(0xFFD4A843);
   static const Color piedra = Color(0xFFC49A6C);
   static const Color usal = Color(0xFFB5152B);

@@ -25,7 +25,7 @@ class HamburgerButton extends StatelessWidget {
               children: [
                 _linea(20),
                 const SizedBox(height: 5),
-                _linea(13), // línea corta — detalle estético
+                _linea(13),
               ],
             ),
           ),

@@ -18,17 +18,14 @@ final appRouter = GoRouter(
     final user = auth.currentUser;
     final loc = state.matchedLocation;
 
-    // Sin sesión → solo rutas públicas
     if (user == null) {
       return _publicRoutes.contains(loc) ? null : '/login';
     }
 
-    // Sesión activa pero correo sin verificar
     if (!auth.isEmailVerified) {
       return loc == '/verify-email' ? null : '/verify-email';
     }
 
-    // Sesión activa y verificada → no volver a pantallas de entrada
     if (_publicRoutes.contains(loc) || loc == '/verify-email') return '/home';
     return null;
   },

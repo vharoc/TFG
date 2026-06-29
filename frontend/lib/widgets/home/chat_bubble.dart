@@ -106,8 +106,6 @@ class ChatBubble extends StatelessWidget {
                   );
                 },
               )
-            // cacheWidth acota el decodificado en memoria: las fotos de cámara
-            // son enormes (~4000px) y aquí se ven a < 1 columna de chat.
             : Image.file(
                 File(mensaje.imgUrl!),
                 fit: BoxFit.cover,
@@ -139,8 +137,6 @@ class ChatBubble extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: FilledButton(
-                      // Desactivado mientras hay cualquier petición en curso:
-                      // null en onPressed bloquea el tap y aplica estilo disabled.
                       onPressed: bloqueado ? null : () => onPoiTap?.call(poi),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.ocre,

@@ -26,7 +26,6 @@ class RutaResumenSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle
           Center(
             child: Container(
               width: 36,
@@ -39,7 +38,6 @@ class RutaResumenSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Header
           Row(
             children: [
               const Icon(Icons.route_rounded, color: AppTheme.usal, size: 22),
@@ -58,7 +56,6 @@ class RutaResumenSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Resumen narrativo
           if (resultado.resumen.isNotEmpty) ...[
             Text(
               resultado.resumen,
@@ -70,7 +67,6 @@ class RutaResumenSheet extends StatelessWidget {
           const Divider(),
           const SizedBox(height: 8),
 
-          // Lista de paradas
           ConstrainedBox(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.35,
@@ -84,7 +80,6 @@ class RutaResumenSheet extends StatelessWidget {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Número de parada
                     Container(
                       width: 26,
                       height: 26,
@@ -135,7 +130,6 @@ class RutaResumenSheet extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Botones
           FilledButton(
             onPressed: onComenzar,
             style: FilledButton.styleFrom(

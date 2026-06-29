@@ -32,7 +32,6 @@ class PerfilViewModel extends ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  /// Borra todos los chats y el progreso de ciudades sin eliminar la cuenta.
   Future<bool> borrarDatos() async {
     _cargando = true;
     _error = null;
@@ -50,7 +49,6 @@ class PerfilViewModel extends ChangeNotifier {
     }
   }
 
-  /// Reautentica y elimina la cuenta junto con todos sus chats.
   Future<bool> eliminarCuenta(String passwd) async {
     _cargando = true;
     _error = null;

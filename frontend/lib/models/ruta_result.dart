@@ -51,8 +51,6 @@ class RutaResult {
       );
 }
 
-// ---------------------------------------------------------------------------
-
 enum EstadoRuta { esperandoFoto, seleccionandoFiltro, cargando, mostrandoResumen, activo }
 
 class RutaState {

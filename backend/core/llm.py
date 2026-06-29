@@ -84,9 +84,6 @@ TOOLS = [
 ]
 
 
-# Cliente httpx compartido: reutiliza conexiones (keep-alive) hacia Groq en vez
-# de abrir y cerrar una nueva por cada petición. Se cierra en el shutdown de la
-# app (ver lifespan en main.py -> cerrar_cliente).
 _client: httpx.AsyncClient | None = None
 
 

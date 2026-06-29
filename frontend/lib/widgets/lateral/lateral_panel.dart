@@ -5,7 +5,6 @@ import 'empty_card.dart';
 import 'section_header.dart';
 import 'see_all_button.dart';
 
-// <T> = clase generica que funciona con cualquier tipo de modelo
 class LateralPanel<T> extends StatelessWidget {
   final String header;
   final String emptyMessage;
@@ -17,7 +16,6 @@ class LateralPanel<T> extends StatelessWidget {
   final int maxItems;
   final ScrollController scrollController;
 
-  // recibo item y devuelvo widget
   final Widget Function(T item) itemBuilder;
 
   final VoidCallback onExpand;

@@ -74,8 +74,6 @@ async def classify(request: Request, imagen: UploadFile = File(...), modo: str =
     if len(data) > _MAX_IMAGEN_BYTES:
         raise HTTPException(status_code=413, detail="Imagen demasiado grande (máx. 5 MB)")
     try:
-        # El clasificador es CPU-bound (~1 s): fuera del event loop para no
-        # bloquear el resto de peticiones mientras procesa la imagen.
         clase = await run_in_threadpool(registry.clasificar, data, ciudad)
     except OSError:
         raise HTTPException(status_code=400, detail="Imagen corrupta o formato no soportado")

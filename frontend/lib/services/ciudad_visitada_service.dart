@@ -31,7 +31,6 @@ class CiudadVisitadaService {
   String _ciudadId(String nombre) =>
       nombre.trim().toLowerCase().replaceAll(' ', '_');
 
-  // -- Stream de ciudades visitadas (ordenado en cliente) --
   Stream<List<CiudadVisitada>> get ciudadesStream =>
       _ciudadesRef.snapshots().map((snap) {
         final lista = snap.docs.map(CiudadVisitada.fromFirestore).toList();
@@ -39,7 +38,6 @@ class CiudadVisitadaService {
         return lista;
       });
 
-  // -- Stream de POIs de una ciudad (todos, con su flag) --
   Stream<List<PoiVisitado>> poisStream(String nombreCiudad) =>
       _poisRef(_ciudadId(nombreCiudad)).snapshots().map((snap) {
         final lista = snap.docs.map(PoiVisitado.fromFirestore).toList();
@@ -51,7 +49,6 @@ class CiudadVisitadaService {
   /// solo escribe los POIs que aún no existan, para no pisar los ya visitados).
   Future<void> sembrarCatalogo(String nombreCiudad, List<PoiSugerido> catalogo) async {
     final ciudadId = _ciudadId(nombreCiudad);
-    // Registra/actualiza la ciudad
     await _ciudadesRef.doc(ciudadId).set({
       'nombre': nombreCiudad,
       'visitadaEn': FieldValue.serverTimestamp(),
@@ -72,7 +69,6 @@ class CiudadVisitadaService {
     await batch.commit();
   }
 
-  /// Marca un POI como visitado dentro de su ciudad.
   Future<void> marcarVisitado(String nombreCiudad, String poiId, String nombrePoi) {
     return _poisRef(_ciudadId(nombreCiudad)).doc(poiId).set({
       'nombre': nombrePoi,
@@ -81,7 +77,6 @@ class CiudadVisitadaService {
     }, SetOptions(merge: true));
   }
 
-  /// Vuelve a marcar un POI como no visitado.
   Future<void> desmarcarVisitado(String nombreCiudad, String poiId) {
     return _poisRef(_ciudadId(nombreCiudad)).doc(poiId).set({
       'visitado': false,
@@ -89,7 +84,6 @@ class CiudadVisitadaService {
   }
 
   Future<void> eliminarCiudad(String ciudadId) async {
-    // Borra la subcolección de pois y luego el doc de la ciudad.
     final pois = await _poisRef(ciudadId).get();
     final batch = _db.batch();
     for (final d in pois.docs) {

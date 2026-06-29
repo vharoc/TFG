@@ -268,8 +268,6 @@ class _EstadisticasBody extends StatelessWidget {
   }
 }
 
-// ── Diálogo borrar ciudad ─────────────────────────────────────────────────
-
 Future<void> _confirmarBorrarCiudad(
   BuildContext context,
   EstadisticasViewModel vm,
@@ -299,8 +297,6 @@ Future<void> _confirmarBorrarCiudad(
   if (ok == true) await vm.eliminarCiudad(p.ciudadId);
 }
 
-// ── StatCard ──────────────────────────────────────────────────────────────
-
 class _StatCard extends StatelessWidget {
   final IconData icono;
   final String valor;
@@ -326,7 +322,6 @@ class _StatCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            // Sin height fija — la tarjeta crece con el contenido.
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
@@ -371,8 +366,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ── FilaDetalle ───────────────────────────────────────────────────────────
-
 class _FilaDetalle extends StatelessWidget {
   final IconData icono;
   final String etiqueta;
@@ -409,8 +402,6 @@ class _FilaDetalle extends StatelessWidget {
     );
   }
 }
-
-// ── ProgresoTile (pantalla principal) ─────────────────────────────────────
 
 class _ProgresoTile extends StatelessWidget {
   final ProgresoCiudad progreso;
@@ -462,8 +453,6 @@ class _ProgresoTile extends StatelessWidget {
     );
   }
 }
-
-// ── Sheet base ────────────────────────────────────────────────────────────
 
 class _Sheet extends StatelessWidget {
   final String titulo;
@@ -548,8 +537,6 @@ class _Sheet extends StatelessWidget {
   }
 }
 
-// ── Tile ciudad expandible (sheet de ciudades) ────────────────────────────
-
 class _CiudadExpandibleTile extends StatelessWidget {
   final ProgresoCiudad progreso;
   final VoidCallback onDelete;
@@ -622,8 +609,6 @@ class _CiudadExpandibleTile extends StatelessWidget {
     );
   }
 }
-
-// ── Tile chat ─────────────────────────────────────────────────────────────
 
 class _ChatTile extends StatelessWidget {
   final Chat chat;
@@ -705,8 +690,6 @@ class _ChatTile extends StatelessWidget {
   }
 }
 
-// ── Tile POI ──────────────────────────────────────────────────────────────
-
 class _PoiTile extends StatelessWidget {
   final PoiVisitado poi;
 
@@ -759,8 +742,6 @@ class _PoiTile extends StatelessWidget {
     );
   }
 }
-
-// ── Vacío ─────────────────────────────────────────────────────────────────
 
 class _Vacio extends StatelessWidget {
   final String mensaje;

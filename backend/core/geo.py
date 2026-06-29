@@ -47,11 +47,7 @@ def _longitud_ruta(lat: float, lon: float, orden: list[dict]) -> float:
 
 
 def _dos_opt(lat: float, lon: float, orden: list[dict]) -> list[dict]:
-    """Refina la ruta con 2-opt: invierte segmentos mientras acorte el total.
-
-    Nearest-neighbor da rutas hasta ~25% peores que el óptimo; 2-opt elimina los
-    cruces. Con N<=17 es instantáneo.
-    """
+    """Refina la ruta con 2-opt: invierte segmentos mientras acorte el total."""
     if len(orden) < 3:
         return orden
     mejor = orden

@@ -40,7 +40,6 @@ def subir_ciudad(db, ciudad_path: Path) -> tuple[str, int]:
     monumentos = data.get("monumentos", [])
     ciudad_id = ciudad["id"]
 
-    # Doc raíz con metadata de la ciudad (lat/lon/radio_km/nombre)
     db.collection("monumentos").document(ciudad_id).set(
         {
             "nombre": ciudad["nombre"],
@@ -51,7 +50,6 @@ def subir_ciudad(db, ciudad_path: Path) -> tuple[str, int]:
         merge=True,
     )
 
-    # Subcolección items con cada monumento
     items_ref = db.collection("monumentos").document(ciudad_id).collection("items")
     batch = db.batch()
     for m in monumentos:

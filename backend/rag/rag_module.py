@@ -23,8 +23,6 @@ def consultar_rag(pregunta: str, monumento: str, n_resultados: int = 3,
     if _model is None or _collection is None:
         return []
     embedding = _model.encode([pregunta])[0].tolist()
-    # Filtro tolerante: solo se añade `ciudad` cuando los chunks estén
-    # reindexados con ese metadato (multi-ciudad). Hoy se llama sin ciudad.
     if ciudad:
         where = {"$and": [{"monumento": monumento}, {"ciudad": ciudad}]}
     else:

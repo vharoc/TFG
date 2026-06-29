@@ -79,13 +79,12 @@ class EstadisticasService {
         .toList()
       ..sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
 
-    // Mensajes: count por chat (evita descargar todos los mensajes)
+    // count() en vez de descargar los mensajes
     int totalMensajes = 0;
     for (final chat in chatsSnap.docs) {
       totalMensajes += await _contar(chat.reference.collection('mensajes'));
     }
 
-    // POIs y progreso por ciudad — descargamos los docs para mostrarlos
     int pois = 0;
     final progreso = <ProgresoCiudad>[];
     final ciudadesSnap = await _userRef.collection('ciudades_visitadas').get();

@@ -14,7 +14,6 @@ class UbicacionService {
   UbicacionService._();
   static final UbicacionService instance = UbicacionService._();
 
-  // Solo comprueba el estado actual sin mostrar ningún diálogo
   Future<EstadoPermiso> verificarPermiso() async {
     final servicio = await Geolocator.isLocationServiceEnabled();
     if (!servicio) return EstadoPermiso.servicioDesactivado;
@@ -30,7 +29,6 @@ class UbicacionService {
     return EstadoPermiso.denegado;
   }
 
-  // Solicita el permiso si no se ha pedido antes y devuelve el estado resultante
   Future<EstadoPermiso> solicitarPermiso() async {
     final servicio = await Geolocator.isLocationServiceEnabled();
     if (!servicio) return EstadoPermiso.servicioDesactivado;
@@ -53,7 +51,6 @@ class UbicacionService {
     return EstadoPermiso.denegado;
   }
 
-  // Obtiene la posición actual del dispositivo.
   // `timeLimit` evita que la llamada se quede colgada indefinidamente cuando el
   // GPS no consigue fix (interiores, primer arranque): pasado ese tiempo lanza
   // TimeoutException y el llamante decide (normalmente, continuar sin bloquear).
@@ -81,8 +78,6 @@ class UbicacionService {
   Future<List<CiudadSoportada>>? _ciudadesEnCurso;
 
   // Fuente de verdad: el backend (/ciudades). Fallback local si no responde.
-  // Cachea el resultado y comparte la petición en vuelo para evitar llamadas
-  // redundantes cuando varios sitios la piden casi a la vez al arrancar.
   Future<List<CiudadSoportada>> cargarCiudadesSoportadas() async {
     if (_ciudadesCache != null) return _ciudadesCache!;
     if (_ciudadesEnCurso != null) return _ciudadesEnCurso!;
@@ -102,14 +97,10 @@ class UbicacionService {
         _ciudadesCache = ciudades; // solo cacheamos resultados válidos
         return ciudades;
       }
-    } catch (_) {
-      // backend no disponible → fallback (no se cachea, se reintenta luego)
-    }
+    } catch (_) {}
     return _ciudadesFallback;
   }
 
-  // Devuelve la ciudad soportada en cuyo radio se encuentran las coordenadas,
-  // o null si no hay ninguna dentro del rango.
   Future<CiudadSoportada?> detectarCiudad(double lat, double lng) async {
     final ciudades = await cargarCiudadesSoportadas();
     for (final ciudad in ciudades) {
@@ -120,7 +111,6 @@ class UbicacionService {
     return null;
   }
 
-  // Comprueba si unas coordenadas siguen dentro del radio de una ciudad concreta
   bool dentroDeRadio(double lat, double lng, CiudadSoportada ciudad) {
     return _distanciaKm(lat, lng, ciudad.lat, ciudad.lng) <= ciudad.radioKm;
   }

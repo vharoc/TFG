@@ -29,9 +29,6 @@ class HomeViewModel extends ChangeNotifier {
   String? get chatId => _chatId;
 
   bool _cargando = false;
-  // Mientras no hay chat ni ciudad seleccionada estamos en la fase inicial
-  // (esperando GPS o selector). Tratarlo como "cargando" evita que asome
-  // el empty state durante ese intervalo.
   bool get cargando => _cargando || (_chatId == null && _ciudadActual == null);
 
   String? _ciudadActual;
@@ -52,19 +49,15 @@ class HomeViewModel extends ChangeNotifier {
   bool _gpsPermanentementeDenegado = false;
   bool get gpsPermanentementeDenegado => _gpsPermanentementeDenegado;
 
-  // Necesita selector manual solo si no hay ciudad, no hay GPS y no hay chat abierto
   bool get necesitaCiudad => _chatId == null && _ciudadActual == null && !_gpsDisponible;
 
   bool _generando = false;
   bool get generando => _generando;
   http.Client? _clientActivo;
 
-  // Firma del chip de sugerencia que está esperando respuesta (para pintar el
-  // spinner solo en ese chip). null = ningún chip en carga.
   String? _poiCargandoKey;
   String? get poiCargandoKey => _poiCargandoKey;
 
-  // Firma estable de un chip: mientras coincida, ese chip muestra el spinner.
   static String poiKey(PoiSugerido poi) => '${poi.id}::${poi.nombre}';
 
   String _modo = 'rapido'; // 'rapido' | 'pensar'
@@ -81,10 +74,8 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ID del último monumento clasificado por foto, persiste entre mensajes de texto.
   String? _monumentoIdActual;
 
-  // POIs visitados de la ciudad actual — sincronizado con Firestore.
   List<PoiVisitado> _visitados = [];
   List<PoiVisitado> get visitados =>
       List.unmodifiable(_visitados.where((p) => p.visitado));
@@ -114,7 +105,6 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // (Re)suscribe al stream de POIs de la ciudad actual.
   void _suscribirVisitados() {
     _visitadosSub?.cancel();
     if (_ciudadActual == null) {
@@ -129,8 +119,6 @@ class HomeViewModel extends ChangeNotifier {
     });
   }
 
-  // Al fotografiar un monumento: siembra el catálogo de la ciudad la primera vez
-  // (idempotente, sin pisar flags) y marca este POI como visitado.
   Future<void> _registrarVisitaPoi(String ciudad, String poiId, String nombrePoi) async {
     try {
       final catalogo = await OllamaService.monumentos(ciudad: ciudad);
@@ -175,8 +163,6 @@ class HomeViewModel extends ChangeNotifier {
     }).catchError((_) {});
   }
 
-  // Intenta detectar la ciudad a partir de las coordenadas GPS actuales.
-  // Devuelve true si se encontró una ciudad soportada y la cacheó.
   Future<bool> _detectarCiudadDesdeGps() async {
     try {
       final pos = await UbicacionService.instance.obtenerPosicion();
@@ -275,8 +261,6 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Límite diario de tokens ─────────────────────────────────────────────
-
   /// Si el usuario agotó su cupo diario de IA, deja constancia en el chat y
   /// devuelve true para que el llamante aborte sin gastar más tokens.
   Future<bool> _bloqueadoPorLimite(String chatId) async {
@@ -298,8 +282,6 @@ class HomeViewModel extends ChangeNotifier {
     return true;
   }
 
-  /// Suma a la cuenta diaria los tokens consumidos por una respuesta (sin
-  /// bloquear: la escritura es en segundo plano).
   void _registrarTokens(int tokens) {
     if (tokens <= 0) return;
     UsoTokensService.instance.registrar(tokens);
@@ -328,10 +310,8 @@ class HomeViewModel extends ChangeNotifier {
 
       final chatIdActual = _chatId!;
 
-      // En cualquier estado de ruta las respuestas pasan por pensar para dar formato.
       final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
 
-      // En modo rápido con monumento activo el backend va directo al RAG: historial innecesario
       final List<Mensaje> historialReciente;
       if (_monumentoIdActual != null && modoEfectivo == 'rapido') {
         historialReciente = const [];
@@ -355,7 +335,6 @@ class HomeViewModel extends ChangeNotifier {
 
       if (await _bloqueadoPorLimite(chatIdActual)) return;
 
-      // Obtener posición para la tool como_llegar (si GPS disponible)
       double? lat, lon;
       if (_gpsDisponible) {
         try {
@@ -411,7 +390,6 @@ class HomeViewModel extends ChangeNotifier {
     // Evita procesar dos fotos a la vez o solapar foto con una consulta en curso.
     if (_generando) return;
     if (_ciudadActual == null) {
-      // Primera foto: detectar ciudad desde GPS
       if (_gpsDisponible) {
         final detectada = await _detectarCiudadDesdeGps();
         if (!detectada) {
@@ -424,7 +402,6 @@ class HomeViewModel extends ChangeNotifier {
         return; // Sin GPS ni ciudad: el selector debería haberla pedido antes
       }
     } else {
-      // Fotos posteriores: validar que siguen dentro del radio de la ciudad
       final enRango = await _fotoEnRangoDeCiudad();
       if (!enRango) {
         _mensajeErrorFoto = 'La foto está fuera del alcance de $_ciudadActual.';
@@ -439,12 +416,8 @@ class HomeViewModel extends ChangeNotifier {
     final chatIdActual = _chatId!;
     final ahora = DateTime.now();
 
-    // Copia la imagen al almacenamiento persistente de la app (no a la caché
-    // temporal de image_picker que Android puede limpiar).
     final pathPersistente = await ImagenLocalService.instance.guardarPersistente(img);
 
-    // Guarda el mensaje de imagen en Firestore con el path persistente. El
-    // snapshot listener lo pinta inmediatamente; al recargar sigue ahí.
     await ChatService.instance.guardarMensaje(
       chatId: chatIdActual,
       mensaje: Mensaje.imagen(
@@ -456,7 +429,6 @@ class HomeViewModel extends ChangeNotifier {
       ),
     );
 
-    // Título provisional genérico; si la foto reconoce un monumento, se mejora abajo.
     await _aplicarTitulo('Foto en ${_ciudadActual ?? 'la ciudad'}', 1);
 
     if (await _bloqueadoPorLimite(chatIdActual)) return;
@@ -467,7 +439,6 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // GPS real del móvil para el inicio de ruta (antes del classify)
       if (_rutaState?.estado == EstadoRuta.esperandoFoto && _gpsDisponible) {
         try {
           final pos = await UbicacionService.instance.obtenerPosicion();
@@ -476,7 +447,6 @@ class HomeViewModel extends ChangeNotifier {
         } catch (_) {}
       }
 
-      // En cualquier estado de ruta las fotos usan pensar para dar formato.
       final modoEfectivo = (_rutaState != null) ? 'pensar' : _modo;
 
       final resultado = await OllamaService.classify(
@@ -490,7 +460,6 @@ class HomeViewModel extends ChangeNotifier {
       if (resultado.id != null && _ciudadActual != null) {
         _monumentoIdActual = resultado.id;
         await _registrarVisitaPoi(_ciudadActual!, resultado.id!, resultado.nombre);
-        // Monumento reconocido → título significativo con su nombre.
         await _aplicarTitulo(resultado.nombre, 2);
       }
 
@@ -498,12 +467,10 @@ class HomeViewModel extends ChangeNotifier {
       final esFotoDeRuta = _rutaState?.estado == EstadoRuta.esperandoFoto ||
           _rutaState?.estado == EstadoRuta.activo;
       final eraRutaActiva = _rutaState?.estado == EstadoRuta.activo;
-      // Id del monumento de la parada actual, capturado antes de mutar el estado.
       final paradaActualId = eraRutaActiva ? _rutaState?.paradaActualObj?.id : null;
       final iniciaRuta =
           _rutaState?.estado == EstadoRuta.esperandoFoto && resultado.id != null;
 
-      // Transición esperandoFoto → seleccionandoFiltro.
       // Si el monumento no se reconoce, no se puede iniciar la ruta.
       if (_rutaState?.estado == EstadoRuta.esperandoFoto) {
         if (resultado.id == null) {
@@ -521,7 +488,6 @@ class HomeViewModel extends ChangeNotifier {
         }
       }
 
-      // El nombre del monumento siempre encabeza la respuesta.
       final descripcion = (resultado.descripcionCorta?.trim().isNotEmpty == true)
           ? resultado.descripcionCorta!.trim()
           : '';
@@ -542,7 +508,6 @@ class HomeViewModel extends ChangeNotifier {
         poisCercanos: chips,
       );
 
-      // Tras la primera foto, explicar las opciones de filtro de ruta
       if (iniciaRuta) {
         await _guardarMensajeTexto(
           chatId: chatIdActual,
@@ -574,24 +539,17 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> preguntarSobrePoi(PoiSugerido poi) async {
-    // Si ya hay una petición en curso, ignoramos el tap (no se debe poder
-    // disparar otra consulta desde un chip mientras Clicky responde).
     if (_generando) return;
     _monumentoIdActual = poi.id;
-    // Marca este chip como "en carga" para pintar su spinner. enviarTexto pondrá
-    // _generando=true de forma síncrona acto seguido, así que el resto de chips
-    // se desactivan en el mismo frame.
     _poiCargandoKey = poiKey(poi);
     if (poi.esPregunta) {
       // Chip de curiosidad: el texto del chip ya es la pregunta
       await enviarTexto(poi.nombre);
     } else {
-      // Chip de monumento cercano: navegamos a él
       await enviarTexto('Cuéntame más sobre ${poi.nombre}');
     }
   }
 
-  // Chips de curiosidad sobre el monumento actual (modo ruta).
   List<PoiSugerido> _chipsPreguntaMonumento(String monumentoId) => [
         PoiSugerido(id: monumentoId, nombre: '¿Cuál es su historia?', esPregunta: true),
         PoiSugerido(id: monumentoId, nombre: '¿Qué tiene de especial?', esPregunta: true),
@@ -603,8 +561,6 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> iniciarFlujoRuta() async {
     if (_generando) return;
 
-    // El modo ruta necesita la ubicación para posicionar el punto de inicio y
-    // mostrar el mapa de navegación. Si no está disponible, se solicita.
     if (!_gpsDisponible) {
       final estado = await UbicacionService.instance.solicitarPermiso();
       if (estado == EstadoPermiso.concedido) {
@@ -643,7 +599,6 @@ class HomeViewModel extends ChangeNotifier {
     // rápidos) se ignoran y no se lanzan dos rutas a la vez.
     if (_rutaState?.estado != EstadoRuta.seleccionandoFiltro) return;
 
-    // Si el cupo está agotado, no generamos la ruta y cancelamos el flujo.
     if (_chatId != null && await _bloqueadoPorLimite(_chatId!)) {
       _rutaState = null;
       notifyListeners();
@@ -757,7 +712,6 @@ class HomeViewModel extends ChangeNotifier {
       // La ciudad se registra al fotografiar un monumento (ver enviarImagen),
       // no al crear el chat: "ciudad visitada" = ciudad donde has visto algo.
     } catch (_) {
-      // Si falla la creación, _chatId sigue null
     } finally {
       _creandoChat = false;
     }
@@ -767,7 +721,6 @@ class HomeViewModel extends ChangeNotifier {
   // de nivel mayor. 0=sin título, 1=genérico, 2=significativo (tema concreto).
   int _nivelTitulo = 0;
 
-  // Palabras vacías que no aportan al título (se filtran en títulos de texto).
   static const _stopwords = {
     'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al',
     'a', 'ante', 'con', 'en', 'por', 'para', 'sin', 'sobre', 'tras', 'y', 'o',
@@ -781,8 +734,6 @@ class HomeViewModel extends ChangeNotifier {
     'porfa', 'porfavor', 'favor', 'vale', 'ok', 'oye', 'eh', 'aja', 'ajá',
   };
 
-  // Título a partir de un mensaje de texto: quita stopwords y se queda con las
-  // 4 primeras palabras significativas. Devuelve null si no queda nada útil.
   String? _tituloDesdeTexto(String texto) {
     final palabras = texto
         .toLowerCase()
@@ -795,7 +746,6 @@ class HomeViewModel extends ChangeNotifier {
     return titulo[0].toUpperCase() + titulo.substring(1);
   }
 
-  // Aplica un título solo si su nivel supera al actual.
   Future<void> _aplicarTitulo(String titulo, int nivel) async {
     if (_chatId == null || nivel <= _nivelTitulo) return;
     _nivelTitulo = nivel;
@@ -811,7 +761,6 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Título para un mensaje de texto del usuario.
   Future<void> _titularDesdeTexto(String texto) async {
     final clave = _tituloDesdeTexto(texto);
     if (clave != null) {

@@ -9,8 +9,6 @@ class ImagenLocalService {
 
   static const _subdir = 'chat_images';
 
-  // Copia la foto capturada al directorio de documentos de la app, fuera de la
-  // caché temporal que Android puede limpiar. Devuelve el path absoluto.
   Future<String> guardarPersistente(XFile origen) async {
     final docs = await getApplicationDocumentsDirectory();
     final destDir = Directory('${docs.path}/$_subdir');
@@ -24,7 +22,6 @@ class ImagenLocalService {
     return destino.path;
   }
 
-  // Borra una foto persistente. Silencioso si el fichero ya no existe.
   Future<void> borrar(String path) async {
     try {
       final f = File(path);

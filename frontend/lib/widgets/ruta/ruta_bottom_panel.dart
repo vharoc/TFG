@@ -53,7 +53,6 @@ class RutaBottomPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Handle
           Center(
             child: Container(
               width: 36,
@@ -66,7 +65,6 @@ class RutaBottomPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Badge parada + nombre
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -101,13 +99,11 @@ class RutaBottomPanel extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Tiempo estimado a pie
           _InfoChip(
             icon: Icons.access_time_rounded,
             label: '~${parada.tiempoMin} min caminando',
           ),
 
-          // Chips POI
           if (poisCercanos.isNotEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(
@@ -130,7 +126,6 @@ class RutaBottomPanel extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Botones
           Row(
             children: [
               Expanded(

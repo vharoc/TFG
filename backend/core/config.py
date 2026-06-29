@@ -85,9 +85,6 @@ _KEYWORDS_NAVEGACION = [
     "cómo voy", "como voy",
 ]
 
-# Acumulador de tokens consumidos en la petición actual. _llamar_llm suma aquí
-# el total_tokens de cada respuesta de Groq; los endpoints lo resetean al
-# empezar y lo devuelven en "tokens" para que el cliente lleve la cuenta diaria.
 _tokens_request: contextvars.ContextVar[int] = contextvars.ContextVar("tokens_request", default=0)
 
 limiter = Limiter(key_func=get_remote_address)

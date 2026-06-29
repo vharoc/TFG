@@ -67,7 +67,6 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // ── Avatar + datos ─────────────────────────────────────────────────
           PerfilProfileHeader(
             inicial: vm.inicial,
             displayName: vm.displayName,
@@ -119,7 +118,6 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
     );
   }
 
-  // ── Diálogo borrar datos ─────────────────────────────────────────────────
   Future<void> _mostrarDialogoBorrarDatos(PerfilViewModel vm) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -154,7 +152,6 @@ class _PerfilScreenStateState extends State<_PerfilScreenState> {
     }
   }
 
-  // ── Diálogo eliminar cuenta ──────────────────────────────────────────────
   Future<void> _mostrarDialogoEliminarCuenta(PerfilViewModel vm) async {
     final passwd = await showDeleteAccountDialog(context);
     if (!mounted || passwd == null) return;

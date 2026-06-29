@@ -74,15 +74,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_vm.rutaState?.estado == EstadoRuta.mostrandoResumen) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _mostrarResumenRutaSiNecesario());
     }
-    // comenzarRuta() es async (espera a crear el chat) antes de poner el estado
-    // en activo, por eso lo detectamos aquí y no justo tras cerrar el modal.
-    // No re-abrimos si el usuario salió del mapa con el botón atrás (minimizada).
     if (_vm.rutaState?.estado == EstadoRuta.activo &&
         !_navegacionAbierta &&
         !_navegacionMinimizada) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _abrirNavegacion());
     }
-    // Cuando la ruta termina o se cancela, limpiamos el flag de minimizada.
     if (_vm.rutaState == null && _navegacionMinimizada) {
       _navegacionMinimizada = false;
     }
@@ -130,7 +126,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _abrirNavegacion() async {
     if (_navegacionAbierta || !mounted) return;
     _navegacionAbierta = true;
-    // Si venía minimizada, la des-minimizamos al volver a abrir
     if (_navegacionMinimizada) setState(() => _navegacionMinimizada = false);
 
     await Navigator.of(context).push(
@@ -143,8 +138,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     _navegacionAbierta = false;
-    // Si la ruta sigue activa tras salir, el usuario usó el botón atrás:
-    // marcamos como minimizada para no re-abrir automáticamente.
     if (_vm.rutaState?.estado == EstadoRuta.activo && mounted) {
       setState(() => _navegacionMinimizada = true);
     }
@@ -177,7 +170,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (user != null) {
         await UserServices.instance.ensureUsuario(user);
       }
-      // GPS y caché de ciudades en paralelo: cuando abra el selector ya estará listo.
       await Future.wait([
         _vm.inicializarUbicacion(),
         UbicacionService.instance.cargarCiudadesSoportadas(),
@@ -253,14 +245,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 if (vm.rutaState?.estado == EstadoRuta.activo &&
                     _navegacionMinimizada)
-                  // El usuario volvió al chat con atrás: ofrecer volver al mapa
                   RutaExitButton(
                     icon: Icons.map_rounded,
                     label: 'Volver al mapa',
                     onTap: _abrirNavegacion,
                   )
                 else if (vm.rutaState != null)
-                  // Estados previos (esperandoFoto, filtro, cargando): salir
                   RutaExitButton(
                     onTap: () {
                       setState(() => _navegacionMinimizada = false);

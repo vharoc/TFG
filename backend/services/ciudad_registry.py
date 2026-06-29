@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 class CiudadRegistry:
-    """Registro de ciudades soportadas.
-
+    """
+    Registro de ciudades soportadas.
     Carga un MonumentoService por ciudad desde `data/ciudades/<id>/ciudad.json`.
     El extractor + clasificador es, en esta fase de transición, ÚNICO y global
     (un solo modelo en models/). Cuando existan cabezas sklearn por ciudad, basta
@@ -46,7 +46,6 @@ class CiudadRegistry:
         if not self._monumentos:
             logger.warning("CiudadRegistry vacío: no hay ciudades en %s", ciudades_dir)
         elif self.default not in self._monumentos:
-            # Si el default configurado no existe, usar la primera cargada
             self.default = next(iter(self._monumentos))
 
     def _resolve(self, ciudad: Optional[str]) -> Optional[str]:
@@ -61,8 +60,6 @@ class CiudadRegistry:
         return self._monumentos.get(cid) if cid else None
 
     def clasificar(self, image_bytes: bytes, ciudad: Optional[str] = None) -> str:
-        # Transición: clasificador global único. La selección por ciudad se
-        # activará aquí cuando haya cabezas sklearn por ciudad.
         return self._clasificador.clasificar(image_bytes)
 
     def listar_ciudades(self) -> list[dict]:

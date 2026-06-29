@@ -22,12 +22,7 @@ class ClasificadorService:
         self.umbral = meta["umbral_confianza"]
 
     def _preprocess(self, image_bytes: bytes) -> np.ndarray:
-        # Debe reproducir EXACTAMENTE el AutoImageProcessor de DINOv2 usado en
-        # entrenamiento (facebook/dinov2-small): resize del lado corto a 256 con
-        # interpolacion BICUBIC, manteniendo la relacion de aspecto, y center crop
-        # 224x224. Hacer un resize directo a 224x224 (estirando) o con BILINEAR
-        # distorsiona fotos no cuadradas y degrada la confianza -> mas falsos
-        # "DESCONOCIDO" sobre monumentos reales.
+        #  resize del lado corto a 256 con interpolacion BICUBIC, manteniendo la relacion de aspecto, y center crop 224x224. 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
         short_edge, crop = 256, 224

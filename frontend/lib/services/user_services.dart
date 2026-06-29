@@ -7,9 +7,6 @@ class UserServices {
 
   final _firestore = FirebaseFirestore.instance;
 
-  /// Crea el documento Firestore del usuario solo si todavía no existe.
-  /// Se invoca tras la verificación de email, al entrar en HomeScreen
-  /// (ver home_screen.dart -> ensureUsuario).
   Future<void> ensureUsuario(User authUser) async {
     final ref = _firestore.collection('users').doc(authUser.uid);
     final snap = await ref.get();
@@ -30,7 +27,6 @@ class UserServices {
     }, SetOptions(merge: true));
   }
 
-  /// Borra el documento raíz del usuario y su subcolección de uso.
   /// Llamar antes de `deleteCurrentUser` en el flujo de borrado de cuenta.
   Future<void> eliminarUsuario(String uid) async {
     final userRef = _firestore.collection('users').doc(uid);
