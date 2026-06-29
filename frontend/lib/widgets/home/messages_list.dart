@@ -12,6 +12,7 @@ class HomeMessagesList extends StatelessWidget {
   final void Function(PoiSugerido)? onPoiTap;
   final bool bloqueado;
   final String? poiCargandoKey;
+  final String? ciudad;
 
   const HomeMessagesList({
     super.key,
@@ -21,6 +22,7 @@ class HomeMessagesList extends StatelessWidget {
     this.onPoiTap,
     this.bloqueado = false,
     this.poiCargandoKey,
+    this.ciudad,
   });
 
   @override
@@ -32,7 +34,7 @@ class HomeMessagesList extends StatelessWidget {
     }
 
     if (messages.isEmpty) {
-      return const HomeEmptyState();
+      return HomeEmptyState(ciudad: ciudad);
     }
 
     return ListView.builder(

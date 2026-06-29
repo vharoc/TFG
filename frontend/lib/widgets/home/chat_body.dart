@@ -24,6 +24,7 @@ class HomeChatBody extends StatelessWidget {
   final VoidCallback? onSiguienteParada;
   final VoidCallback? onCancelarRuta;
   final VoidCallback? onIniciarRuta;
+  final String? ciudad;
 
   const HomeChatBody({
     super.key,
@@ -43,6 +44,7 @@ class HomeChatBody extends StatelessWidget {
     this.onSiguienteParada,
     this.onCancelarRuta,
     this.onIniciarRuta,
+    this.ciudad,
   });
 
   @override
@@ -57,6 +59,7 @@ class HomeChatBody extends StatelessWidget {
             onPoiTap: onPoiTap,
             bloqueado: generando,
             poiCargandoKey: poiCargandoKey,
+            ciudad: ciudad,
           ),
         ),
         ChatInput(

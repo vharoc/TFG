@@ -236,6 +236,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onSiguienteParada: vm.siguienteParada,
                         onCancelarRuta: vm.cancelarRuta,
                         onIniciarRuta: vm.iniciarFlujoRuta,
+                        ciudad: vm.ciudadActual,
                       ),
                     ),
                   ],

@@ -137,18 +137,16 @@ class _ChatInputState extends State<ChatInput> {
 
           Row(
             children: [
-              Builder(
-                builder: (ctx) => GestureDetector(
-                  onTap: () => _showAttachMenu(ctx),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: const Icon(
-                      Icons.add,
-                      size: 20,
-                      color: Colors.black87,
-                    ),
+              GestureDetector(
+                onTap: _openGallery,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  child: const Icon(
+                    Icons.add,
+                    size: 20,
+                    color: Colors.black87,
                   ),
                 ),
               ),
@@ -206,7 +204,23 @@ class _ChatInputState extends State<ChatInput> {
                           ),
                         ),
                       )
-                    : const SizedBox.shrink(key: ValueKey('empty')),
+                    : GestureDetector(
+                        key: const ValueKey('camera'),
+                        onTap: _openCamera,
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.usal,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
               ),
             ],
           ),
@@ -260,7 +274,7 @@ class _ChatInputState extends State<ChatInput> {
               height: 34,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.ocre,
+                color: AppTheme.usal,
               ),
               child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
             ),
@@ -331,42 +345,6 @@ class _ChatInputState extends State<ChatInput> {
     );
   }
 
-  void _showAttachMenu(BuildContext context) {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final Offset pos = button.localToGlobal(Offset.zero, ancestor: overlay);
-
-    showMenu(
-      context: context,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 8,
-      position: RelativeRect.fromLTRB(
-        pos.dx,
-        pos.dy - 130,
-        overlay.size.width - pos.dx - button.size.width,
-        0,
-      ),
-      items: [
-        PopupMenuItem<String>(
-          value: 'camara',
-          child: _menuRow(Icons.camera_alt_outlined, 'Cámara'),
-        ),
-        PopupMenuItem<String>(
-          value: 'album',
-          child: _menuRow(Icons.photo_library_outlined, 'Álbum de fotos'),
-        ),
-      ],
-    ).then((value) {
-      if (value == 'camara') {
-        _openCamera();
-      } else if (value == 'album') {
-        _openGallery();
-      }
-    });
-  }
-
   void _showModoMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final RenderBox overlay =
@@ -409,27 +387,6 @@ class _ChatInputState extends State<ChatInput> {
         widget.onModoChanged?.call(value);
       }
     });
-  }
-
-  Widget _menuRow(IconData icon, String label, {bool hasArrow = false}) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.black),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        if (hasArrow)
-          const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-      ],
-    );
   }
 
   Widget _modoRow(IconData icon, String label, Color color, bool selected) {

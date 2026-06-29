@@ -29,7 +29,9 @@ class HomeViewModel extends ChangeNotifier {
   String? get chatId => _chatId;
 
   bool _cargando = false;
-  bool get cargando => _cargando || (_chatId == null && _ciudadActual == null);
+  // Solo refleja la carga de mensajes de un chat. Sin chat abierto mostramos el
+  // estado vacío (saludo), no un spinner.
+  bool get cargando => _cargando;
 
   String? _ciudadActual;
   String? get ciudadActual => _ciudadActual;
@@ -146,6 +148,12 @@ class HomeViewModel extends ChangeNotifier {
       _gpsPermanentementeDenegado = false;
     }
     notifyListeners();
+
+    // Con permiso de GPS y sin ciudad aún, la resolvemos en segundo plano para
+    // personalizar el saludo del chat vacío con el nombre de la ciudad.
+    if (_gpsDisponible && _ciudadActual == null) {
+      await _detectarCiudadDesdeGps();
+    }
   }
 
   void seleccionarCiudad(String ciudad) {
