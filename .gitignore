@@ -228,8 +228,6 @@ backend/serviceTourClickFirebaseKey.json
 backend/models/
 
 # Local
-
-
 generar_roadmap.py
 roadmap_tourclick.pdf
 
