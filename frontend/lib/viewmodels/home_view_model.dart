@@ -51,7 +51,16 @@ class HomeViewModel extends ChangeNotifier {
   bool _gpsPermanentementeDenegado = false;
   bool get gpsPermanentementeDenegado => _gpsPermanentementeDenegado;
 
-  bool get necesitaCiudad => _chatId == null && _ciudadActual == null && !_gpsDisponible;
+  // Con permiso de GPS damos por hecho que la ciudad se resuelve sola y ocultamos
+  // el selector manual. Pero si el GPS no logra fix o estamos fuera de cobertura,
+  // esa suposición falla: este flag fuerza el selector pese a tener permiso, para
+  // no dejar al usuario sin ciudad ni forma de elegirla.
+  bool _pedirCiudadManual = false;
+
+  bool get necesitaCiudad =>
+      _chatId == null &&
+      _ciudadActual == null &&
+      (!_gpsDisponible || _pedirCiudadManual);
 
   bool _generando = false;
   bool get generando => _generando;
@@ -158,6 +167,7 @@ class HomeViewModel extends ChangeNotifier {
 
   void seleccionarCiudad(String ciudad) {
     _ciudadActual = ciudad;
+    _pedirCiudadManual = false;
     _suscribirVisitados();
     notifyListeners();
     // Carga los datos de la ciudad en segundo plano para validar fotos posteriores
@@ -179,6 +189,7 @@ class HomeViewModel extends ChangeNotifier {
       if (ciudad == null) return false;
       _ciudadActual = ciudad.nombre;
       _ciudadSoportada = ciudad;
+      _pedirCiudadManual = false;
       _suscribirVisitados();
       notifyListeners();
       if (_chatId != null) {
@@ -190,6 +201,17 @@ class HomeViewModel extends ChangeNotifier {
     } catch (_) {
       return false;
     }
+  }
+
+  // Resuelve la ciudad cuando arrancamos un chat sin ella (típicamente tras
+  // "nueva conversación"): primero por GPS y, si no hay fix o estamos fuera de
+  // cobertura, abre el selector manual aunque haya permiso de GPS. Así nunca se
+  // queda un chat sin ciudad y sin forma de elegirla.
+  Future<void> _resolverCiudad() async {
+    if (_ciudadActual != null) return;
+    if (_gpsDisponible && await _detectarCiudadDesdeGps()) return;
+    _pedirCiudadManual = true;
+    notifyListeners();
   }
 
   // Comprueba si las coordenadas actuales del dispositivo están dentro del
@@ -310,7 +332,13 @@ class HomeViewModel extends ChangeNotifier {
     try {
       if (_ciudadActual == null) {
         if (_gpsDisponible) await _detectarCiudadDesdeGps();
-        if (_ciudadActual == null) return;
+        if (_ciudadActual == null) {
+          // Sin ciudad y sin poder resolverla por GPS: abrimos el selector en
+          // vez de descartar el mensaje sin avisar (el finally notifica y, con
+          // este flag, necesitaCiudad pasa a true y aparece el selector).
+          _pedirCiudadManual = true;
+          return;
+        }
       }
 
       await _crearChatSiNecesario();
@@ -401,13 +429,19 @@ class HomeViewModel extends ChangeNotifier {
       if (_gpsDisponible) {
         final detectada = await _detectarCiudadDesdeGps();
         if (!detectada) {
+          // GPS sin fix o fuera de cobertura: avisamos y abrimos el selector
+          // para que el usuario pueda elegir ciudad y reintentar.
+          _pedirCiudadManual = true;
           _mensajeErrorFoto =
               'No se encontró ninguna ciudad compatible con tu ubicación.';
           notifyListeners();
           return;
         }
       } else {
-        return; // Sin GPS ni ciudad: el selector debería haberla pedido antes
+        // Sin GPS ni ciudad: abrimos el selector en vez de descartar la foto.
+        _pedirCiudadManual = true;
+        notifyListeners();
+        return;
       }
     } else {
       final enRango = await _fotoEnRangoDeCiudad();
@@ -806,6 +840,7 @@ class HomeViewModel extends ChangeNotifier {
     _chatId = null;
     _ciudadActual = null;
     _ciudadSoportada = null;
+    _pedirCiudadManual = false;
     _monumentoIdActual = null;
     _rutaState = null;
     _messages = [];
@@ -815,6 +850,10 @@ class HomeViewModel extends ChangeNotifier {
     _visitadosSub?.cancel();
     _visitados = [];
     notifyListeners();
+    // Repuebla la ciudad del nuevo chat por GPS o, si no es posible, abre el
+    // selector; sin esto el chat quedaba sin ciudad y el primer envío fallaba
+    // en silencio cuando el GPS estaba activo pero no resolvía.
+    unawaited(_resolverCiudad());
   }
 
   @override
