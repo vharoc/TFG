@@ -65,3 +65,5 @@ Por defecto apunta al backend desplegado. Si lo corres en local, cambia la URL:
 ```bash
 flutter run --dart-define=OLLAMA_API_BASE_URL=http://localhost:8000/api
 ```
+
+Proyecto que puede usarse como base para el desarrollo o mejoras de otros que usen Flutter
