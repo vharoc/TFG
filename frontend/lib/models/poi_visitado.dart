@@ -18,8 +18,7 @@ class PoiVisitado {
       id: id,
       nombre: map['nombre'] ?? '',
       visitado: map['visitado'] as bool? ?? false,
-      // serverTimestamp() puede ser null en el snapshot local hasta que el
-      // servidor lo confirma; los no visitados no tienen fecha.
+      // Los no visitados no tienen fecha.
       visitadoEn: (map['visitadoEn'] as Timestamp?)?.toDate(),
     );
   }

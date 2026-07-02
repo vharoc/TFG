@@ -76,7 +76,7 @@ class ChatService {
     await _chatsRef.doc(chatId).update({'titulo': nuevoTitulo});
   }
 
-  // GPS la detecta tras crear el chat.
+  // La ciudad puede llegar después de crear el chat (detección por GPS).
   Future<void> actualizarCiudad({
     required String chatId,
     required String ciudad,

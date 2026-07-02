@@ -27,7 +27,7 @@ class UserServices {
     }, SetOptions(merge: true));
   }
 
-  /// Llamar antes de `deleteCurrentUser` en el flujo de borrado de cuenta.
+  /// Llamar antes de deleteCurrentUser en el flujo de borrado de cuenta.
   Future<void> eliminarUsuario(String uid) async {
     final userRef = _firestore.collection('users').doc(uid);
     await userRef.collection('uso').doc('diario').delete();

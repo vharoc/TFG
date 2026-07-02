@@ -159,7 +159,7 @@ class _PoiRow extends StatelessWidget {
       ),
     );
 
-    // Solo los POIs visitados pueden desmarcarse — los pendientes no tienen estado que borrar.
+    // Solo los POIs visitados pueden desmarcarse.
     if (!visitado) return fila;
     return InkWell(
       onLongPress: () => _confirmarDesmarcar(context),

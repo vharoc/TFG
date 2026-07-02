@@ -71,7 +71,7 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
         }
       },
       onError: (_) {
-        // GPS no disponible: el punto azul simplemente no aparece
+        // GPS no disponible: el punto azul no aparece
       },
     );
   }
@@ -82,9 +82,7 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
     _mapController.move(LatLng(parada.lat, parada.lon), 16.0);
   }
 
-  /// Cierra la pantalla una sola vez. La ruta notifica varias veces al
-  /// terminar (cambio de estado + mensaje + stream), por eso el guard evita
-  /// múltiples Navigator.pop() que reventarían la pila de navegación.
+  // La ruta notifica varias veces al terminar; el guard evita hacer pop dos veces.
   void _cerrar() {
     if (_cerrando) return;
     _cerrando = true;
@@ -121,9 +119,7 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
     }
   }
 
-  /// Chips de curiosidad sobre la parada ACTUAL. Se construyen a partir del id
-  /// de la parada en curso (no de mensajes antiguos), para que siempre
-  /// pregunten por el monumento donde estás ahora.
+  // Chips de curiosidad construidos con el id de la parada en curso.
   List<PoiSugerido> _chipsParadaActual(RutaState rs) {
     final parada = rs.paradaActualObj;
     if (parada == null) return const [];
@@ -221,7 +217,6 @@ class _RutaNavegacionScreenState extends State<RutaNavegacionScreen> {
           child: Scaffold(
             body: Stack(
               children: [
-                // Positioned.fill garantiza constraints tight.
                 Positioned.fill(
                   child: FlutterMap(
                     mapController: _mapController,

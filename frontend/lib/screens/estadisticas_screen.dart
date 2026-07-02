@@ -151,7 +151,7 @@ class _EstadisticasBody extends StatelessWidget {
     );
   }
 
-  // ── Sheets ────────────────────────────────────────────────────────────────
+  // Sheets
 
   void _mostrarChats(BuildContext context, Estadisticas s) {
     _abrirSheet(

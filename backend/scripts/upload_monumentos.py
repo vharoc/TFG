@@ -6,7 +6,7 @@ Estructura resultante:
     monumentos/{ciudadId}/items/{poiId}   ← cada monumento
 
 Lee todas las carpetas bajo backend/data/ciudades/ y para cada una carga el
-fichero ciudad.json. Idempotente: usar `set()` con merge sobrescribe sin duplicar.
+fichero ciudad.json. Idempotente: usar set() con merge sobrescribe sin duplicar.
 
 Uso:
     cd backend

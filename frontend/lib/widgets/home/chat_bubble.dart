@@ -9,9 +9,8 @@ import '../../theme/theme.dart';
 class ChatBubble extends StatelessWidget {
   final Mensaje mensaje;
   final void Function(PoiSugerido)? onPoiTap;
-  // Mientras hay una petición en curso, todos los chips de sugerencia se
-  // desactivan. `poiCargandoKey` identifica el chip pulsado para mostrar en él
-  // un spinner (formato: "${poi.id}::${poi.nombre}", ver HomeViewModel.poiKey).
+  // Con una petición en curso los chips se desactivan; poiCargandoKey identifica
+  // el chip pulsado para mostrarle un spinner (ver HomeViewModel.poiKey).
   final bool bloqueado;
   final String? poiCargandoKey;
 

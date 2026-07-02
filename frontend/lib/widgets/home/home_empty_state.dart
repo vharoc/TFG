@@ -6,8 +6,7 @@ class HomeEmptyState extends StatelessWidget {
 
   const HomeEmptyState({super.key, this.ciudad});
 
-  // El saludo sigue la convención horaria española: "días" hasta el almuerzo,
-  // "tardes" hasta el anochecer y "noches" el resto.
+  // Franjas del saludo según la convención horaria española.
   String get _saludo {
     final int hora = DateTime.now().hour;
     if (hora >= 6 && hora < 14) return 'Buenos días';

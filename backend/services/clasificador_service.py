@@ -22,7 +22,7 @@ class ClasificadorService:
         self.umbral = meta["umbral_confianza"]
 
     def _preprocess(self, image_bytes: bytes) -> np.ndarray:
-        #  resize del lado corto a 256 con interpolacion BICUBIC, manteniendo la relacion de aspecto, y center crop 224x224. 
+        # mismo preprocesado que en entrenamiento: lado corto a 256 (BICUBIC) y center crop 224x224
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
         short_edge, crop = 256, 224

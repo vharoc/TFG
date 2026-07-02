@@ -15,8 +15,6 @@ class CiudadVisitada {
     return CiudadVisitada(
       id: id,
       nombre: map['nombre'] ?? '',
-      // serverTimestamp() puede ser null en el snapshot local hasta que el
-      // servidor lo confirma: en ese caso usamos la hora actual.
       visitadaEn: (map['visitadaEn'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

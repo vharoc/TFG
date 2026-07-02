@@ -56,8 +56,7 @@ class _ChatInputState extends State<ChatInput> {
         widget.onImagePicked?.call(photo);
       }
     } catch (_) {
-      // image_picker lanza PlatformException si se deniega el permiso de cámara
-      // o galería. Damos feedback en vez de fallar en silencio.
+      // image_picker lanza PlatformException si se deniega el permiso.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(permisoMsg)),

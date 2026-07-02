@@ -22,7 +22,6 @@ class MonumentoService:
             self._normalizar(m["classifier_class"]): m for m in self._data
         }
         self._by_id: dict[str, dict] = {m["id"]: m for m in self._data}
-        # alias → monumento
         self._by_alias: dict[str, dict] = {}
         for m in self._data:
             for a in m.get("alias", []):

@@ -66,7 +66,7 @@ def test_historial_demasiado_largo():
 
 
 def test_classify_contenido_invalido():
-    # Un PDF con content-type image/jpeg debe ser rechazado por Pillow → 400
+    # Un PDF con content-type image/jpeg debe ser rechazado por Pillow con 400
     fake_pdf = io.BytesIO(b"%PDF-1.4 fake content here")
     r = httpx.post(
         url("/api/classify"),
@@ -103,7 +103,7 @@ def test_rate_limit_query():
 
 
 def test_classify_imagen_corrupta():
-    # JPEG válido en content-type pero datos truncados → 400, no 500
+    # JPEG válido en content-type pero datos truncados: debe dar 400, no 500
     fake = io.BytesIO(b"\xff\xd8\xff\xe0" + b"0" * 100)
     r = httpx.post(
         url("/api/classify"),

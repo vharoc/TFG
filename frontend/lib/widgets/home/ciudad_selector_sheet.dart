@@ -19,8 +19,7 @@ class _CiudadSelectorSheetState extends State<CiudadSelectorSheet> {
   }
 
   Future<void> _cargar() async {
-    // cargarCiudadesSoportadas ya cae a un fallback local si el backend falla,
-    // así que esta lista nunca llega vacía.
+    // Con fallback local si el backend falla: la lista nunca llega vacía.
     final lista = await UbicacionService.instance.cargarCiudadesSoportadas();
     _ciudades = lista.map((c) => c.nombre).toList();
     if (mounted) setState(() => _cargando = false);

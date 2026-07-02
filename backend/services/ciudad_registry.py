@@ -10,19 +10,16 @@ logger = logging.getLogger(__name__)
 
 class CiudadRegistry:
     """
-    Registro de ciudades soportadas.
-    Carga un MonumentoService por ciudad desde `data/ciudades/<id>/ciudad.json`.
-    El extractor + clasificador es, en esta fase de transición, ÚNICO y global
-    (un solo modelo en models/). Cuando existan cabezas sklearn por ciudad, basta
-    con convertir `self._clasificador` en un dict {ciudad: cabeza} y seleccionar
-    en `clasificar()` según el parámetro `ciudad`.
+    Registro de ciudades soportadas: un MonumentoService por cada
+    data/ciudades/<id>/ciudad.json. El clasificador es único y global;
+    el parámetro ciudad de clasificar() queda previsto para un modelo por ciudad.
     """
 
     def __init__(self, ciudades_dir: str, clasificador: ClasificadorService, default: str = "salamanca"):
         self._clasificador = clasificador
         self.default = default
         self._monumentos: dict[str, MonumentoService] = {}
-        self._alias_ciudad: dict[str, str] = {}  # nombre/id normalizado → id de ciudad
+        self._alias_ciudad: dict[str, str] = {}  # nombre o id normalizado a id de ciudad
 
         base = Path(ciudades_dir)
         if base.exists():

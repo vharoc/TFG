@@ -45,8 +45,7 @@ class CiudadVisitadaService {
         return lista;
       });
 
-  /// Siembra el catálogo completo de la ciudad la primera vez (idempotente:
-  /// solo escribe los POIs que aún no existan, para no pisar los ya visitados).
+  /// Siembra el catálogo de la ciudad la primera vez; no pisa los POIs existentes.
   Future<void> sembrarCatalogo(String nombreCiudad, List<PoiSugerido> catalogo) async {
     final ciudadId = _ciudadId(nombreCiudad);
     await _ciudadesRef.doc(ciudadId).set({
@@ -54,7 +53,6 @@ class CiudadVisitadaService {
       'visitadaEn': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // Qué POIs ya existen (para no sobrescribir flags)
     final existentes = await _poisRef(ciudadId).get();
     final idsExistentes = existentes.docs.map((d) => d.id).toSet();
 

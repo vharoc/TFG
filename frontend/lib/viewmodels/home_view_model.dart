@@ -51,10 +51,7 @@ class HomeViewModel extends ChangeNotifier {
   bool _gpsPermanentementeDenegado = false;
   bool get gpsPermanentementeDenegado => _gpsPermanentementeDenegado;
 
-  // Con permiso de GPS damos por hecho que la ciudad se resuelve sola y ocultamos
-  // el selector manual. Pero si el GPS no logra fix o estamos fuera de cobertura,
-  // esa suposición falla: este flag fuerza el selector pese a tener permiso, para
-  // no dejar al usuario sin ciudad ni forma de elegirla.
+  // Fuerza el selector manual cuando hay permiso de GPS pero no resuelve ciudad.
   bool _pedirCiudadManual = false;
 
   bool get necesitaCiudad =>
@@ -151,8 +148,7 @@ class HomeViewModel extends ChangeNotifier {
       _gpsPermanentementeDenegado =
           estado == EstadoPermiso.permanentementeDenegado;
     } catch (_) {
-      // Si el plugin de ubicación falla, seguimos sin GPS (queda el selector
-      // manual). Nunca debe propagarse y dejar la pantalla en loading.
+      // Si el plugin de ubicación falla, seguimos sin GPS (queda el selector manual).
       _gpsDisponible = false;
       _gpsPermanentementeDenegado = false;
     }
@@ -203,10 +199,7 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  // Resuelve la ciudad cuando arrancamos un chat sin ella (típicamente tras
-  // "nueva conversación"): primero por GPS y, si no hay fix o estamos fuera de
-  // cobertura, abre el selector manual aunque haya permiso de GPS. Así nunca se
-  // queda un chat sin ciudad y sin forma de elegirla.
+  // Resuelve la ciudad de un chat nuevo: GPS primero, selector manual si no hay fix.
   Future<void> _resolverCiudad() async {
     if (_ciudadActual != null) return;
     if (_gpsDisponible && await _detectarCiudadDesdeGps()) return;
@@ -214,20 +207,15 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Comprueba si las coordenadas actuales del dispositivo están dentro del
-  // radio de la ciudad en curso. Es un filtro ANTI-falsos-rechazos: solo
-  // rechaza una foto cuando tiene una lectura GPS fresca y PRECISA que cae
-  // claramente fuera del radio. Ante GPS lento, impreciso o error, deja pasar
-  // la foto (fail open) — más vale clasificar de más que rechazar un monumento
-  // válido por un fix de GPS malo.
+  // Solo rechaza la foto con una lectura GPS precisa y fuera del radio de la
+  // ciudad; ante GPS lento, impreciso o error, la foto pasa igualmente.
   Future<bool> _fotoEnRangoDeCiudad() async {
     if (!_gpsDisponible || _ciudadSoportada == null) return true;
     try {
       final pos = await UbicacionService.instance
           .obtenerPosicion()
           .timeout(const Duration(seconds: 4));
-      // accuracy = radio de error estimado en metros. Si es pobre (>150 m) no
-      // nos fiamos para rechazar; clasificamos igualmente.
+      // accuracy: radio de error en metros; si es pobre (>150 m) no rechazamos.
       if (pos.accuracy > 150) return true;
       return UbicacionService.instance
           .dentroDeRadio(pos.latitude, pos.longitude, _ciudadSoportada!);
@@ -318,14 +306,12 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> enviarTexto(String texto) async {
-    // Debounce + flag: si ya hay una petición en curso, ignoramos el tap. Esto
-    // cubre dobles taps en el botón de enviar y en los chips de sugerencia.
+    // Ignora el tap si ya hay una petición en curso (doble tap en enviar o en chips).
     if (_generando) return;
     final textoTrimmed = texto.trim();
     if (textoTrimmed.isEmpty) return;
 
-    // Marcamos "generando" de forma SÍNCRONA (antes de cualquier await) para que
-    // la UI desactive de inmediato chips y botones de sugerencia al primer tap.
+    // Antes de cualquier await, para que la UI se desactive al primer tap.
     _generando = true;
     notifyListeners();
 
@@ -333,9 +319,7 @@ class HomeViewModel extends ChangeNotifier {
       if (_ciudadActual == null) {
         if (_gpsDisponible) await _detectarCiudadDesdeGps();
         if (_ciudadActual == null) {
-          // Sin ciudad y sin poder resolverla por GPS: abrimos el selector en
-          // vez de descartar el mensaje sin avisar (el finally notifica y, con
-          // este flag, necesitaCiudad pasa a true y aparece el selector).
+          // Sin ciudad resoluble: abrimos el selector en vez de descartar el mensaje.
           _pedirCiudadManual = true;
           return;
         }
@@ -429,8 +413,7 @@ class HomeViewModel extends ChangeNotifier {
       if (_gpsDisponible) {
         final detectada = await _detectarCiudadDesdeGps();
         if (!detectada) {
-          // GPS sin fix o fuera de cobertura: avisamos y abrimos el selector
-          // para que el usuario pueda elegir ciudad y reintentar.
+          // GPS sin fix o fuera de cobertura: aviso y selector manual.
           _pedirCiudadManual = true;
           _mensajeErrorFoto =
               'No se encontró ninguna ciudad compatible con tu ubicación.';
@@ -505,7 +488,7 @@ class HomeViewModel extends ChangeNotifier {
         await _aplicarTitulo(resultado.nombre, 2);
       }
 
-      // Contexto de ruta ANTES de mutar el estado (la foto puede ser de inicio o de parada).
+      // Contexto de ruta antes de mutar el estado (la foto puede ser inicio o parada).
       final esFotoDeRuta = _rutaState?.estado == EstadoRuta.esperandoFoto ||
           _rutaState?.estado == EstadoRuta.activo;
       final eraRutaActiva = _rutaState?.estado == EstadoRuta.activo;
@@ -561,8 +544,7 @@ class HomeViewModel extends ChangeNotifier {
         );
       }
 
-      // Auto-avanzar solo si la foto reconoce el monumento de la parada actual.
-      // Una foto que no clasifica (o de otro monumento) NO avanza la ruta.
+      // Auto-avanza solo si la foto reconoce el monumento de la parada actual.
       if (eraRutaActiva && resultado.id != null && resultado.id == paradaActualId) {
         await siguienteParada();
       }
@@ -598,7 +580,7 @@ class HomeViewModel extends ChangeNotifier {
         PoiSugerido(id: monumentoId, nombre: 'Cuéntame una curiosidad', esPregunta: true),
       ];
 
-  // ── Ruta ──────────────────────────────────────────────────────────────────
+  // Ruta
 
   Future<void> iniciarFlujoRuta() async {
     if (_generando) return;
@@ -636,9 +618,7 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> seleccionarFiltroRuta(String filtro) async {
-    // Anti doble-tap: el filtro solo se procesa desde el estado de selección.
-    // Tras el primer tap pasamos a 'cargando', así que taps posteriores (o muy
-    // rápidos) se ignoran y no se lanzan dos rutas a la vez.
+    // El filtro solo se procesa desde el estado de selección: evita el doble tap.
     if (_rutaState?.estado != EstadoRuta.seleccionandoFiltro) return;
 
     if (_chatId != null && await _bloqueadoPorLimite(_chatId!)) {
@@ -850,9 +830,7 @@ class HomeViewModel extends ChangeNotifier {
     _visitadosSub?.cancel();
     _visitados = [];
     notifyListeners();
-    // Repuebla la ciudad del nuevo chat por GPS o, si no es posible, abre el
-    // selector; sin esto el chat quedaba sin ciudad y el primer envío fallaba
-    // en silencio cuando el GPS estaba activo pero no resolvía.
+    // Repuebla la ciudad del nuevo chat por GPS o abre el selector manual.
     unawaited(_resolverCiudad());
   }
 

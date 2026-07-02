@@ -175,8 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         UbicacionService.instance.cargarCiudadesSoportadas(),
       ]);
     } catch (_) {
-      // Un fallo de Firebase o del plugin de ubicación no debe dejar la
-      // pantalla colgada en loading: igualmente intentamos abrir el selector.
+      // No dejar la pantalla en loading si Firebase o el plugin de ubicación fallan.
     } finally {
       if (mounted) _mostrarSelectorSiNecesario();
     }

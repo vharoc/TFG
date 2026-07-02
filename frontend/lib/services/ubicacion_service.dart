@@ -51,9 +51,8 @@ class UbicacionService {
     return EstadoPermiso.denegado;
   }
 
-  // `timeLimit` evita que la llamada se quede colgada indefinidamente cuando el
-  // GPS no consigue fix (interiores, primer arranque): pasado ese tiempo lanza
-  // TimeoutException y el llamante decide (normalmente, continuar sin bloquear).
+  // timeLimit evita quedarse colgado cuando el GPS no consigue fix: pasado el
+  // plazo lanza TimeoutException y decide el llamante.
   Future<Position> obtenerPosicion() {
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
@@ -115,7 +114,7 @@ class UbicacionService {
     return _distanciaKm(lat, lng, ciudad.lat, ciudad.lng) <= ciudad.radioKm;
   }
 
-  // Fórmula de Haversine — distancia en km entre dos puntos GPS
+  // Haversine: distancia en km entre dos puntos GPS
   double _distanciaKm(double lat1, double lng1, double lat2, double lng2) {
     const r = 6371.0;
     final dLat = _rad(lat2 - lat1);

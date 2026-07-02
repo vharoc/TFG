@@ -21,10 +21,8 @@ class UsoTokens {
   int get restantes => (limite - tokensUsados).clamp(0, limite);
 }
 
-/// Lleva la cuenta diaria de tokens de IA gastados por usuario en Firestore.
-/// El contador se guarda en `users/{uid}/uso/diario` como `{ fecha, tokens }`
-/// y se resetea solo al cambiar de día natural (00:00 hora del dispositivo):
-/// si la fecha guardada no es la de hoy, el uso se considera 0.
+/// Cuenta diaria de tokens de IA por usuario, en users/{uid}/uso/diario.
+/// Si la fecha guardada no es la de hoy, el uso se considera 0.
 class UsoTokensService {
   UsoTokensService._();
   static final UsoTokensService instance = UsoTokensService._();
